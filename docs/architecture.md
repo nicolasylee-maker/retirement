@@ -28,6 +28,10 @@ retirement/
 ├── vite.config.js                          ← Vite dev server (port 5173) + React plugin
 ├── tailwind.config.js                      ← Custom colors (sunset, lake, forest), Inter font
 ├── postcss.config.js                       ← PostCSS + Tailwind + Autoprefixer
+├── .env.example                            ← Env setup instructions (copy one of the three below)
+├── .env.local.example                      ← Template for npm run dev:local (laptop Supabase)
+├── .env.dev.example                        ← Template for npm run dev:dev (cloud dev project)
+├── .env.prod.example                       ← Template for npm run dev:prod (production)
 │
 ├── docs/
 │   ├── architecture.md                     ← This file (structure, patterns, data flow)
@@ -76,6 +80,7 @@ retirement/
 │   │
 │   ├── components/                         ← Reusable UI components
 │   │   ├── AiInsight.jsx                   ← AI recommendation card (Gemini integration)
+│   │   ├── EnvironmentBadge.jsx            ← Colored env pill (LOCAL/DEV/PROD) in header; hidden in real prod
 │   │   ├── Button.jsx                      ← Primary/secondary/text button variants
 │   │   ├── Card.jsx                        ← Base card wrapper with border + shadow
 │   │   ├── FormField.jsx                   ← Input with label, helper text, $ prefix, validation
@@ -329,6 +334,11 @@ npm install
 # Run development server (http://localhost:5173)
 npm run dev
 
+# Run dev server against a specific environment backend
+npm run dev:local   # local Supabase (supabase start on laptop)
+npm run dev:dev     # cloud dev project (no real users)
+npm run dev:prod    # production backend (use with care)
+
 # Run tests (277 tests)
 npm test
 
@@ -468,3 +478,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | Full couple support: spouse CPP/OAS bug fix, spouse employment/pension/savings, two-tax-call |
 | 2026-03-02 | effectiveScenario propagated to Dashboard, report, and audit; surplus formula fixed in PDF; couple fields added to report and audit; auditProjection.js split into auditInputSnapshot.js, auditProjection.js, auditTaxDebt.js |
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
+| 2026-03-02 | Deployment environments: EnvironmentBadge component (LOCAL/DEV/PROD pill in header), npm dev:local/dev:dev/dev:prod scripts, .env.*.example template files |

@@ -12,6 +12,7 @@ import CompareView from './views/compare/CompareView';
 import EstateView from './views/estate/EstateView';
 import DebtView from './views/debt/DebtView';
 import WhatIfPanel from './views/WhatIfPanel';
+import { EnvironmentBadge } from './components/EnvironmentBadge';
 
 const NAV_TABS = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -396,6 +397,8 @@ export default function App() {
                 ))}
               </select>
             )}
+
+            <EnvironmentBadge />
 
             {/* Actions menu */}
             <div className="relative" ref={menuRef}>

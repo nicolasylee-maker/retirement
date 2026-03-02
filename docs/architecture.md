@@ -135,6 +135,12 @@ retirement/
 │       ├── generate.config.js              ← Vitest config for generator only
 │       └── {ON,BC,AB,SK,MB,NB,NS,NL,PE}-golden.json
 │
+├── public/
+│   ├── privacy.html                        ← Privacy policy (PIPEDA compliant)
+│   └── terms.html                          ← Terms of service
+│
+├── vercel.json                             ← URL rewrites for /privacy and /terms
+│
 ├── dist/                                   ← Production build output (Vite)
 │
 ├── test-scenario.json                      ← Sample scenario: Margaret (default)
@@ -458,6 +464,9 @@ npm run build
 
 No server-side code, no environment variables required.
 Gemini API key is user-provided at runtime (stored in localStorage).
+
+`vercel.json` handles URL rewrites so that `/privacy` and `/terms` resolve to
+`/privacy.html` and `/terms.html` respectively, enabling clean URLs on Vercel deployments.
 
 ## Version History
 

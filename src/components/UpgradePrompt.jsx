@@ -3,6 +3,9 @@ import { useSubscription } from '../contexts/SubscriptionContext'
 import { startCheckout } from '../services/stripeService'
 import AuthPanel from './AuthPanel'
 
+const MONTHLY_PRICE_ID = import.meta.env.VITE_STRIPE_PRICE_MONTHLY
+const YEARLY_PRICE_ID = import.meta.env.VITE_STRIPE_PRICE_YEARLY
+
 function LockIcon({ className = 'w-6 h-6' }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -12,30 +15,41 @@ function LockIcon({ className = 'w-6 h-6' }) {
   )
 }
 
-function useCheckout() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  async function handleCheckout() {
-    setLoading(true)
-    setError('')
-    try {
-      await startCheckout(import.meta.env.VITE_STRIPE_PRICE_MONTHLY)
-    } catch (e) {
-      setError(e.message || 'Could not start checkout. Please try again.')
-      setLoading(false)
-    }
-  }
-
-  return { handleCheckout, loading, error }
+function CheckIcon() {
+  return (
+    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+    </svg>
+  )
 }
 
-export default function UpgradePrompt({ variant = 'full', featureName }) {
+const FEATURES = [
+  'Compare multiple scenarios side-by-side',
+  'Estate planning & heir distribution',
+  'What-If analysis with live sliders',
+  'AI-powered retirement insights',
+]
+
+export default function UpgradePrompt({ variant = 'full', featureName, modal = false }) {
   const { isLoading } = useSubscription()
-  const { handleCheckout, loading, error } = useCheckout()
+  const [billingPlan, setBillingPlan] = useState('yearly')
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [checkoutError, setCheckoutError] = useState('')
   const [authOpen, setAuthOpen] = useState(false)
 
   if (isLoading) return null
+
+  async function handleCheckout() {
+    setCheckoutLoading(true)
+    setCheckoutError('')
+    const priceId = billingPlan === 'yearly' ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID
+    try {
+      await startCheckout(priceId)
+    } catch (e) {
+      setCheckoutError(e.message || 'Could not start checkout. Please try again.')
+      setCheckoutLoading(false)
+    }
+  }
 
   if (variant === 'compact') {
     return (
@@ -47,92 +61,129 @@ export default function UpgradePrompt({ variant = 'full', featureName }) {
         <button
           type="button"
           onClick={handleCheckout}
-          disabled={loading}
+          disabled={checkoutLoading}
           className="flex-shrink-0 px-3 py-1.5 text-sm font-semibold text-white rounded-lg
                      bg-gradient-to-r from-purple-600 to-indigo-600
                      hover:from-purple-700 hover:to-indigo-700
                      disabled:opacity-50 transition-all whitespace-nowrap"
         >
-          {loading ? 'Loading...' : 'Start trial'}
+          {checkoutLoading ? 'Loading...' : 'Start trial'}
         </button>
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {checkoutError && <p className="text-xs text-red-600">{checkoutError}</p>}
       </div>
     )
   }
 
   // variant === 'full'
-  return (
-    <div className="flex items-center justify-center py-16 px-4">
-      <div className="max-w-lg w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
-        <div className="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
-          <LockIcon className="w-7 h-7 text-purple-600" />
-        </div>
-
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Unlock {featureName}</h2>
-        <p className="text-gray-500 mb-6">
-          Start your 7-day free trial — no credit card required.
-        </p>
-
-        <ul className="text-left space-y-2 mb-6">
-          {['Compare multiple scenarios side-by-side', 'Estate planning & heir distribution', 'What-If analysis with live sliders', 'AI-powered retirement insights'].map((f) => (
-            <li key={f} className="flex items-center gap-2 text-sm text-gray-700">
-              <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              {f}
-            </li>
-          ))}
-        </ul>
-
-        <p className="text-xs text-gray-400 mb-4">Only $5/month or $44/year after trial</p>
-
-        {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
-
-        <button
-          type="button"
-          onClick={handleCheckout}
-          disabled={loading}
-          className="w-full py-3 text-sm font-semibold text-white rounded-xl
-                     bg-gradient-to-r from-purple-600 to-indigo-600
-                     hover:from-purple-700 hover:to-indigo-700
-                     disabled:opacity-50 transition-all mb-3"
-        >
-          {loading ? 'Loading...' : 'Start free trial'}
-        </button>
-
-        <div className="flex items-center justify-center gap-4 text-sm">
-          <a href="/terms" className="text-purple-600 hover:text-purple-800 underline">
-            See all plans
-          </a>
-          <span className="text-gray-300">|</span>
-          <button
-            type="button"
-            onClick={() => setAuthOpen(true)}
-            className="text-gray-500 hover:text-gray-700 underline"
-          >
-            Already subscribed? Sign in
-          </button>
-        </div>
+  const cardInner = (
+    <div className="max-w-lg w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+      <div className="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
+        <LockIcon className="w-7 h-7 text-purple-600" />
       </div>
 
-      {authOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onMouseDown={(e) => { if (e.target === e.currentTarget) setAuthOpen(false) }}
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Unlock {featureName}</h2>
+      <p className="text-gray-500 mb-5">
+        Start your 7-day free trial — no credit card required.
+      </p>
+
+      <ul className="text-left space-y-2 mb-5">
+        {FEATURES.map((f) => (
+          <li key={f} className="flex items-center gap-2 text-sm text-gray-700">
+            <CheckIcon />
+            {f}
+          </li>
+        ))}
+      </ul>
+
+      {/* Plan toggle */}
+      <div className="flex rounded-xl border border-gray-200 overflow-hidden mb-4">
+        <button
+          type="button"
+          onClick={() => setBillingPlan('monthly')}
+          className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+            billingPlan === 'monthly'
+              ? 'bg-purple-600 text-white'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
         >
-          <div className="bg-white rounded-2xl shadow-2xl relative">
-            <button
-              type="button"
-              onClick={() => setAuthOpen(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl leading-none"
-              aria-label="Close"
-            >
-              &times;
-            </button>
-            <AuthPanel onClose={() => setAuthOpen(false)} />
-          </div>
-        </div>
-      )}
+          Monthly<br />
+          <span className={`text-xs font-normal ${billingPlan === 'monthly' ? 'text-purple-200' : 'text-gray-400'}`}>
+            $5 CAD / month
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setBillingPlan('yearly')}
+          className={`flex-1 py-2.5 text-sm font-medium transition-colors relative ${
+            billingPlan === 'yearly'
+              ? 'bg-purple-600 text-white'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          Annual
+          <span className={`ml-1.5 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+            billingPlan === 'yearly' ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700'
+          }`}>
+            Save 27%
+          </span>
+          <br />
+          <span className={`text-xs font-normal ${billingPlan === 'yearly' ? 'text-purple-200' : 'text-gray-400'}`}>
+            $44 CAD / year
+          </span>
+        </button>
+      </div>
+
+      {checkoutError && <p className="text-sm text-red-600 mb-3">{checkoutError}</p>}
+
+      <button
+        type="button"
+        onClick={handleCheckout}
+        disabled={checkoutLoading}
+        className="w-full py-3 text-sm font-semibold text-white rounded-xl
+                   bg-gradient-to-r from-purple-600 to-indigo-600
+                   hover:from-purple-700 hover:to-indigo-700
+                   disabled:opacity-50 transition-all mb-4"
+      >
+        {checkoutLoading ? 'Loading...' : 'Start free trial'}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setAuthOpen(true)}
+        className="text-sm text-gray-500 hover:text-gray-700 underline"
+      >
+        Already subscribed? Sign in
+      </button>
+    </div>
+  )
+
+  const authModal = authOpen && (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) setAuthOpen(false) }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl relative">
+        <button
+          type="button"
+          onClick={() => setAuthOpen(false)}
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl leading-none"
+          aria-label="Close"
+        >
+          &times;
+        </button>
+        <AuthPanel onClose={() => setAuthOpen(false)} />
+      </div>
+    </div>
+  )
+
+  if (modal) {
+    return <>{cardInner}{authModal}</>
+  }
+
+  return (
+    <div className="flex items-center justify-center py-16 px-4">
+      {cardInner}
+      {authModal}
     </div>
   )
 }

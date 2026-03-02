@@ -4,11 +4,15 @@ import AuthPanel from './AuthPanel'
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
 
-export default function AccountMenu({ onAdmin }) {
+export default function AccountMenu({ onAdmin, open, onOpenChange }) {
   const { user, isLoading, signOut } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [panelOpen, setPanelOpen] = useState(false)
+  const [panelOpenInternal, setPanelOpenInternal] = useState(false)
   const dropdownRef = useRef(null)
+
+  // Support controlled mode (open/onOpenChange) or internal uncontrolled mode
+  const panelOpen = open !== undefined ? open : panelOpenInternal
+  const setPanelOpen = onOpenChange !== undefined ? onOpenChange : setPanelOpenInternal
 
   useEffect(() => {
     if (!dropdownOpen) return

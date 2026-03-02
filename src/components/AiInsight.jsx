@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { getAiRecommendation, QuotaExceededError } from '../services/geminiService'
+import { useSubscription } from '../contexts/SubscriptionContext'
+import UpgradePrompt from './UpgradePrompt'
 
 function SparkleIcon() {
   return (
@@ -80,6 +82,7 @@ function renderText(text) {
 const resultCache = new Map()
 
 export default function AiInsight({ type, data, scenarioKey }) {
+  const { isPaid } = useSubscription()
   const dataHash = JSON.stringify(data)
   const cacheKey = `${type}:${dataHash.slice(0, 200)}`
 
@@ -88,6 +91,7 @@ export default function AiInsight({ type, data, scenarioKey }) {
   const [error, setError] = useState('')
   const [quotaInfo, setQuotaInfo] = useState(null) // { used, limit, resetAt } when quota exceeded
   const [collapsed, setCollapsed] = useState(false)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
   const lastKey = useRef(recommendation ? cacheKey : '')
 
   // Restore cached result when inputs change (no fetch)
@@ -126,6 +130,7 @@ export default function AiInsight({ type, data, scenarioKey }) {
   }, [type, cacheKey, data])
 
   return (
+    <>
     <div className="ai-insight-card">
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-600 rounded-t-[0.75rem]" />
 
@@ -151,7 +156,7 @@ export default function AiInsight({ type, data, scenarioKey }) {
         </button>
         {!loading && !quotaInfo && (
           <button
-            onClick={(e) => { e.stopPropagation(); fetchRecommendation() }}
+            onClick={(e) => { e.stopPropagation(); isPaid ? fetchRecommendation() : setUpgradeOpen(true) }}
             title={recommendation ? 'Refresh insights' : 'Generate insights'}
             className="p-1.5 rounded-lg text-purple-500 hover:text-purple-700 hover:bg-purple-50
                        transition-colors flex-shrink-0"
@@ -186,9 +191,7 @@ export default function AiInsight({ type, data, scenarioKey }) {
           {error && !quotaInfo && (
             <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">
               {error}
-              <button onClick={fetchRecommendation} className="ml-2 text-red-700 underline font-medium">
-                Retry
-              </button>
+              <button onClick={fetchRecommendation} className="ml-2 text-red-700 underline font-medium">Retry</button>
             </div>
           )}
           {recommendation && !loading && (
@@ -196,7 +199,7 @@ export default function AiInsight({ type, data, scenarioKey }) {
           )}
           {!recommendation && !loading && !quotaInfo && !error && (
             <button
-              onClick={fetchRecommendation}
+              onClick={isPaid ? fetchRecommendation : () => setUpgradeOpen(true)}
               className="w-full py-3 text-sm font-medium text-purple-600 bg-purple-50
                          hover:bg-purple-100 rounded-lg transition-colors
                          flex items-center justify-center gap-2"
@@ -208,5 +211,25 @@ export default function AiInsight({ type, data, scenarioKey }) {
         </div>
       )}
     </div>
+
+    {upgradeOpen && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+        onMouseDown={(e) => { if (e.target === e.currentTarget) setUpgradeOpen(false) }}
+      >
+        <div className="relative mx-4">
+          <button
+            type="button"
+            onClick={() => setUpgradeOpen(false)}
+            className="absolute top-3 right-3 z-10 text-gray-400 hover:text-gray-600 text-xl leading-none"
+            aria-label="Close"
+          >
+            &times;
+          </button>
+          <UpgradePrompt variant="full" featureName="AI Insights" modal />
+        </div>
+      </div>
+    )}
+    </>
   )
 }

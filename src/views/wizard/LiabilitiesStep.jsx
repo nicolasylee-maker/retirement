@@ -22,11 +22,6 @@ export default function LiabilitiesStep({ scenario, onChange }) {
     onChange({ [field]: value });
   };
 
-  const isDebtFree =
-    !scenario.mortgageBalance &&
-    !scenario.consumerDebt &&
-    !scenario.otherDebt;
-
   const consumerSummary = useMemo(() =>
     calcPayoffSummary(
       scenario.consumerDebt,
@@ -55,22 +50,6 @@ export default function LiabilitiesStep({ scenario, onChange }) {
           Outstanding debts that will affect your retirement cash flow.
         </p>
       </div>
-
-      {isDebtFree && (
-        <Card>
-          <div className="flex items-center gap-3 text-green-700 bg-green-50 rounded-lg p-3">
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="font-semibold text-sm">Debt-free! Great position for retirement.</p>
-              <p className="text-xs text-green-600 mt-0.5">
-                You can skip this step or add any debts you expect to carry.
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
 
       {/* Mortgage */}
       <Card>

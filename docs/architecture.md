@@ -15,6 +15,9 @@ A client-side React single-page application for Canadian residents planning reti
 | Charts | Recharts 2.15 | React-native charting, composable, responsive |
 | Testing | Vitest | Vite-native test runner, fast, Jest-compatible API |
 | AI (optional) | Google Gemini API | User-provided API key, optional retirement insights |
+| Database | Supabase (Postgres, ca-central-1) | Canadian data residency, built-in auth |
+| Auth | Supabase Auth (Google OAuth + magic link) | No passwords to manage |
+| Payments | Stripe Billing | Subscriptions, trial, Customer Portal |
 | State Management | React hooks (useState/useMemo) | App is shallow enough — no external library needed |
 | Routing | Custom view state in App.jsx | Simple state-based switching — no router library |
 | Persistence | JSON export/import | No backend; user saves/loads scenario files |
@@ -28,6 +31,13 @@ retirement/
 ├── vite.config.js                          ← Vite dev server (port 5173) + React plugin
 ├── tailwind.config.js                      ← Custom colors (sunset, lake, forest), Inter font
 ├── postcss.config.js                       ← PostCSS + Tailwind + Autoprefixer
+├── .env.example                            ← Environment variable template (copy to .env)
+│
+├── supabase/
+│   ├── config.toml                         ← Supabase CLI local dev config
+│   └── migrations/
+│       ├── 001_initial_schema.sql          ← users, scenarios, subscriptions, ai_usage tables
+│       └── 002_rls_policies.sql            ← RLS policies + new-user trigger
 │
 ├── docs/
 │   ├── architecture.md                     ← This file (structure, patterns, data flow)
@@ -436,6 +446,7 @@ tests/
 - **All tax math isolated**: Engines have zero UI dependencies, independently testable
 - **Multi-province**: 9 English Canadian provinces (ON, BC, AB, SK, MB, NB, NS, NL, PE) — tax/probate/intestacy data per province in `data/provinces/*.json`
 - **No backend**: All computation client-side, persistence via JSON file export/import
+- **Backend (planned)**: Supabase (auth, Postgres DB, Edge Functions) + Stripe (billing) — see specs/pending/ for implementation specs
 - **Optional AI**: Gemini integration is fully optional — app works without any API key
   - API key stored in localStorage (user-provided)
   - `src/services/geminiService.js`: API wrapper with in-memory caching

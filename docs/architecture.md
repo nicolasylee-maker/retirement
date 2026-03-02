@@ -70,6 +70,7 @@ retirement/
 │   │   └── geminiService.js                ← Google Gemini AI integration (optional insights)
 │   │
 │   ├── utils/
+│   │   ├── analytics.js                    ← Plausible custom event helper (no-ops if window.plausible absent)
 │   │   ├── formatters.js                   ← Currency, percent, UUID, math utilities
 │   │   ├── generateReport.js               ← HTML retirement report (PDF-printable, inputs + projection)
 │   │   └── downloadAudit.js                ← Audit report assembler + Markdown download trigger
@@ -77,6 +78,7 @@ retirement/
 │   ├── components/                         ← Reusable UI components
 │   │   ├── AiInsight.jsx                   ← AI recommendation card (Gemini integration)
 │   │   ├── Button.jsx                      ← Primary/secondary/text button variants
+│   │   ├── ErrorFallback.jsx               ← Sentry ErrorBoundary fallback UI (friendly reload screen)
 │   │   ├── Card.jsx                        ← Base card wrapper with border + shadow
 │   │   ├── FormField.jsx                   ← Input with label, helper text, $ prefix, validation
 │   │   ├── HelpIcon.jsx                    ← Tooltip with info icon
@@ -315,6 +317,7 @@ tests/yourModuleEngine.test.js    ← Unit tests for engine functions
 | `src/engines/withdrawalCalc.js` | Sustainable withdrawal (binary search) |
 | `src/engines/incomeHelpers.js` | Pure income helper functions (CPP, OAS, GIS, GAINS, capital gains) |
 | `src/services/geminiService.js` | Optional AI insights via Gemini API |
+| `src/utils/analytics.js` | Plausible custom event helper — trackEvent(name, props) |
 | `src/utils/formatters.js` | Currency/percent formatting, UUID generation |
 | `docs/architecture.md` | This file |
 | `docs/AGENTS.md` | AI agent protocol |
@@ -468,3 +471,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | Full couple support: spouse CPP/OAS bug fix, spouse employment/pension/savings, two-tax-call |
 | 2026-03-02 | effectiveScenario propagated to Dashboard, report, and audit; surplus formula fixed in PDF; couple fields added to report and audit; auditProjection.js split into auditInputSnapshot.js, auditProjection.js, auditTaxDebt.js |
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
+| 2026-03-02 | Analytics & error monitoring: Plausible script tag, trackEvent helper, wizard funnel events, Sentry init + ErrorBoundary |

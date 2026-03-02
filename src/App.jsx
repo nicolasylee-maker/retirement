@@ -321,14 +321,13 @@ export default function App() {
                       <button onClick={menuAction(() => handleRenameScenario())} className="menu-item">Rename Plan</button>
                       <button onClick={menuAction(handleDuplicateScenario)} className="menu-item">Duplicate Plan</button>
                       {currentScenario && (
-                        <GatedButton featureName="PDF Export"
+                        <GatedButton featureName="PDF Export" bypass={isAdmin}
                           onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
                           className="menu-item w-full text-left">PDF Report</GatedButton>
                       )}
-                      {currentScenario && (
-                        <GatedButton featureName="Audit Export"
-                          onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData))}
-                          className="menu-item w-full text-left">Calculation Audit</GatedButton>
+                      {isAdmin && currentScenario && (
+                        <button onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData))}
+                          className="menu-item">Calculation Audit</button>
                       )}
                       <div className="border-t border-gray-100 my-1.5 mx-3" />
                       <button onClick={menuAction(handleExport)} className="menu-item">Export</button>

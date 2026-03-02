@@ -151,7 +151,7 @@ function WaterfallLegend({ hasDebt, hasMeltdown, hasSurplus, hasShortfall }) {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function PortfolioChart({ projectionData, scenario, forceView }) {
+export default function PortfolioChart({ projectionData, scenario, forceView, chartHeight = 360 }) {
   if (!projectionData || projectionData.length === 0) return null;
 
   const [showNoDebt,  setShowNoDebt]  = useState(false);
@@ -317,7 +317,7 @@ export default function PortfolioChart({ projectionData, scenario, forceView }) 
       )}
 
       {/* ── Chart area with crossfade ──────────────────────────────────────── */}
-      <div className="relative" style={{ height: 360 }}>
+      <div className="relative" style={{ height: chartHeight }}>
 
         {/* Balance view */}
         <div
@@ -329,7 +329,7 @@ export default function PortfolioChart({ projectionData, scenario, forceView }) 
             zIndex: activeView === 'balance' ? 1 : 0,
           }}
         >
-          <ResponsiveContainer width="100%" height={360}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <ComposedChart data={mergedData} margin={{ top: 46, right: 20, left: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
@@ -405,7 +405,7 @@ export default function PortfolioChart({ projectionData, scenario, forceView }) 
           }}
         >
           {waterfallData && (
-            <ResponsiveContainer width="100%" height={360}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart data={waterfallData} margin={{ top: 46, right: 20, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_STYLE.gridColor} vertical={false} />
                 <XAxis

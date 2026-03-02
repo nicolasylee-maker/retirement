@@ -11,6 +11,7 @@ import EstateView from './views/estate/EstateView';
 import DebtView from './views/debt/DebtView';
 import WhatIfPanel from './views/WhatIfPanel';
 import SaveNudgeScreen from './views/SaveNudgeScreen';
+import { LandingPage } from './views/LandingPage';
 import MyPlansView from './views/MyPlansView';
 import AdminView from './views/admin/AdminView';
 import AccountMenu from './components/AccountMenu';
@@ -81,7 +82,7 @@ export default function App() {
   const [view, setView] = useState(() => {
     const saved = loadSaved();
     if (saved?.scenarios?.length > 0) return 'dashboard';
-    return 'wizard';
+    return 'landing';
   });
   const [wizardStep, setWizardStep] = useState(() => {
     const saved = loadSaved();
@@ -100,6 +101,18 @@ export default function App() {
     const data = { scenarios, currentScenarioId, view: view === 'wizard' ? 'dashboard' : view };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [scenarios, currentScenarioId, view]);
+
+  // After sign-in on landing page, move to wizard
+  useEffect(() => {
+    if (view === 'landing' && authUser) {
+      if (scenarios.length === 0) {
+        const newScenario = createDefaultScenario('My Plan');
+        setScenarios([newScenario]);
+        setCurrentScenarioId(newScenario.id);
+      }
+      setView('wizard');
+    }
+  }, [authUser, view]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (view !== 'dashboard' && view !== 'wizard' && view !== 'save-nudge') return;
@@ -179,7 +192,7 @@ export default function App() {
     setView('dashboard');
   }, []);
 
-  const handleWizardComplete = useCallback(() => setView('save-nudge'), []);
+  const handleWizardComplete = useCallback(() => setView('dashboard'), []);
 
   const handleExport = useCallback(() => {
     const payload = { version: 3, scenarios, exportedAt: new Date().toISOString() };
@@ -234,6 +247,7 @@ export default function App() {
   const handleResetOverrides = useCallback(() => setWhatIfOverrides({}), []);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -257,7 +271,7 @@ export default function App() {
           to keep access.
         </div>
       )}
-      {view !== 'wizard' && view !== 'save-nudge' && (
+      {view !== 'wizard' && view !== 'save-nudge' && view !== 'landing' && (
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div className="px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between gap-3">
           <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight shrink-0">
@@ -265,7 +279,7 @@ export default function App() {
           </h1>
 
           <div className="flex items-center gap-2 min-w-0">
-            {scenarios.length > 0 && (
+            {authUser && scenarios.length > 0 && (
               <select value={currentScenarioId || ''} onChange={(e) => handleSwitchScenario(e.target.value)}
                 className="text-sm border border-gray-300 rounded-lg px-2 py-1.5
                            focus:outline-none focus:ring-2 focus:ring-sunset-400 max-w-[180px]">
@@ -290,24 +304,43 @@ export default function App() {
               {menuOpen && (
                 <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-xl
                                 border border-gray-200 py-1.5 z-50">
-                  <button onClick={menuAction(() => { setWizardStep(0); setView('wizard'); })} className="menu-item">Edit Plan</button>
-                  <button onClick={menuAction(handleStartNew)} className="menu-item">New Plan</button>
-                  <button onClick={menuAction(() => handleRenameScenario())} className="menu-item">Rename Plan</button>
-                  <button onClick={menuAction(handleDuplicateScenario)} className="menu-item">Duplicate Plan</button>
-                  {currentScenario && (
-                    <GatedButton featureName="PDF Export"
-                      onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
-                      className="menu-item w-full text-left">PDF Report</GatedButton>
+                  {!authUser && (
+                    <>
+                      <button onClick={menuAction(() => setSignInOpen(true))}
+                        className="menu-item font-semibold text-orange-500">
+                        Sign in to save & manage →
+                      </button>
+                      <div className="border-t border-gray-100 my-1.5 mx-3" />
+                    </>
                   )}
-                  {currentScenario && (
-                    <GatedButton featureName="Audit Export"
-                      onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData))}
-                      className="menu-item w-full text-left">Calculation Audit</GatedButton>
+
+                  {authUser && (
+                    <>
+                      <button onClick={menuAction(() => { setWizardStep(0); setView('wizard'); })} className="menu-item">Edit Plan</button>
+                      <button onClick={menuAction(handleStartNew)} className="menu-item">New Plan</button>
+                      <button onClick={menuAction(() => handleRenameScenario())} className="menu-item">Rename Plan</button>
+                      <button onClick={menuAction(handleDuplicateScenario)} className="menu-item">Duplicate Plan</button>
+                      {currentScenario && (
+                        <GatedButton featureName="PDF Export"
+                          onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
+                          className="menu-item w-full text-left">PDF Report</GatedButton>
+                      )}
+                      {currentScenario && (
+                        <GatedButton featureName="Audit Export"
+                          onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData))}
+                          className="menu-item w-full text-left">Calculation Audit</GatedButton>
+                      )}
+                      <div className="border-t border-gray-100 my-1.5 mx-3" />
+                      <button onClick={menuAction(handleExport)} className="menu-item">Export</button>
+                      <button onClick={menuAction(() => importInputRef.current?.click())} className="menu-item">Import</button>
+                      <div className="border-t border-gray-100 my-1.5 mx-3" />
+                    </>
                   )}
-                  <div className="border-t border-gray-100 my-1.5 mx-3" />
-                  <button onClick={menuAction(handleExport)} className="menu-item">Export</button>
-                  <button onClick={menuAction(() => importInputRef.current?.click())} className="menu-item">Import</button>
-                  {scenarios.length > 1 && (
+
+                  <button onClick={menuAction(() => { if (confirm('Clear everything and start over?')) { localStorage.clear(); location.reload(); } })}
+                    className="menu-item text-gray-400 hover:!text-gray-600">Start Over</button>
+
+                  {authUser && scenarios.length > 1 && (
                     <>
                       <div className="border-t border-gray-100 my-1.5 mx-3" />
                       <button onClick={menuAction(() => { if (confirm(`Delete "${currentScenario?.name}"?`)) handleDeleteScenario(currentScenarioId); })}
@@ -323,7 +356,7 @@ export default function App() {
 
             <EnvironmentBadge />
             <SubscriptionBadge />
-            <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} />
+            <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
           </div>
         </div>
 
@@ -342,12 +375,16 @@ export default function App() {
 
       <main className="flex-1">
         <div className="view-enter" key={view}>
+          {view === 'landing' && (
+            <LandingPage onTryAnonymous={() => {
+              const newScenario = createDefaultScenario('My Plan');
+              setScenarios([newScenario]);
+              setCurrentScenarioId(newScenario.id);
+              setView('wizard');
+            }} />
+          )}
           {view === 'wizard' && currentScenario && (
             <WizardShell scenario={currentScenario} onChange={handleScenarioChange}
-              onComplete={handleWizardComplete} currentStep={wizardStep} onStepChange={setWizardStep} />
-          )}
-          {view === 'wizard' && !currentScenario && (
-            <WizardShell scenario={createDefaultScenario('My Plan')} onChange={handleScenarioChange}
               onComplete={handleWizardComplete} currentStep={wizardStep} onStepChange={setWizardStep} />
           )}
           {view === 'dashboard' && currentScenario && (

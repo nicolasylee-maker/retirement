@@ -248,6 +248,45 @@ export default function PersonalInfoStep({ scenario, onChange, userName, onUserN
               helper="When your partner plans to retire"
             />
           </div>
+          {/* Spouse employment income */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800">Spouse Still Working?</h4>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Include spouse income until they retire at age {scenario.spouseRetirementAge}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={scenario.spouseStillWorking ?? true}
+                onClick={() => onChange({ spouseStillWorking: !(scenario.spouseStillWorking ?? true) })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-sunset-400 focus:ring-offset-2 ${
+                  (scenario.spouseStillWorking ?? true) ? 'bg-sunset-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    (scenario.spouseStillWorking ?? true) ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            {(scenario.spouseStillWorking ?? true) && (
+              <FormField
+                label="Spouse Annual Employment Income (Gross)"
+                name="spouseEmploymentIncome"
+                type="number"
+                value={scenario.spouseEmploymentIncome}
+                onChange={handleChange('spouseEmploymentIncome')}
+                prefix="$"
+                suffix="/yr"
+                min={0}
+                helper={`Spouse salary/wages before tax — used until they retire at age ${scenario.spouseRetirementAge}`}
+              />
+            )}
+          </div>
         </Card>
       )}
     </div>

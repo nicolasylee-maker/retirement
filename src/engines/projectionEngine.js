@@ -1,58 +1,6 @@
-import {
-  CPP_PARAMS, OAS_PARAMS, GIS_PARAMS, GAINS_PARAMS, CAPITAL_GAINS,
-  TFSA_PARAMS,
-} from '../constants/taxTables.js';
+import { TFSA_PARAMS } from '../constants/taxTables.js';
 import { calcTotalTax, calcOasClawback, calcRrifMinimum } from './taxEngine.js';
-
-/** Tiered capital gains inclusion: 50% on first $250K, 66.7% above. */
-function calcTaxableCapitalGain(gain) {
-  if (gain <= 0) return 0;
-  if (gain <= CAPITAL_GAINS.enhancedThreshold) {
-    return gain * CAPITAL_GAINS.inclusionRate;
-  }
-  const base = CAPITAL_GAINS.enhancedThreshold * CAPITAL_GAINS.inclusionRate;
-  const excess = (gain - CAPITAL_GAINS.enhancedThreshold) * CAPITAL_GAINS.enhancedRate;
-  return base + excess;
-}
-
-/** CPP annual benefit adjusted for start age vs 65. */
-function calcCppBenefit(monthlyAt65, startAge, currentAge) {
-  if (currentAge < startAge) return 0;
-  const monthsDiff = (startAge - 65) * 12;
-  let adjustment;
-  if (monthsDiff < 0) {
-    // Early: reduce by 0.6% per month
-    adjustment = 1 + monthsDiff * CPP_PARAMS.earlyReduction;
-  } else {
-    // Late: increase by 0.7% per month
-    adjustment = 1 + monthsDiff * CPP_PARAMS.lateIncrease;
-  }
-  return monthlyAt65 * 12 * Math.max(0, adjustment);
-}
-
-/** OAS annual benefit adjusted for deferral past 65. */
-function calcOasBenefit(monthlyAt65, startAge, currentAge) {
-  if (currentAge < startAge) return 0;
-  const yearsDeferred = Math.min(startAge, OAS_PARAMS.maxDeferAge) - OAS_PARAMS.startAge;
-  const monthsDeferred = Math.max(0, yearsDeferred) * 12;
-  const deferralBonus = monthsDeferred * OAS_PARAMS.deferralBonus;
-  return monthlyAt65 * 12 * (1 + deferralBonus);
-}
-
-/** GIS benefit: income-tested, only if receiving OAS. */
-function calcGisBenefit(receivingOas, otherIncome) {
-  if (!receivingOas) return 0;
-  if (otherIncome >= GIS_PARAMS.incomeThreshold) return 0;
-  const reduction = otherIncome * GIS_PARAMS.clawbackRate;
-  return Math.max(0, GIS_PARAMS.maxAnnual - reduction);
-}
-
-/** Ontario GAINS benefit. */
-function calcGainsBenefit(age, privateIncome) {
-  if (age < GAINS_PARAMS.minAge) return 0;
-  const reduction = Math.max(0, privateIncome - GAINS_PARAMS.singleIncomeThreshold);
-  return Math.max(0, GAINS_PARAMS.maxAnnual - reduction * GAINS_PARAMS.clawbackRate);
-}
+import { calcCppBenefit, calcOasBenefit, calcGisBenefit, calcGainsBenefit, calcTaxableCapitalGain } from './incomeHelpers.js';
 
 /** Project a full retirement scenario year-by-year. */
 export function projectScenario(scenario, overrides = {}) {
@@ -64,8 +12,6 @@ export function projectScenario(scenario, overrides = {}) {
   let tfsa = s.tfsaBalance || 0;
   let nonReg = (s.nonRegInvestments || 0) + (s.cashSavings || 0);
   let other = s.otherAssets || 0;
-  // Cost basis: use explicit value if provided, otherwise infer from initial deposit
-  // (assumes entire non-reg balance is cost basis, i.e. no unrealized gains at start)
   let nonRegCostBasis = s.nonRegCostBasis || nonReg;
   let mortgage = s.mortgageBalance || 0;
   let consumer = s.consumerDebt || 0;
@@ -77,11 +23,20 @@ export function projectScenario(scenario, overrides = {}) {
   const nonRegReturn = s.nonRegReturn || realReturn;
   const inflation = s.inflationRate || 0.025;
 
+  // Spouse account pools (only meaningful when isCouple)
+  let spouseRrsp = s.isCouple ? (s.spouseRrspBalance || 0) + (s.spouseRrifBalance || 0) + (s.spouseDcPensionBalance || 0) : 0;
+  let spouseTfsa = s.isCouple ? (s.spouseTfsaBalance || 0) : 0;
+  let spouseRrifConverted = s.isCouple && (s.spouseAge || 0) >= 72;
+
   for (let age = s.currentAge; age <= s.lifeExpectancy; age++) {
     const year = currentYear + (age - s.currentAge);
     const yearsFromNow = age - s.currentAge;
     const retired = age >= s.retirementAge;
     const inflationFactor = Math.pow(1 + inflation, yearsFromNow);
+
+    const spouseAgeThisYear = s.isCouple ? (s.spouseAge || 0) + (age - s.currentAge) : 0;
+    const spouseRetired = s.isCouple && spouseAgeThisYear >= (s.spouseRetirementAge || 65);
+    if (s.isCouple && spouseAgeThisYear >= 72 && !spouseRrifConverted) spouseRrifConverted = true;
 
     if (age >= 72 && !rrifConverted) rrifConverted = true;
 
@@ -105,7 +60,6 @@ export function projectScenario(scenario, overrides = {}) {
       const payoffAge = s.consumerDebtPayoffAge || (s.currentAge + 10);
       const yearsLeft = Math.max(1, payoffAge - s.currentAge - yearsFromNow);
       const rate = s.consumerDebtRate || 0.08;
-      // Standard amortization: fixed annual payment to reach $0 by payoff age
       let annualPayment;
       if (rate === 0) {
         annualPayment = consumer / yearsLeft;
@@ -123,6 +77,12 @@ export function projectScenario(scenario, overrides = {}) {
     let employmentIncome = 0;
     if (!retired && (s.stillWorking ?? true) && s.employmentIncome > 0) {
       employmentIncome = s.employmentIncome * inflationFactor;
+    }
+
+    // Spouse employment income (pre-retirement only)
+    let spouseEmploymentIncome = 0;
+    if (s.isCouple && !spouseRetired && (s.spouseStillWorking ?? true) && (s.spouseEmploymentIncome || 0) > 0) {
+      spouseEmploymentIncome = s.spouseEmploymentIncome * inflationFactor;
     }
 
     // Non-taxed income (cash / informal — not included in taxable income)
@@ -146,6 +106,21 @@ export function projectScenario(scenario, overrides = {}) {
       }
     }
 
+    // Spouse government benefits
+    const spouseCppIncome = s.isCouple
+      ? calcCppBenefit(s.spouseCppMonthly || 0, s.spouseCppStartAge || 65, spouseAgeThisYear) * inflationFactor
+      : 0;
+    const spouseOasGross = s.isCouple
+      ? calcOasBenefit(s.spouseOasMonthly || 0, s.spouseOasStartAge || 65, spouseAgeThisYear) * inflationFactor
+      : 0;
+
+    // Spouse pension
+    let spousePensionIncome = 0;
+    if (s.isCouple && s.spousePensionType === 'db' && spouseAgeThisYear >= (s.spouseDbPensionStartAge || 65)) {
+      spousePensionIncome = s.spouseDbPensionAnnual || 0;
+      if (s.spouseDbPensionIndexed) spousePensionIncome *= inflationFactor;
+    }
+
     let rrifMinimum = 0;
     if (rrifConverted && rrsp > 0) {
       rrifMinimum = calcRrifMinimum(rrsp, age);
@@ -159,6 +134,19 @@ export function projectScenario(scenario, overrides = {}) {
 
     let rrspWithdrawal = Math.max(rrifMinimum, meltdownWithdrawal);
     rrspWithdrawal = Math.min(rrspWithdrawal, rrsp);
+
+    // Spouse RRIF minimum
+    let spouseRrspWithdrawal = 0;
+    if (s.isCouple && spouseRrifConverted && spouseRrsp > 0) {
+      spouseRrspWithdrawal = Math.min(calcRrifMinimum(spouseRrsp, spouseAgeThisYear), spouseRrsp);
+    }
+    let spouseRrspAvail = s.isCouple ? Math.max(0, spouseRrsp - spouseRrspWithdrawal) : 0;
+
+    // Spouse OAS clawback
+    const spouseIncomeBeforeDrawdown = spouseCppIncome + spouseOasGross + spousePensionIncome + spouseRrspWithdrawal;
+    const spouseOasIncome = s.isCouple
+      ? Math.max(0, spouseOasGross - calcOasClawback(spouseIncomeBeforeDrawdown))
+      : 0;
 
     const incomeBeforeDrawdown = cppIncome + oasGross + pensionIncome + rrspWithdrawal;
     const oasClawback = calcOasClawback(incomeBeforeDrawdown);
@@ -175,7 +163,10 @@ export function projectScenario(scenario, overrides = {}) {
       gainsIncome = calcGainsBenefit(age, pensionIncome + rrspWithdrawal);
     }
 
-    const totalKnownIncome = employmentIncome + nonTaxedIncome + cppIncome + oasIncome + gisIncome + gainsIncome + pensionIncome + rrspWithdrawal;
+    const spouseKnownIncome = s.isCouple
+      ? spouseEmploymentIncome + spouseCppIncome + spouseOasIncome + spousePensionIncome + spouseRrspWithdrawal
+      : 0;
+    const totalKnownIncome = employmentIncome + nonTaxedIncome + cppIncome + oasIncome + gisIncome + gainsIncome + pensionIncome + rrspWithdrawal + spouseKnownIncome;
     const totalNeed = expenses + debtPayments;
     const shortfall = Math.max(0, totalNeed - totalKnownIncome);
 
@@ -217,10 +208,16 @@ export function projectScenario(scenario, overrides = {}) {
             break;
           }
           case 'rrsp': {
-            const draw = Math.min(remaining, rrspAvail);
-            rrspWithdrawal += draw;
-            rrspAvail -= draw;
-            remaining -= draw;
+            const primaryDraw = Math.min(remaining, rrspAvail);
+            rrspWithdrawal += primaryDraw;
+            rrspAvail -= primaryDraw;
+            remaining -= primaryDraw;
+            if (s.isCouple && remaining > 0) {
+              const spouseDraw = Math.min(remaining, spouseRrspAvail);
+              spouseRrspWithdrawal += spouseDraw;
+              spouseRrspAvail -= spouseDraw;
+              remaining -= spouseDraw;
+            }
             break;
           }
           case 'other': {
@@ -233,17 +230,26 @@ export function projectScenario(scenario, overrides = {}) {
         }
       }
 
-      const hasPension = pensionIncome > 0 || (rrifConverted && rrspWithdrawal > 0);
-      const taxable = employmentIncome + cppIncome + oasIncome + pensionIncome + rrspWithdrawal;
+      const primaryHasPension = pensionIncome > 0 || (rrifConverted && rrspWithdrawal > 0);
+      const primaryTaxable = employmentIncome + cppIncome + oasIncome + pensionIncome + rrspWithdrawal;
       nonRegTaxableGain = 0;
       if (nonRegWithdrawal > 0 && nonReg > 0) {
         const gainRatio = Math.max(0, (nonReg - nonRegCostBasis) / nonReg);
         nonRegTaxableGain = calcTaxableCapitalGain(nonRegWithdrawal * gainRatio);
       }
-      totalTaxableIncome = taxable + nonRegTaxableGain;
-      totalTax = calcTotalTax(totalTaxableIncome, age, hasPension);
+      if (s.isCouple) {
+        const spouseHasPension = spousePensionIncome > 0 || (spouseRrifConverted && spouseRrspWithdrawal > 0);
+        const spouseTaxable = spouseEmploymentIncome + spouseCppIncome + spouseOasIncome + spousePensionIncome + spouseRrspWithdrawal;
+        totalTaxableIncome = primaryTaxable + nonRegTaxableGain + spouseTaxable;
+        totalTax = calcTotalTax(primaryTaxable + nonRegTaxableGain, age, primaryHasPension)
+          + calcTotalTax(spouseTaxable, spouseAgeThisYear, spouseHasPension);
+      } else {
+        totalTaxableIncome = primaryTaxable + nonRegTaxableGain;
+        totalTax = calcTotalTax(totalTaxableIncome, age, primaryHasPension);
+      }
       grossIncome = employmentIncome + nonTaxedIncome + cppIncome + oasIncome + gisIncome + gainsIncome
-        + pensionIncome + rrspWithdrawal + tfsaWithdrawal + nonRegWithdrawal + otherWithdrawal;
+        + pensionIncome + rrspWithdrawal + tfsaWithdrawal + nonRegWithdrawal + otherWithdrawal
+        + spouseEmploymentIncome + spouseCppIncome + spouseOasIncome + spousePensionIncome + spouseRrspWithdrawal;
       afterTaxIncome = grossIncome - totalTax;
       surplus = afterTaxIncome - expenses - debtPayments;
 
@@ -261,6 +267,9 @@ export function projectScenario(scenario, overrides = {}) {
     }
     nonReg = Math.max(0, nonReg - nonRegWithdrawal);
     other = Math.max(0, other - otherWithdrawal);
+    if (s.isCouple) {
+      spouseRrsp = Math.max(0, spouseRrsp - spouseRrspWithdrawal);
+    }
 
     // Accrue annual TFSA contribution room
     tfsaContribRoom += TFSA_PARAMS.annualLimit;
@@ -284,7 +293,12 @@ export function projectScenario(scenario, overrides = {}) {
     tfsa *= (1 + tfsaReturn);
     nonReg *= (1 + nonRegReturn);
     other *= (1 + realReturn);
-    const totalPortfolio = rrsp + tfsa + nonReg + other;
+    if (s.isCouple) {
+      spouseRrsp *= (1 + realReturn);
+      spouseTfsa *= (1 + tfsaReturn);
+    }
+    const totalPortfolio = rrsp + tfsa + nonReg + other
+      + (s.isCouple ? spouseRrsp + spouseTfsa : 0);
     const netWorth = totalPortfolio + (s.realEstateValue || 0) - mortgage - consumer - otherDebt;
 
     results.push({
@@ -319,6 +333,13 @@ export function projectScenario(scenario, overrides = {}) {
       tfsaContributionRoom: Math.round(tfsaContribRoom),
       mortgageBalance: Math.round(mortgage),
       netWorth: Math.round(netWorth),
+      spouseCppIncome: s.isCouple ? Math.round(spouseCppIncome) : undefined,
+      spouseOasIncome: s.isCouple ? Math.round(spouseOasIncome) : undefined,
+      spouseEmploymentIncome: s.isCouple ? Math.round(spouseEmploymentIncome) : undefined,
+      spousePensionIncome: s.isCouple ? Math.round(spousePensionIncome) : undefined,
+      spouseRrspWithdrawal: s.isCouple ? Math.round(spouseRrspWithdrawal) : undefined,
+      spouseRrspBalance: s.isCouple ? Math.round(spouseRrsp) : undefined,
+      spouseTfsaBalance: s.isCouple ? Math.round(spouseTfsa) : undefined,
     });
   }
 

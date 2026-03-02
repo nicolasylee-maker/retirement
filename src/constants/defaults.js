@@ -26,6 +26,10 @@ export function createDefaultScenario(name = 'My Scenario') {
     spouseAge: 60,
     spouseRetirementAge: 65,
 
+    // Spouse employment income
+    spouseEmploymentIncome: 0,
+    spouseStillWorking: true,
+
     // Pre-retirement income
     stillWorking: true,
     employmentIncome: 50000, // Annual gross employment income before retirement
@@ -56,6 +60,13 @@ export function createDefaultScenario(name = 'My Scenario') {
     dcPensionBalance: 0,
     liraBalance: 0,
 
+    // Step 3: Spouse pension
+    spousePensionType: 'none',       // 'none' | 'db' | 'dc'
+    spouseDbPensionAnnual: 0,
+    spouseDbPensionStartAge: 65,
+    spouseDbPensionIndexed: false,
+    spouseDcPensionBalance: 0,
+
     // Step 4: Savings
     rrspBalance: 0,
     rrspContributionRoom: 0,
@@ -63,6 +74,12 @@ export function createDefaultScenario(name = 'My Scenario') {
     tfsaContributionRoom: 0,
     rrifBalance: 0,
     otherRegisteredBalance: 0,
+
+    // Step 4: Spouse registered savings
+    spouseRrspBalance: 0,
+    spouseRrifBalance: 0,
+    spouseTfsaBalance: 0,
+    spouseTfsaContributionRoom: 0,
 
     // Step 5: Other Assets
     cashSavings: 0,

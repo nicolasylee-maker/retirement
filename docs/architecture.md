@@ -46,6 +46,7 @@ retirement/
 │   │
 │   ├── engines/                            ← Pure business logic (zero React dependencies)
 │   │   ├── projectionEngine.js             ← Year-by-year retirement cash flow projections
+│   │   ├── incomeHelpers.js                ← Pure income benefit helpers (CPP, OAS, GIS, GAINS, capital gains)
 │   │   ├── taxEngine.js                    ← Federal + Ontario tax, OAS clawback, RRIF minimums
 │   │   ├── estateEngine.js                 ← Estate tax, probate, distribution analysis
 │   │   └── withdrawalCalc.js               ← Sustainable withdrawal binary search
@@ -224,6 +225,7 @@ The scenario object is the central data model. Full shape defined in `src/consta
 | Liabilities | `mortgageBalance`, `consumerDebt`, `otherDebt` (with rates + terms) |
 | Expenses | `monthlyExpenses`, `expenseReductionAtRetirement`, `inflationRate`, `realReturn` |
 | Withdrawal | `withdrawalOrder` (array), `rrspMeltdownEnabled`, `rrspMeltdownTargetAge` |
+| Couple Support | `isCouple`, `spouseAge`, `spouseRetirementAge`, `spouseEmploymentIncome`, `spouseCppMonthly`, `spouseOasMonthly`, `spousePensionType`, `spouseRrspBalance`, `spouseTfsaBalance` |
 | Estate | `hasWill`, `primaryBeneficiary`, `numberOfChildren`, `estimatedCostBasis` |
 
 ## Projection Output Shape
@@ -237,6 +239,7 @@ Each year in the projection array contains:
 | Income | `cppIncome`, `oasIncome`, `gisIncome`, `gainsIncome`, `pensionIncome` |
 | Withdrawals | `rrspWithdrawal`, `tfsaWithdrawal`, `nonRegWithdrawal`, `otherWithdrawal` |
 | Tax | `totalTaxableIncome`, `totalTax`, `afterTaxIncome` |
+| Couple Income | `spouseCppIncome`, `spouseOasIncome`, `spouseEmploymentIncome`, `spousePensionIncome`, `spouseRrspWithdrawal`, `spouseRrspBalance`, `spouseTfsaBalance` |
 | Cashflow | `expenses`, `debtPayments`, `surplus`, `netWorth` |
 
 ## Adding a New Module
@@ -280,6 +283,7 @@ tests/yourModuleEngine.test.js    ← Unit tests for engine functions
 | `src/engines/taxEngine.js` | Tax calculation (federal, Ontario, clawbacks, credits) |
 | `src/engines/estateEngine.js` | Estate tax, probate, distribution |
 | `src/engines/withdrawalCalc.js` | Sustainable withdrawal (binary search) |
+| `src/engines/incomeHelpers.js` | Pure income helper functions (CPP, OAS, GIS, GAINS, capital gains) |
 | `src/services/geminiService.js` | Optional AI insights via Gemini API |
 | `src/utils/formatters.js` | Currency/percent formatting, UUID generation |
 | `docs/architecture.md` | This file |
@@ -418,3 +422,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 |------|--------|
 | 2025-01-01 | Initial architecture document created |
 | 2026-03-01 | Comprehensive rewrite — full project structure, data flow, conventions |
+| 2026-03-02 | Full couple support: spouse CPP/OAS bug fix, spouse employment/pension/savings, two-tax-call |

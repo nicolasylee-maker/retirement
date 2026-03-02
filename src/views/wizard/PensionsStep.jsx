@@ -147,6 +147,97 @@ export default function PensionsStep({ scenario, onChange }) {
           helper="The total value today — check your investment statement from the institution holding it"
         />
       </Card>
+
+      {/* Spouse pension (couples only) */}
+      {scenario.isCouple && (
+        <>
+          <Card>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Spouse Pension Type</h3>
+            <div className="space-y-3">
+              {PENSION_OPTIONS.map((option) => (
+                <label
+                  key={`spouse-${option.value}`}
+                  className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors duration-150 ${
+                    scenario.spousePensionType === option.value
+                      ? 'border-sunset-400 bg-sunset-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="spousePensionType"
+                    value={option.value}
+                    checked={scenario.spousePensionType === option.value}
+                    onChange={() => onChange({ spousePensionType: option.value })}
+                    className="mt-0.5 h-4 w-4 border-gray-300 text-sunset-500 focus:ring-sunset-400"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">{option.label}</span>
+                    <p className="text-xs text-gray-500 mt-0.5">{option.description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </Card>
+
+          {scenario.spousePensionType === 'db' && (
+            <Card className="view-enter">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Spouse Defined Benefit Details</h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <FormField
+                  label="Annual Pension"
+                  name="spouseDbPensionAnnual"
+                  type="number"
+                  value={scenario.spouseDbPensionAnnual}
+                  onChange={handleChange('spouseDbPensionAnnual')}
+                  prefix="$"
+                  suffix="/yr"
+                  min={0}
+                  helper="The yearly amount the employer will pay your spouse"
+                />
+                <FormField
+                  label="Pension Start Age"
+                  name="spouseDbPensionStartAge"
+                  type="number"
+                  value={scenario.spouseDbPensionStartAge}
+                  onChange={handleChange('spouseDbPensionStartAge')}
+                  min={50}
+                  max={75}
+                  helper="The age your spouse starts collecting"
+                />
+              </div>
+              <label className="flex items-center gap-3 mt-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={scenario.spouseDbPensionIndexed}
+                  onChange={() => onChange({ spouseDbPensionIndexed: !scenario.spouseDbPensionIndexed })}
+                  className="h-4 w-4 rounded border-gray-300 text-sunset-500 focus:ring-sunset-400"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-800">Indexed to inflation</span>
+                  <p className="text-xs text-gray-500">Spouse pension increases each year with inflation</p>
+                </div>
+              </label>
+            </Card>
+          )}
+
+          {scenario.spousePensionType === 'dc' && (
+            <Card className="view-enter">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Spouse Defined Contribution Details</h3>
+              <FormField
+                label="Spouse Current DC Balance"
+                name="spouseDcPensionBalance"
+                type="number"
+                value={scenario.spouseDcPensionBalance}
+                onChange={handleChange('spouseDcPensionBalance')}
+                prefix="$"
+                min={0}
+                helper="How much is in your spouse's DC pension account today"
+              />
+            </Card>
+          )}
+        </>
+      )}
     </div>
   );
 }

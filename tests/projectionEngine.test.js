@@ -373,3 +373,208 @@ describe('TFSA surplus transfer', () => {
     expect(r[0].tfsaDeposit).toBeLessThanOrEqual(7000);
   });
 });
+
+// -- 16. Couple support -------------------------------------------------------
+
+// Shared couple factory used across couple tests
+function coupleBase(overrides = {}) {
+  return {
+    ...createDefaultScenario('Couple'),
+    isCouple: true,
+    spouseAge: 63, spouseRetirementAge: 65,
+    cppMonthly: 0, oasMonthly: 0,
+    spouseCppMonthly: 0, spouseOasMonthly: 0,
+    rrspBalance: 0, tfsaBalance: 300000,
+    nonRegInvestments: 0, cashSavings: 0, otherAssets: 0,
+    spouseRrspBalance: 0, spouseTfsaBalance: 0,
+    spouseEmploymentIncome: 0, spouseStillWorking: true,
+    spousePensionType: 'none', spouseDbPensionAnnual: 0, spouseDbPensionStartAge: 65, spouseDbPensionIndexed: false, spouseDcPensionBalance: 0,
+    spouseRrifBalance: 0, spouseTfsaContributionRoom: 0,
+    currentAge: 63, retirementAge: 65, lifeExpectancy: 80,
+    monthlyExpenses: 2000, inflationRate: 0, realReturn: 0, tfsaReturn: 0,
+    expenseReductionAtRetirement: 0,
+    ...overrides,
+  };
+}
+
+describe('couple support', () => {
+  // P0 bug fix: spouse CPP/OAS must not be silently zero
+  it('P0: spouse CPP is zero before spouseCppStartAge, positive after', () => {
+    // Primary and spouse both start at 63. Spouse CPP starts at 65 (when both are 65).
+    const s = coupleBase({ spouseCppMonthly: 700, spouseCppStartAge: 65 });
+    const r = projectScenario(s);
+    r.filter(row => row.age < 65).forEach(row => expect(row.spouseCppIncome).toBe(0));
+    // Positive at 65 — exact value omitted because inflationRate 0 falls back to 2.5%
+    expect(r.find(row => row.age === 65).spouseCppIncome).toBeGreaterThan(0);
+  });
+
+  it('P0: spouse OAS is zero before spouseOasStartAge, positive after', () => {
+    const s = coupleBase({ spouseOasMonthly: 713, spouseOasStartAge: 65 });
+    const r = projectScenario(s);
+    r.filter(row => row.age < 65).forEach(row => expect(row.spouseOasIncome).toBe(0));
+    expect(r.find(row => row.age === 65).spouseOasIncome).toBeGreaterThan(0);
+  });
+
+  it('P0: spouse CPP/OAS with different ages — starts at spouse\'s age, not primary\'s', () => {
+    // Primary 60, spouse 63 → spouse turns 65 when primary turns 62
+    const s = coupleBase({
+      currentAge: 60, retirementAge: 65, lifeExpectancy: 80,
+      spouseAge: 63, spouseRetirementAge: 65,
+      spouseCppMonthly: 700, spouseCppStartAge: 65,
+      spouseOasMonthly: 713, spouseOasStartAge: 65,
+      tfsaBalance: 500000,
+    });
+    const r = projectScenario(s);
+    // Before primary age 62 (spouse < 65): zero
+    r.filter(row => row.age < 62).forEach(row => {
+      expect(row.spouseCppIncome).toBe(0);
+      expect(row.spouseOasIncome).toBe(0);
+    });
+    // At primary 62 (spouse 65): both kick in
+    const at62 = r.find(row => row.age === 62);
+    expect(at62.spouseCppIncome).toBeGreaterThan(0);
+    expect(at62.spouseOasIncome).toBeGreaterThan(0);
+    // Before start age rows had zero, confirming age-gating not primary-age-gating
+    expect(r.find(row => row.age === 61).spouseCppIncome).toBe(0);
+  });
+
+  // Two-tax-call advantage
+  it('couple pays less combined tax than single person with same combined CPP income', () => {
+    // Each person: $5000/month CPP = $60K/yr. Combined: $120K.
+    const coupleS = coupleBase({
+      currentAge: 65, retirementAge: 65, lifeExpectancy: 66,
+      spouseAge: 65, spouseRetirementAge: 65,
+      cppMonthly: 5000, cppStartAge: 65,
+      spouseCppMonthly: 5000, spouseCppStartAge: 65,
+      tfsaBalance: 0, monthlyExpenses: 5000,
+    });
+    // Single person with $120K CPP
+    const singleS = { ...coupleS, isCouple: false, cppMonthly: 10000, spouseCppMonthly: 0 };
+    const coupleResult = projectScenario(coupleS)[0];
+    const singleResult = projectScenario(singleS)[0];
+    expect(coupleResult.totalTax).toBeLessThan(singleResult.totalTax);
+    // Bracket splitting + two basic personal amounts → meaningful difference
+    expect(singleResult.totalTax - coupleResult.totalTax).toBeGreaterThan(5000);
+  });
+
+  // P1: spouse employment income
+  it('spouse employment income present pre-retirement, zero at spouseRetirementAge', () => {
+    // Primary 58, spouse 55, spouse retires at 60 (primary 63)
+    const s = coupleBase({
+      currentAge: 58, retirementAge: 65, lifeExpectancy: 75,
+      spouseAge: 55, spouseRetirementAge: 60,
+      spouseEmploymentIncome: 80000, spouseStillWorking: true,
+      tfsaBalance: 1000000,
+    });
+    const r = projectScenario(s);
+    // Spouse 55 + (age-58) → retires when primary age=63 (spouseAge=60)
+    // Inflation-adjusted, so just check positive/zero boundary
+    r.filter(row => row.age < 63).forEach(row =>
+      expect(row.spouseEmploymentIncome).toBeGreaterThan(0),
+    );
+    r.filter(row => row.age >= 63).forEach(row =>
+      expect(row.spouseEmploymentIncome).toBe(0),
+    );
+  });
+
+  it('spouse employment income = 0 when spouseStillWorking is false', () => {
+    const s = coupleBase({
+      spouseEmploymentIncome: 80000, spouseStillWorking: false,
+      tfsaBalance: 300000,
+    });
+    projectScenario(s).forEach(row => expect(row.spouseEmploymentIncome).toBe(0));
+  });
+
+  // P2: spouse pension
+  it('spouse DB pension starts at spouseDbPensionStartAge, zero before', () => {
+    // Primary 60, spouse 58 → spouse turns 65 when primary turns 67
+    const s = coupleBase({
+      currentAge: 60, spouseAge: 58, spouseRetirementAge: 62,
+      spousePensionType: 'db', spouseDbPensionAnnual: 30000,
+      spouseDbPensionStartAge: 65, spouseDbPensionIndexed: false,
+      tfsaBalance: 1000000, lifeExpectancy: 80,
+    });
+    const r = projectScenario(s);
+    r.filter(row => row.age < 67).forEach(row => expect(row.spousePensionIncome).toBe(0));
+    expect(r.find(row => row.age === 67).spousePensionIncome).toBe(30000);
+  });
+
+  it('spouse indexed DB pension inflates year-over-year', () => {
+    const s = coupleBase({
+      currentAge: 67, spouseAge: 65, spouseRetirementAge: 65,
+      lifeExpectancy: 75, inflationRate: 0.025,
+      spousePensionType: 'db', spouseDbPensionAnnual: 20000,
+      spouseDbPensionStartAge: 65, spouseDbPensionIndexed: true,
+      tfsaBalance: 500000,
+    });
+    const r = projectScenario(s);
+    // Year 0 (primary 67, spouse 65): inflationFactor = (1.025)^(0) = 1 → $20K
+    expect(r[0].spousePensionIncome).toBe(20000);
+    // Year 1 (primary 68, spouse 66): inflationFactor = 1.025 → $20500
+    expect(r[1].spousePensionIncome).toBe(Math.round(20000 * 1.025));
+  });
+
+  // P3: spouse registered savings
+  it('spouse RRIF minimum kicks in at spouse age 72, not primary age 72', () => {
+    // Primary 68, spouse 60 → spouse turns 72 when primary turns 80
+    const s = coupleBase({
+      currentAge: 68, retirementAge: 68, lifeExpectancy: 84,
+      spouseAge: 60, spouseRetirementAge: 62,
+      spouseRrspBalance: 200000,
+      inflationRate: 0, realReturn: 0, tfsaReturn: 0,
+      tfsaBalance: 500000,
+    });
+    const r = projectScenario(s);
+    // Before spouse turns 72 (primary < 80): no spouse RRIF withdrawal
+    r.filter(row => row.age < 80).forEach(row =>
+      expect(row.spouseRrspWithdrawal).toBe(0),
+    );
+    // At primary 80 (spouse 72): spouse RRIF begins
+    expect(r.find(row => row.age === 80).spouseRrspWithdrawal).toBeGreaterThan(0);
+  });
+
+  it('couple: spouse account balances appear in projection output', () => {
+    // Use 0.001 (not 0) to avoid the engine's falsy-zero fallback on realReturn/tfsaReturn
+    const s = coupleBase({
+      spouseRrspBalance: 150000, spouseTfsaBalance: 80000,
+      realReturn: 0.001, tfsaReturn: 0.001,
+      tfsaBalance: 500000,
+    });
+    const r = projectScenario(s);
+    // Spouse RRSP: no withdrawal (< 72), minimal growth (0.1%)
+    expect(r[0].spouseRrspBalance).toBe(Math.round(150000 * 1.001));
+    expect(r[0].spouseTfsaBalance).toBe(Math.round(80000 * 1.001));
+    // totalPortfolio includes spouse accounts — must be > primary-only sum
+    expect(r[0].totalPortfolio).toBeGreaterThan(r[0].rrspBalance + r[0].tfsaBalance);
+  });
+
+  it('couple: surplus identity holds across full projection', () => {
+    const s = coupleBase({
+      currentAge: 60, retirementAge: 65, lifeExpectancy: 80,
+      spouseAge: 58, spouseRetirementAge: 62,
+      cppMonthly: 900, cppStartAge: 65, oasMonthly: 713, oasStartAge: 65,
+      spouseCppMonthly: 700, spouseCppStartAge: 65, spouseOasMonthly: 713, spouseOasStartAge: 65,
+      spouseEmploymentIncome: 70000, spouseStillWorking: true,
+      spouseRrspBalance: 150000, spouseTfsaBalance: 80000,
+      rrspBalance: 300000, tfsaBalance: 100000,
+      nonRegInvestments: 50000, nonRegCostBasis: 30000,
+      monthlyExpenses: 6000, realReturn: 0.04, inflationRate: 0.025, tfsaReturn: 0.04,
+      expenseReductionAtRetirement: 0.10,
+    });
+    projectScenario(s).forEach(row => {
+      const expected = row.afterTaxIncome - row.expenses - row.debtPayments;
+      const actual = row.surplus + (row.tfsaDeposit || 0) + (row.nonRegDeposit || 0);
+      expect(Math.abs(actual - expected)).toBeLessThanOrEqual(1);
+    });
+  });
+
+  // Single-person path unchanged
+  it('isCouple=false: spouse fields are undefined in output', () => {
+    const s = { ...createDefaultScenario('Solo'), currentAge: 65, retirementAge: 65, lifeExpectancy: 67 };
+    projectScenario(s).forEach(row => {
+      expect(row.spouseCppIncome).toBeUndefined();
+      expect(row.spouseOasIncome).toBeUndefined();
+      expect(row.spouseRrspBalance).toBeUndefined();
+    });
+  });
+});

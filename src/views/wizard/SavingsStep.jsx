@@ -109,6 +109,58 @@ export default function SavingsStep({ scenario, onChange }) {
           />
         </div>
       </Card>
+
+      {/* Spouse registered savings (couples only) */}
+      {scenario.isCouple && (
+        <Card>
+          <h3 className="text-lg font-semibold text-gray-800 mb-1">Spouse Registered Savings</h3>
+          <p className="text-sm text-gray-500 mb-2">
+            Your spouse's tax-sheltered accounts. These are tracked and taxed separately.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <FormField
+              label="Spouse RRSP Balance"
+              name="spouseRrspBalance"
+              type="number"
+              value={scenario.spouseRrspBalance}
+              onChange={handleChange('spouseRrspBalance')}
+              prefix="$"
+              min={0}
+              helper="Spouse's RRSP balance today"
+            />
+            <FormField
+              label="Spouse RRIF Balance"
+              name="spouseRrifBalance"
+              type="number"
+              value={scenario.spouseRrifBalance}
+              onChange={handleChange('spouseRrifBalance')}
+              prefix="$"
+              min={0}
+              helper="Spouse's RRIF balance today (if already converted)"
+            />
+            <FormField
+              label="Spouse TFSA Balance"
+              name="spouseTfsaBalance"
+              type="number"
+              value={scenario.spouseTfsaBalance}
+              onChange={handleChange('spouseTfsaBalance')}
+              prefix="$"
+              min={0}
+              helper="Spouse's TFSA balance today"
+            />
+            <FormField
+              label="Spouse TFSA Contribution Room"
+              name="spouseTfsaContributionRoom"
+              type="number"
+              value={scenario.spouseTfsaContributionRoom}
+              onChange={handleChange('spouseTfsaContributionRoom')}
+              prefix="$"
+              min={0}
+              helper="How much more your spouse can contribute to their TFSA"
+            />
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

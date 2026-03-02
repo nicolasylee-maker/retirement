@@ -22,6 +22,18 @@ function findActivePreset(scenario) {
   return null;
 }
 
+function findActiveSpousePreset(scenario) {
+  for (const [key, preset] of Object.entries(GOV_BENEFIT_PRESETS)) {
+    if (
+      scenario.spouseCppMonthly === preset.cppMonthly &&
+      scenario.spouseOasMonthly === preset.oasMonthly
+    ) {
+      return key;
+    }
+  }
+  return null;
+}
+
 export default function GovBenefitsStep({ scenario, onChange }) {
   const handleChange = (field) => (value) => {
     onChange({ [field]: value });
@@ -33,6 +45,16 @@ export default function GovBenefitsStep({ scenario, onChange }) {
       onChange({
         cppMonthly: preset.cppMonthly,
         oasMonthly: preset.oasMonthly,
+      });
+    }
+  };
+
+  const handleSpousePresetSelect = (key) => {
+    const preset = GOV_BENEFIT_PRESETS[key];
+    if (preset) {
+      onChange({
+        spouseCppMonthly: preset.cppMonthly,
+        spouseOasMonthly: preset.oasMonthly,
       });
     }
   };
@@ -183,6 +205,18 @@ export default function GovBenefitsStep({ scenario, onChange }) {
           <p className="text-sm text-gray-500 mb-2">
             Your spouse's government payments — these affect your household's total retirement income and tax picture.
           </p>
+          <div className="mb-3">
+            <div className="flex items-center gap-3 mb-2">
+              <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                Quick Fill
+              </h4>
+            </div>
+            <QuickFillPills
+              presets={presetList}
+              onSelect={handleSpousePresetSelect}
+              activeKey={findActiveSpousePreset(scenario)}
+            />
+          </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <FormField
               label="Spouse Monthly CPP"

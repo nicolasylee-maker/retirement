@@ -1,0 +1,253 @@
+import {
+  FEDERAL_BRACKETS,
+  ONTARIO_BRACKETS,
+  ONTARIO_SURTAX,
+  FEDERAL_CREDITS,
+  ONTARIO_CREDITS,
+  OAS_PARAMS,
+  RRIF_MIN_RATES,
+} from '../constants/taxTables.js';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply marginal brackets to taxable income.
+ * Returns gross tax before credits.
+ */
+function applyBrackets(income, brackets) {
+  if (income <= 0) return 0;
+  let tax = 0;
+  for (const { min, max, rate } of brackets) {
+    if (income <= min) break;
+    const taxable = Math.min(income, max) - min;
+    tax += taxable * rate;
+  }
+  return tax;
+}
+
+/**
+ * Compute clawed-back age amount.
+ * Full amount is reduced by clawbackRate for every dollar above the threshold.
+ */
+function clawbackAgeAmount(income, fullAmount, threshold, rate) {
+  const reduction = Math.max(0, income - threshold) * rate;
+  return Math.max(0, fullAmount - reduction);
+}
+
+// ---------------------------------------------------------------------------
+// Federal Tax
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculate federal income tax.
+ * @param {number} income  Taxable income
+ * @param {object} [opts]  { age, hasPensionIncome }
+ * @returns {number} Federal tax payable (>= 0)
+ */
+export function calcFederalTax(income, opts = {}) {
+  if (income <= 0) return 0;
+
+  const { age = 0, hasPensionIncome = false } = opts;
+  const fc = FEDERAL_CREDITS;
+
+  // Gross tax from brackets
+  let tax = applyBrackets(income, FEDERAL_BRACKETS);
+
+  // --- Non-refundable credits (reduce tax, floor at 0) ---
+
+  // Basic personal amount
+  let totalCreditable = fc.basicPersonal;
+
+  // Age amount (65+)
+  if (age >= 65) {
+    const ageAmt = clawbackAgeAmount(
+      income,
+      fc.ageAmount,
+      fc.ageIncomeThreshold,
+      fc.ageClawbackRate,
+    );
+    totalCreditable += ageAmt;
+  }
+
+  // Pension income amount
+  if (hasPensionIncome) {
+    totalCreditable += fc.pensionCredit;
+  }
+
+  tax -= totalCreditable * fc.creditRate;
+
+  return Math.max(0, tax);
+}
+
+// ---------------------------------------------------------------------------
+// Ontario Tax
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculate Ontario income tax including surtax.
+ * @param {number} income  Taxable income
+ * @param {object} [opts]  { age, hasPensionIncome }
+ * @returns {number} Ontario tax payable (>= 0)
+ */
+export function calcOntarioTax(income, opts = {}) {
+  if (income <= 0) return 0;
+
+  const { age = 0, hasPensionIncome = false } = opts;
+  const oc = ONTARIO_CREDITS;
+
+  // Gross tax from Ontario brackets
+  let basicTax = applyBrackets(income, ONTARIO_BRACKETS);
+
+  // --- Non-refundable credits ---
+  let totalCreditable = oc.basicPersonal;
+
+  if (age >= 65) {
+    const ageAmt = clawbackAgeAmount(
+      income,
+      oc.ageAmount,
+      oc.ageIncomeThreshold,
+      oc.ageClawbackRate,
+    );
+    totalCreditable += ageAmt;
+  }
+
+  if (hasPensionIncome) {
+    totalCreditable += oc.pensionCredit;
+  }
+
+  basicTax -= totalCreditable * oc.creditRate;
+  basicTax = Math.max(0, basicTax);
+
+  // --- Ontario surtax ---
+  const st = ONTARIO_SURTAX;
+  let surtax = 0;
+  if (basicTax > st.threshold1) {
+    surtax += (basicTax - st.threshold1) * st.rate1;
+  }
+  if (basicTax > st.threshold2) {
+    surtax += (basicTax - st.threshold2) * st.rate2;
+  }
+
+  return basicTax + surtax;
+}
+
+// ---------------------------------------------------------------------------
+// Combined Tax
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculate combined federal + Ontario tax.
+ * @param {number} income  Taxable income
+ * @param {number} [age]   Taxpayer age (for age-related credits)
+ * @param {boolean} [hasPensionIncome] Whether eligible pension income is received
+ * @returns {number} Total tax payable
+ */
+export function calcTotalTax(income, age = 0, hasPensionIncome = false) {
+  const opts = { age, hasPensionIncome };
+  return calcFederalTax(income, opts) + calcOntarioTax(income, opts);
+}
+
+// ---------------------------------------------------------------------------
+// OAS Clawback
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculate the OAS clawback (recovery tax).
+ * 15% of net income above the clawback threshold.
+ * Capped at the maximum OAS benefit.
+ * @param {number} netIncome  Net income for OAS purposes
+ * @returns {number} Amount of OAS clawed back
+ */
+export function calcOasClawback(netIncome) {
+  if (netIncome <= OAS_PARAMS.clawbackStart) return 0;
+  const clawback = (netIncome - OAS_PARAMS.clawbackStart) * OAS_PARAMS.clawbackRate;
+  return Math.min(clawback, OAS_PARAMS.maxAnnual);
+}
+
+// ---------------------------------------------------------------------------
+// RRIF Minimum Withdrawal
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculate RRIF minimum withdrawal for a given age and balance.
+ * Uses the prescribed RRIF_MIN_RATES table for 71+.
+ * For ages under 71, uses 1 / (90 - age).
+ * @param {number} balance  RRIF/RRSP balance at start of year
+ * @param {number} age      Age at start of year
+ * @returns {number} Minimum withdrawal amount
+ */
+export function calcRrifMinimum(balance, age) {
+  if (balance <= 0 || age < 0) return 0;
+
+  let rate;
+  if (age >= 95) {
+    rate = RRIF_MIN_RATES[95];
+  } else if (age >= 71) {
+    rate = RRIF_MIN_RATES[age];
+  } else {
+    // Under 71: 1 / (90 - age), but guard against division by zero
+    const divisor = 90 - age;
+    rate = divisor > 0 ? 1 / divisor : 1;
+  }
+
+  return balance * rate;
+}
+
+// ---------------------------------------------------------------------------
+// Marginal Rate (useful for estate & what-if)
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculate the combined marginal tax rate at a given income level.
+ * @param {number} income  Taxable income
+ * @returns {number} Marginal rate as a decimal
+ */
+export function calcMarginalRate(income) {
+  if (income <= 0) return 0;
+
+  // Find the federal marginal rate
+  let fedRate = 0;
+  for (const bracket of FEDERAL_BRACKETS) {
+    if (income > bracket.min) fedRate = bracket.rate;
+  }
+
+  // Find the Ontario marginal rate (before surtax)
+  let ontRate = 0;
+  for (const bracket of ONTARIO_BRACKETS) {
+    if (income > bracket.min) ontRate = bracket.rate;
+  }
+
+  // Approximate surtax addition to marginal rate
+  const basicOntTax = applyBrackets(income, ONTARIO_BRACKETS);
+  let surtaxMultiplier = 1;
+  if (basicOntTax > ONTARIO_SURTAX.threshold2) {
+    surtaxMultiplier = 1 + ONTARIO_SURTAX.rate1 + ONTARIO_SURTAX.rate2;
+  } else if (basicOntTax > ONTARIO_SURTAX.threshold1) {
+    surtaxMultiplier = 1 + ONTARIO_SURTAX.rate1;
+  }
+
+  return fedRate + ontRate * surtaxMultiplier;
+}
+
+// ---------------------------------------------------------------------------
+// Tax on deemed income (for estate calculations)
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculate tax on an additional lump of deemed income added to existing income.
+ * Useful for estate deemed-disposition scenarios.
+ * @param {number} existingIncome  Income already present
+ * @param {number} deemedIncome    Additional deemed income
+ * @param {number} [age]           Age at death
+ * @returns {number} Incremental tax on the deemed income
+ */
+export function calcTaxOnDeemedIncome(existingIncome, deemedIncome, age = 0) {
+  if (deemedIncome <= 0) return 0;
+  const totalIncome = existingIncome + deemedIncome;
+  const opts = { age, hasPensionIncome: false };
+  const taxOnTotal = calcFederalTax(totalIncome, opts) + calcOntarioTax(totalIncome, opts);
+  const taxOnBase = calcFederalTax(existingIncome, opts) + calcOntarioTax(existingIncome, opts);
+  return Math.max(0, taxOnTotal - taxOnBase);
+}

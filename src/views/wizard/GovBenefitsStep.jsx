@@ -1,0 +1,236 @@
+import React from 'react';
+import FormField from '../../components/FormField';
+import Card from '../../components/Card';
+import QuickFillPills from '../../components/QuickFillPills';
+import HelpIcon from '../../components/HelpIcon';
+import { GOV_BENEFIT_PRESETS } from '../../constants/defaults';
+
+const presetList = Object.entries(GOV_BENEFIT_PRESETS).map(([key, preset]) => ({
+  key,
+  label: preset.label,
+}));
+
+function findActivePreset(scenario) {
+  for (const [key, preset] of Object.entries(GOV_BENEFIT_PRESETS)) {
+    if (
+      scenario.cppMonthly === preset.cppMonthly &&
+      scenario.oasMonthly === preset.oasMonthly
+    ) {
+      return key;
+    }
+  }
+  return null;
+}
+
+export default function GovBenefitsStep({ scenario, onChange }) {
+  const handleChange = (field) => (value) => {
+    onChange({ [field]: value });
+  };
+
+  const handlePresetSelect = (key) => {
+    const preset = GOV_BENEFIT_PRESETS[key];
+    if (preset) {
+      onChange({
+        cppMonthly: preset.cppMonthly,
+        oasMonthly: preset.oasMonthly,
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">Government Benefits</h2>
+        <p className="text-gray-500 mt-1">
+          These are monthly payments from the government you'll receive in
+          retirement. Most Canadians get both CPP and OAS. Use a preset below
+          or enter your own amounts.
+        </p>
+      </div>
+
+      {/* Quick-fill presets */}
+      <Card>
+        <div className="flex items-center gap-3 mb-3">
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+            Quick Fill
+          </h3>
+        </div>
+        <QuickFillPills
+          presets={presetList}
+          onSelect={handlePresetSelect}
+          activeKey={findActivePreset(scenario)}
+        />
+      </Card>
+
+      {/* CPP */}
+      <Card>
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="text-lg font-semibold text-gray-800">
+            Canada Pension Plan (CPP)
+          </h3>
+          <HelpIcon text="CPP is a monthly payment you earn by working and contributing through payroll deductions. The amount depends on how much you earned and how long you contributed." />
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <FormField
+            label="Monthly CPP"
+            name="cppMonthly"
+            type="number"
+            value={scenario.cppMonthly}
+            onChange={handleChange('cppMonthly')}
+            prefix="$"
+            suffix="/mo"
+            min={0}
+            max={2000}
+            helper="Your estimated monthly payment — check My Service Canada online for your personal estimate"
+          />
+          <FormField
+            label="CPP Start Age"
+            name="cppStartAge"
+            type="number"
+            value={scenario.cppStartAge}
+            onChange={handleChange('cppStartAge')}
+            min={60}
+            max={70}
+            helper="You can start as early as 60 (smaller payments) or delay to 70 (larger payments). 65 is the standard age."
+          />
+        </div>
+      </Card>
+
+      {/* OAS */}
+      <Card>
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="text-lg font-semibold text-gray-800">
+            Old Age Security (OAS)
+          </h3>
+          <HelpIcon text="OAS is a monthly payment from the government for people 65 and older. Unlike CPP, you don't need to have worked — it's based on how long you've lived in Canada." />
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <FormField
+            label="Monthly OAS"
+            name="oasMonthly"
+            type="number"
+            value={scenario.oasMonthly}
+            onChange={handleChange('oasMonthly')}
+            prefix="$"
+            suffix="/mo"
+            min={0}
+            max={1000}
+            helper="The full amount if you've lived in Canada 40+ years. Current maximum is about $713/mo."
+          />
+          <FormField
+            label="OAS Start Age"
+            name="oasStartAge"
+            type="number"
+            value={scenario.oasStartAge}
+            onChange={handleChange('oasStartAge')}
+            min={65}
+            max={70}
+            helper="Delaying past 65 increases your payment. Each month you wait adds 0.6% more."
+          />
+        </div>
+      </Card>
+
+      {/* Income-tested benefits */}
+      <Card>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+          Income-Tested Benefits
+        </h3>
+        <div className="space-y-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={scenario.gisEligible}
+              onChange={() => onChange({ gisEligible: !scenario.gisEligible })}
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-sunset-500 focus:ring-sunset-400"
+            />
+            <div>
+              <span className="text-sm font-medium text-gray-800 flex items-center gap-1">
+                GIS Eligible
+                <HelpIcon text="GIS is an extra monthly payment on top of OAS for seniors with low income. You qualify automatically based on your tax return — no separate application needed." />
+              </span>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Extra monthly money for seniors with limited retirement income (income under ~$21K single / ~$28K couple)
+              </p>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={scenario.gainsEligible}
+              onChange={() => onChange({ gainsEligible: !scenario.gainsEligible })}
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-sunset-500 focus:ring-sunset-400"
+            />
+            <div>
+              <span className="text-sm font-medium text-gray-800 flex items-center gap-1">
+                GAINS Eligible
+                <HelpIcon text="GAINS is an Ontario-only benefit that tops up your income if you already receive OAS and GIS. It's automatic — no application required." />
+              </span>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Ontario-only top-up for seniors already receiving GIS — provides a bit more each month
+              </p>
+            </div>
+          </label>
+        </div>
+      </Card>
+
+      {/* Spouse CPP/OAS */}
+      {scenario.isCouple && (
+        <Card className="view-enter">
+          <h3 className="text-lg font-semibold text-gray-800 mb-1">
+            Spouse / Partner Benefits
+          </h3>
+          <p className="text-sm text-gray-500 mb-2">
+            Your spouse's government payments — these affect your household's total retirement income and tax picture.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <FormField
+              label="Spouse Monthly CPP"
+              name="spouseCppMonthly"
+              type="number"
+              value={scenario.spouseCppMonthly}
+              onChange={handleChange('spouseCppMonthly')}
+              prefix="$"
+              suffix="/mo"
+              min={0}
+              max={2000}
+              helper="From their My Service Canada statement"
+            />
+            <FormField
+              label="Spouse CPP Start Age"
+              name="spouseCppStartAge"
+              type="number"
+              value={scenario.spouseCppStartAge}
+              onChange={handleChange('spouseCppStartAge')}
+              min={60}
+              max={70}
+              helper="Same rules apply — 60 to 70, with 65 as standard"
+            />
+            <FormField
+              label="Spouse Monthly OAS"
+              name="spouseOasMonthly"
+              type="number"
+              value={scenario.spouseOasMonthly}
+              onChange={handleChange('spouseOasMonthly')}
+              prefix="$"
+              suffix="/mo"
+              min={0}
+              max={1000}
+              helper="Based on their years of Canadian residency"
+            />
+            <FormField
+              label="Spouse OAS Start Age"
+              name="spouseOasStartAge"
+              type="number"
+              value={scenario.spouseOasStartAge}
+              onChange={handleChange('spouseOasStartAge')}
+              min={65}
+              max={70}
+              helper="OAS starts at 65, can be deferred to 70 for larger payments"
+            />
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}

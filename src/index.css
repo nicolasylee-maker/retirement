@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-sunset-start: #f97316;
+  --color-sunset-mid: #fb923c;
+  --color-sunset-end: #fbbf24;
+  --color-lake: #0ea5e9;
+  --color-forest: #22c55e;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-success: #22c55e;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+@layer base {
+  body {
+    @apply min-h-screen;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+  .gradient-sunset {
+    background: linear-gradient(135deg, var(--color-sunset-start), var(--color-sunset-mid), var(--color-sunset-end));
+  }
+
+  .gradient-header {
+    background: linear-gradient(135deg, #1e293b, #334155);
+  }
+
+  .card-base {
+    @apply bg-white rounded-xl border border-gray-200;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.2s ease;
+  }
+
+  .card-base:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .input-base {
+    @apply w-full px-3 py-2 rounded-lg border border-gray-300 bg-white
+           text-sm text-gray-900 placeholder-gray-400
+           focus:outline-none focus:ring-2 focus:ring-sunset-400 focus:border-sunset-400
+           transition-colors duration-150;
+  }
+
+  .btn-primary {
+    @apply px-6 py-2.5 rounded-lg font-semibold text-white
+           bg-gradient-to-r from-sunset-500 to-sunset-600
+           hover:from-sunset-600 hover:to-sunset-700
+           active:from-sunset-700 active:to-sunset-800
+           focus:outline-none focus:ring-2 focus:ring-sunset-400 focus:ring-offset-2
+           transition-all duration-150 shadow-sm hover:shadow;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-2.5 rounded-lg font-semibold
+           border-2 border-sunset-500 text-sunset-600
+           hover:bg-sunset-50 active:bg-sunset-100
+           focus:outline-none focus:ring-2 focus:ring-sunset-400 focus:ring-offset-2
+           transition-all duration-150;
+  }
+
+  .menu-item {
+    @apply w-full block px-4 py-2 text-sm text-gray-700
+           hover:bg-gray-50 transition-colors text-left;
+  }
+}
+
+/* Custom range slider styling */
+input[type='range'] {
+  @apply w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-200;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  @apply appearance-none w-5 h-5 rounded-full bg-sunset-500 border-2 border-white shadow-md;
+}
+
+input[type='range']::-moz-range-thumb {
+  @apply w-5 h-5 rounded-full bg-sunset-500 border-2 border-white shadow-md;
+}
+
+/* Smooth page transitions */
+.view-enter {
+  animation: fadeSlideIn 0.3s ease-out;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* AI Insight card */
+.ai-insight-card {
+  @apply relative rounded-xl border border-purple-200;
+  background: linear-gradient(135deg, rgba(250,245,255,0.8), rgba(255,255,255,1), rgba(238,242,255,0.8));
+}
+
+.ai-fade-in {
+  animation: aiFadeIn 0.5s ease-out;
+}
+
+@keyframes aiFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.shimmer-line {
+  background: linear-gradient(90deg, #f3e8ff 25%, #faf5ff 50%, #f3e8ff 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

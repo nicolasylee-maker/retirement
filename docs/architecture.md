@@ -79,8 +79,12 @@ retirement/
 │   ├── contexts/
 │   │   └── AuthContext.jsx                 ← Supabase auth state (user, session, signIn/Out helpers)
 │   │
+│   ├── hooks/
+│   │   └── useCloudSync.js                 ← Cloud sync hook: sign-in load, auto-save debounce, free tier guard
+│   │
 │   ├── services/
 │   │   ├── geminiService.js                ← Google Gemini AI integration (optional insights)
+│   │   ├── scenarioService.js              ← Supabase scenario CRUD (fetch, save, delete, count)
 │   │   └── supabaseClient.js               ← Supabase JS client singleton (URL + anon key)
 │   │
 │   ├── utils/
@@ -330,6 +334,8 @@ tests/yourModuleEngine.test.js    ← Unit tests for engine functions
 | `src/engines/estateEngine.js` | Estate tax, probate, distribution |
 | `src/engines/withdrawalCalc.js` | Sustainable withdrawal (binary search) |
 | `src/engines/incomeHelpers.js` | Pure income helper functions (CPP, OAS, GIS, GAINS, capital gains) |
+| `src/services/scenarioService.js` | Supabase scenario CRUD — fetch, save (upsert), delete, count |
+| `src/hooks/useCloudSync.js` | Cloud sync React hook — sign-in load, auto-save debounce, free tier guard |
 | `src/services/geminiService.js` | Optional AI insights via Gemini API |
 | `src/utils/formatters.js` | Currency/percent formatting, UUID generation |
 | `docs/architecture.md` | This file |
@@ -486,3 +492,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | effectiveScenario propagated to Dashboard, report, and audit; surplus formula fixed in PDF; couple fields added to report and audit; auditProjection.js split into auditInputSnapshot.js, auditProjection.js, auditTaxDebt.js |
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
 | 2026-03-02 | Auth layer: Supabase Auth with Google OAuth + magic link; AuthContext, AuthPanel, AccountMenu, supabaseClient |
+| 2026-03-02 | Cloud sync: scenarioService.js (Supabase CRUD), useCloudSync.js hook (auto-save debounce, sign-in load, free tier guard), save indicator in header |

@@ -13,6 +13,9 @@ import EstateView from './views/estate/EstateView';
 import DebtView from './views/debt/DebtView';
 import WhatIfPanel from './views/WhatIfPanel';
 import AccountMenu from './components/AccountMenu';
+import { useAuth } from './contexts/AuthContext';
+import { useCloudSync } from './hooks/useCloudSync';
+import { deleteScenario as deleteScenarioFromCloud } from './services/scenarioService';
 
 const NAV_TABS = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -120,6 +123,28 @@ export default function App() {
     },
     [currentUserId],
   );
+
+  // Auth + cloud sync (declared early so callbacks below can reference authUser/saveStatus/checkCanCreate)
+  const { user: authUser } = useAuth();
+
+  const handleSignIn = useCallback((cloudScenarios) => {
+    if (cloudScenarios.length === 0) return;
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === currentUserId
+          ? { ...u, scenarios: cloudScenarios }
+          : u,
+      ),
+    );
+    setCurrentScenarioId(cloudScenarios[0].id);
+    setWhatIfOverrides({});
+  }, [currentUserId]);
+
+  const { saveStatus, checkCanCreate } = useCloudSync({
+    user: authUser,
+    currentScenario,
+    onSignIn: handleSignIn,
+  });
 
   // --- User management ---
   const handleAddUser = useCallback(() => setView('new-person'), []);
@@ -230,14 +255,16 @@ export default function App() {
     [currentScenario, currentScenarioId, updateScenarios],
   );
 
-  const handleStartNew = useCallback(() => {
+  const handleStartNew = useCallback(async () => {
+    const allowed = await checkCanCreate();
+    if (!allowed) return;
     const newScenario = createDefaultScenario(`${currentUser.name}'s Plan`);
     updateScenarios((prev) => [...prev, newScenario]);
     setCurrentScenarioId(newScenario.id);
     setWizardStep(0);
     setWhatIfOverrides({});
     setView('wizard');
-  }, [currentUser.name, updateScenarios]);
+  }, [currentUser.name, updateScenarios, checkCanCreate]);
 
   const handleLoadScenario = useCallback(
     (jsonData) => {
@@ -324,8 +351,13 @@ export default function App() {
         }
         return next;
       });
+      if (authUser) {
+        deleteScenarioFromCloud(authUser.id, id).catch(() => {
+          // Deletion failure is non-fatal — local state is already updated
+        });
+      }
     },
-    [currentScenarioId, updateScenarios],
+    [currentScenarioId, updateScenarios, authUser],
   );
 
   const handleOverrideChange = useCallback((key, value) => {
@@ -396,6 +428,17 @@ export default function App() {
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
+            )}
+
+            {/* Save indicator */}
+            {authUser && saveStatus === 'saving' && (
+              <span className="text-xs text-gray-400 shrink-0">Saving...</span>
+            )}
+            {authUser && saveStatus === 'saved' && (
+              <span className="text-xs text-green-600 shrink-0">Saved</span>
+            )}
+            {authUser && saveStatus === 'error' && (
+              <span className="text-xs text-red-500 shrink-0">Save failed</span>
             )}
 
             {/* Actions menu */}

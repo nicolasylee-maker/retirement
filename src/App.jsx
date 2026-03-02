@@ -1,11 +1,8 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { createDefaultScenario, createDefaultUser } from './constants/defaults';
+import { createDefaultScenario } from './constants/defaults';
 import { projectScenario } from './engines/projectionEngine';
 import { openPrintReport } from './utils/openPrintReport';
 import { downloadAudit } from './utils/downloadAudit';
-import defaultData from './data/defaultData.json';
-import WelcomeScreen from './views/WelcomeScreen';
-import NewPersonScreen from './views/NewPersonScreen';
 import WizardShell from './views/wizard/WizardShell';
 import Dashboard from './views/dashboard/Dashboard';
 import CompareView from './views/compare/CompareView';
@@ -41,42 +38,38 @@ function loadSaved() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    if (data?.users?.length > 0) {
-      // Run migrations on all scenarios
-      data.users.forEach(u => u.scenarios?.forEach(s => migrateScenario(s)));
-      return data;
+
+    // New format (v3+): flat scenarios array
+    if (Array.isArray(data?.scenarios) && data.scenarios.length > 0) {
+      data.scenarios.forEach(migrateScenario);
+      return { scenarios: data.scenarios, currentScenarioId: data.currentScenarioId, view: data.view };
+    }
+
+    // Old format (v2): users[] wrapper — flatten all users' scenarios into one pool
+    if (Array.isArray(data?.users) && data.users.length > 0) {
+      const allScenarios = data.users
+        .flatMap(u => (u.scenarios || []).map(migrateScenario));
+      if (allScenarios.length === 0) return null;
+      return { scenarios: allScenarios, currentScenarioId: data.currentScenarioId, view: data.view };
     }
   } catch { /* ignore corrupt data */ }
   return null;
 }
 
 export default function App() {
-  const [users, setUsers] = useState(() => {
+  const [scenarios, setScenarios] = useState(() => {
     const saved = loadSaved();
-    if (saved) return saved.users;
-    // Load bundled default data (mother's data)
-    if (defaultData?.users?.length > 0) {
-      defaultData.users.forEach(u => u.scenarios?.forEach(s => migrateScenario(s)));
-      return defaultData.users;
-    }
-    return [createDefaultUser('Individual 1')];
-  });
-  const [currentUserId, setCurrentUserId] = useState(() => {
-    const saved = loadSaved();
-    return saved?.currentUserId || users[0]?.id;
+    if (saved?.scenarios?.length > 0) return saved.scenarios;
+    return [];
   });
   const [currentScenarioId, setCurrentScenarioId] = useState(() => {
     const saved = loadSaved();
-    if (saved?.currentScenarioId) return saved.currentScenarioId;
-    const user = users.find((u) => u.id === currentUserId) || users[0];
-    return user?.scenarios[0]?.id || null;
+    return saved?.currentScenarioId || saved?.scenarios?.[0]?.id || null;
   });
   const [view, setView] = useState(() => {
     const saved = loadSaved();
-    if (saved?.view && saved.view !== 'wizard' && saved.view !== 'new-person') return saved.view;
-    // Show welcome if no scenarios exist yet
-    const user = users.find((u) => u.id === currentUserId) || users[0];
-    return user?.scenarios.length > 0 ? 'dashboard' : 'welcome';
+    if (saved?.view && saved.view !== 'wizard') return saved.view;
+    return scenarios.length > 0 ? 'dashboard' : 'wizard';
   });
   const [wizardStep, setWizardStep] = useState(0);
   const [whatIfOverrides, setWhatIfOverrides] = useState({});
@@ -85,18 +78,13 @@ export default function App() {
 
   // Auto-save to localStorage
   useEffect(() => {
-    const data = { users, currentUserId, currentScenarioId, view: (view === 'wizard' || view === 'new-person') ? 'dashboard' : view };
+    const data = { scenarios, currentScenarioId, view: view === 'wizard' ? 'dashboard' : view };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [users, currentUserId, currentScenarioId, view]);
+  }, [scenarios, currentScenarioId, view]);
 
   // Derived state
-  const currentUser = useMemo(
-    () => users.find((u) => u.id === currentUserId) || users[0],
-    [users, currentUserId],
-  );
-  const scenarios = currentUser.scenarios;
   const currentScenario = useMemo(
-    () => (currentScenarioId && scenarios.find((s) => s.id === currentScenarioId)) || scenarios[0] || null,
+    () => scenarios.find((s) => s.id === currentScenarioId) || scenarios[0] || null,
     [scenarios, currentScenarioId],
   );
   const projectionData = useMemo(
@@ -110,110 +98,12 @@ export default function App() {
     [currentScenario, whatIfOverrides],
   );
 
-  // Helper: update scenarios for current user
-  const updateScenarios = useCallback(
-    (updater) => {
-      setUsers((prev) =>
-        prev.map((u) => (u.id === currentUserId ? { ...u, scenarios: updater(u.scenarios) } : u)),
-      );
-    },
-    [currentUserId],
-  );
-
-  // --- User management ---
-  const handleAddUser = useCallback(() => setView('new-person'), []);
-
-  const handleNewPersonStart = useCallback((name) => {
-    const newUser = createDefaultUser(name.trim());
-    const newScenario = createDefaultScenario(`${name.trim()}'s Plan`);
-    newUser.scenarios = [newScenario];
-    setUsers((prev) => [...prev, newUser]);
-    setCurrentUserId(newUser.id);
-    setCurrentScenarioId(newScenario.id);
-    setWhatIfOverrides({});
-    setWizardStep(0);
-    setView('wizard');
-  }, []);
-
-  const handleNewPersonLoad = useCallback((jsonData) => {
-    let incoming = [];
-    if (jsonData?.version === 2 && Array.isArray(jsonData.users)) {
-      incoming = jsonData.users
-        .filter((u) => u?.name && Array.isArray(u.scenarios) && u.scenarios.length > 0)
-        .map((u) => ({
-          ...u,
-          id: u.id || uid(),
-          scenarios: u.scenarios.map((s) => ({ ...createDefaultScenario(), ...s, id: s.id || uid() })),
-        }));
-    } else {
-      const arr = Array.isArray(jsonData) ? jsonData : [jsonData];
-      const valid = arr.filter((s) => s?.currentAge != null && s?.retirementAge != null);
-      if (valid.length === 0) { alert('Invalid file.'); return; }
-      const user = createDefaultUser(valid[0].name || 'Imported');
-      user.scenarios = valid.map((s) => ({ ...createDefaultScenario(), ...s, id: s.id || uid() }));
-      incoming = [user];
-    }
-    if (incoming.length === 0) { alert('No valid data found.'); return; }
-    setUsers((prev) => {
-      const existingIds = new Set(prev.map((u) => u.id));
-      const toAdd = incoming.map((u) => existingIds.has(u.id) ? { ...u, id: uid() } : u);
-      return [...prev, ...toAdd];
-    });
-    setCurrentUserId(incoming[0].id);
-    setCurrentScenarioId(incoming[0].scenarios[0].id);
-    setWhatIfOverrides({});
-    setView('dashboard');
-  }, []);
-
-  const handleSwitchUser = useCallback(
-    (userId) => {
-      if (userId === '__add__') { handleAddUser(); return; }
-      setCurrentUserId(userId);
-      const user = users.find((u) => u.id === userId);
-      if (user?.scenarios.length > 0) {
-        setCurrentScenarioId(user.scenarios[0].id);
-        setView('dashboard');
-      } else {
-        setCurrentScenarioId(null);
-        setView('welcome');
-      }
-      setWhatIfOverrides({});
-    },
-    [users, handleAddUser],
-  );
-
-  const handleRenameUser = useCallback((newName) => {
-    // If called with a string directly (from wizard), use it; otherwise prompt
-    let name = typeof newName === 'string' ? newName : null;
-    if (!name) {
-      name = prompt('Rename individual:', currentUser.name);
-    }
-    if (!name?.trim() || name.trim() === currentUser.name) return;
-    setUsers((prev) => prev.map((u) => (u.id === currentUserId ? { ...u, name: name.trim() } : u)));
-  }, [currentUser.name, currentUserId]);
-
-  const handleDeleteUser = useCallback(() => {
-    if (users.length <= 1) return;
-    if (!confirm(`Delete "${currentUser.name}" and all their scenarios?`)) return;
-    setUsers((prev) => {
-      const next = prev.filter((u) => u.id !== currentUserId);
-      setCurrentUserId(next[0].id);
-      setCurrentScenarioId(next[0].scenarios[0]?.id || null);
-      setWhatIfOverrides({});
-      return next;
-    });
-    setView('dashboard');
-  }, [users.length, currentUser.name, currentUserId]);
-
   // --- Scenario management ---
-  const handleScenarioChange = useCallback(
-    (updates) => {
-      updateScenarios((prev) =>
-        prev.map((s) => (s.id === currentScenarioId ? { ...s, ...updates } : s)),
-      );
-    },
-    [currentScenarioId, updateScenarios],
-  );
+  const handleScenarioChange = useCallback((updates) => {
+    setScenarios((prev) =>
+      prev.map((s) => (s.id === currentScenarioId ? { ...s, ...updates } : s)),
+    );
+  }, [currentScenarioId]);
 
   const handleRenameScenario = useCallback(
     (newName) => {
@@ -222,60 +112,55 @@ export default function App() {
         name = prompt('Rename scenario:', currentScenario?.name || '');
       }
       if (!name?.trim() || name.trim() === currentScenario?.name) return;
-      updateScenarios((prev) =>
+      setScenarios((prev) =>
         prev.map((s) => (s.id === currentScenarioId ? { ...s, name: name.trim() } : s)),
       );
     },
-    [currentScenario, currentScenarioId, updateScenarios],
+    [currentScenario, currentScenarioId],
   );
 
   const handleStartNew = useCallback(() => {
-    const newScenario = createDefaultScenario(`${currentUser.name}'s Plan`);
-    updateScenarios((prev) => [...prev, newScenario]);
+    const newScenario = createDefaultScenario('My Plan');
+    setScenarios((prev) => [...prev, newScenario]);
     setCurrentScenarioId(newScenario.id);
     setWizardStep(0);
     setWhatIfOverrides({});
     setView('wizard');
-  }, [currentUser.name, updateScenarios]);
+  }, []);
 
-  const handleLoadScenario = useCallback(
-    (jsonData) => {
-      // Support new format { version: 2, users: [...] } or legacy array of scenarios
-      if (jsonData?.version === 2 && Array.isArray(jsonData.users)) {
-        const validUsers = jsonData.users.filter(
-          (u) => u?.name && Array.isArray(u.scenarios) && u.scenarios.length > 0,
-        );
-        if (validUsers.length === 0) { alert('No valid data found.'); return; }
-        const hydrated = validUsers.map((u) => ({
-          ...u, id: u.id || uid(),
-          scenarios: u.scenarios.map((s) => ({ ...createDefaultScenario(), ...s, id: s.id || uid() })),
-        }));
-        setUsers(hydrated);
-        setCurrentUserId(hydrated[0].id);
-        setCurrentScenarioId(hydrated[0].scenarios[0].id);
-        setWhatIfOverrides({});
-        setView('dashboard');
-        return;
-      }
-      // Legacy: plain array of scenarios
-      const loaded = Array.isArray(jsonData) ? jsonData : [jsonData];
-      const validated = loaded.filter(
-        (s) => s && typeof s === 'object' && s.currentAge != null && s.retirementAge != null,
-      );
-      if (validated.length === 0) { alert('Invalid scenario file.'); return; }
-      const withIds = validated.map((s) => ({ ...createDefaultScenario(), ...s, id: s.id || uid() }));
-      updateScenarios(() => withIds);
-      setCurrentScenarioId(withIds[0].id);
-      setWhatIfOverrides({});
-      setView('dashboard');
-    },
-    [updateScenarios],
-  );
+  const handleLoadScenario = useCallback((jsonData) => {
+    let loaded = [];
+
+    if (jsonData?.version === 3 && Array.isArray(jsonData.scenarios)) {
+      // New flat format
+      loaded = jsonData.scenarios;
+    } else if (jsonData?.version === 2 && Array.isArray(jsonData.users)) {
+      // Old multi-user format — flatten
+      loaded = jsonData.users.flatMap(u => u.scenarios || []);
+    } else {
+      // Legacy: plain array of scenarios or single scenario object
+      loaded = Array.isArray(jsonData) ? jsonData : [jsonData];
+    }
+
+    const valid = loaded
+      .filter(s => s?.currentAge != null && s?.retirementAge != null)
+      .map(s => ({ ...createDefaultScenario(), ...migrateScenario(s), id: s.id || uid() }));
+
+    if (valid.length === 0) { alert('No valid scenarios found in this file.'); return; }
+
+    setScenarios((prev) => {
+      const existingIds = new Set(prev.map(s => s.id));
+      return [...prev, ...valid.map(s => existingIds.has(s.id) ? { ...s, id: uid() } : s)];
+    });
+    setCurrentScenarioId(valid[0].id);
+    setWhatIfOverrides({});
+    setView('dashboard');
+  }, []);
 
   const handleWizardComplete = useCallback(() => setView('dashboard'), []);
 
   const handleExport = useCallback(() => {
-    const payload = { version: 2, users, exportedAt: new Date().toISOString() };
+    const payload = { version: 3, scenarios, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = Object.assign(document.createElement('a'), {
@@ -283,7 +168,7 @@ export default function App() {
     });
     link.click();
     URL.revokeObjectURL(url);
-  }, [users]);
+  }, [scenarios]);
 
   const handleImport = useCallback(
     (event) => {
@@ -307,25 +192,22 @@ export default function App() {
 
   const handleDuplicateScenario = useCallback(() => {
     const copy = { ...currentScenario, id: uid(), name: `${currentScenario.name} (copy)`, createdAt: new Date().toISOString() };
-    updateScenarios((prev) => [...prev, copy]);
+    setScenarios((prev) => [...prev, copy]);
     setCurrentScenarioId(copy.id);
     setWhatIfOverrides({});
-  }, [currentScenario, updateScenarios]);
+  }, [currentScenario]);
 
-  const handleDeleteScenario = useCallback(
-    (id) => {
-      updateScenarios((prev) => {
-        if (prev.length <= 1) return prev;
-        const next = prev.filter((s) => s.id !== id);
-        if (id === currentScenarioId) {
-          setCurrentScenarioId(next[0].id);
-          setWhatIfOverrides({});
-        }
-        return next;
-      });
-    },
-    [currentScenarioId, updateScenarios],
-  );
+  const handleDeleteScenario = useCallback((id) => {
+    setScenarios((prev) => {
+      if (prev.length <= 1) return prev; // always keep at least one
+      const next = prev.filter((s) => s.id !== id);
+      if (id === currentScenarioId) {
+        setCurrentScenarioId(next[0].id);
+        setWhatIfOverrides({});
+      }
+      return next;
+    });
+  }, [currentScenarioId]);
 
   const handleOverrideChange = useCallback((key, value) => {
     setWhatIfOverrides((prev) => ({ ...prev, [key]: value }));
@@ -345,20 +227,6 @@ export default function App() {
 
   const menuAction = (fn) => () => { setMenuOpen(false); fn(); };
 
-  if (view === 'new-person') {
-    return (
-      <NewPersonScreen
-        onStartNew={handleNewPersonStart}
-        onLoadFile={handleNewPersonLoad}
-        onCancel={() => setView('dashboard')}
-      />
-    );
-  }
-
-  if (view === 'welcome') {
-    return <WelcomeScreen onStartNew={handleStartNew} onLoadScenario={handleLoadScenario} />;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {view !== 'wizard' && (
@@ -369,20 +237,6 @@ export default function App() {
           </h1>
 
           <div className="flex items-center gap-2 min-w-0">
-            {/* Individual selector */}
-            <select
-              value={currentUserId}
-              onChange={(e) => handleSwitchUser(e.target.value)}
-              className="text-sm border border-gray-300 rounded-lg px-2 py-1.5
-                         focus:outline-none focus:ring-2 focus:ring-purple-400 max-w-[150px]
-                         font-medium text-purple-700 bg-purple-50"
-            >
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>{u.name}</option>
-              ))}
-              <option value="__add__">+ Add Person</option>
-            </select>
-
             {/* Scenario selector */}
             {scenarios.length > 0 && (
               <select
@@ -426,7 +280,7 @@ export default function App() {
                     Duplicate Plan
                   </button>
                   {currentScenario && (
-                    <button onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentUser.name))}
+                    <button onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
                       className="menu-item">
                       PDF Report
                     </button>
@@ -447,21 +301,13 @@ export default function App() {
                     Import
                   </button>
 
-                  {(scenarios.length > 1 || users.length > 1) && (
+                  {scenarios.length > 1 && (
                     <>
                       <div className="border-t border-gray-100 my-1.5 mx-3" />
-                      {scenarios.length > 1 && (
-                        <button onClick={menuAction(() => { if (confirm(`Delete "${currentScenario?.name}"?`)) handleDeleteScenario(currentScenarioId); })}
-                          className="menu-item text-red-600 hover:!bg-red-50">
-                          Delete Plan
-                        </button>
-                      )}
-                      {users.length > 1 && (
-                        <button onClick={menuAction(handleDeleteUser)}
-                          className="menu-item text-red-600 hover:!bg-red-50">
-                          Delete Person
-                        </button>
-                      )}
+                      <button onClick={menuAction(() => { if (confirm(`Delete "${currentScenario?.name}"?`)) handleDeleteScenario(currentScenarioId); })}
+                        className="menu-item text-red-600 hover:!bg-red-50">
+                        Delete Plan
+                      </button>
                     </>
                   )}
                 </div>
@@ -493,8 +339,12 @@ export default function App() {
         <div className="view-enter" key={view}>
           {view === 'wizard' && currentScenario && (
             <WizardShell scenario={currentScenario} onChange={handleScenarioChange}
-              onComplete={handleWizardComplete} currentStep={wizardStep} onStepChange={setWizardStep}
-              userName={currentUser.name} onUserNameChange={handleRenameUser} />
+              onComplete={handleWizardComplete} currentStep={wizardStep} onStepChange={setWizardStep} />
+          )}
+
+          {view === 'wizard' && !currentScenario && (
+            <WizardShell scenario={createDefaultScenario('My Plan')} onChange={handleScenarioChange}
+              onComplete={handleWizardComplete} currentStep={wizardStep} onStepChange={setWizardStep} />
           )}
 
           {view === 'dashboard' && currentScenario && (

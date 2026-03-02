@@ -29,8 +29,6 @@ export default function WizardShell({
   onComplete,
   currentStep,
   onStepChange,
-  userName,
-  onUserNameChange,
 }) {
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === WIZARD_STEPS - 1;
@@ -169,8 +167,6 @@ export default function WizardShell({
           <StepComponent
             scenario={scenario}
             onChange={onChange}
-            userName={userName}
-            onUserNameChange={onUserNameChange}
           />
         </div>
 

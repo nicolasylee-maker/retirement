@@ -123,14 +123,6 @@ export function createDefaultScenario(name = 'My Scenario') {
   };
 }
 
-export function createDefaultUser(name = 'Individual 1') {
-  return {
-    id: crypto.randomUUID?.() || Math.random().toString(36).slice(2),
-    name,
-    scenarios: [],
-  };
-}
-
 // Quick-fill presets for government benefits
 export const GOV_BENEFIT_PRESETS = {
   average: { label: 'Average', cppMonthly: 815, oasMonthly: 713 },

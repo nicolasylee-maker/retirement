@@ -1,3 +1,6 @@
+// DEPRECATED: This component is no longer imported by App.jsx as of the
+// app-state-refactor. It will be replaced by the onboarding-ux spec in a
+// separate branch. Do not delete this file until that spec is implemented.
 import React, { useRef } from 'react';
 import Button from '../components/Button';
 import Card from '../components/Card';

@@ -87,10 +87,10 @@ retirement/
 │   │   └── SunsetIllustration.jsx          ← Welcome screen SVG illustration
 │   │
 │   └── views/                              ← Page-level view components
-│       ├── WelcomeScreen.jsx               ← Landing page (New Plan / Load Saved Plan)
+│       ├── WelcomeScreen.jsx               ← DEPRECATED: no longer rendered; will be replaced by onboarding-ux spec
 │       ├── WhatIfPanel.jsx                 ← Collapsible parameter override panel
 │       │
-│       ├── wizard/                         ← 9-step input wizard
+│       ├── wizard/                         ← 9-step input wizard (entry point when no scenarios exist)
 │       │   ├── WizardShell.jsx             ← Wizard container, navigation, step management
 │       │   ├── PersonalInfoStep.jsx        ← Age, retirement age, couple toggle
 │       │   ├── GovBenefitsStep.jsx         ← CPP, OAS, GIS, GAINS configuration
@@ -146,10 +146,9 @@ retirement/
 
 ### Flow 1: Create New Retirement Plan
 ```
-WelcomeScreen
-    ↓ "Start New Plan"
-WizardShell (9 steps: Personal → Benefits → Pensions → Savings → Assets → Liabilities → Expenses → Withdrawal → Estate)
-    ↓ "Finish"
+App.jsx (no scenarios → view = 'wizard')
+    ↓ user fills 9-step wizard (Personal → Benefits → Pensions → Savings → Assets → Liabilities → Expenses → Withdrawal → Estate)
+    ↓ "View Dashboard" / "Finish"
 Dashboard (projections, KPIs, charts)
     ↓ optional
 WhatIfPanel (adjust return, inflation, expenses, life expectancy → live re-projection)
@@ -177,9 +176,9 @@ EstateBreakdown (tax by source, distribution rules)
 
 ### Flow 4: Load Saved Plan
 ```
-WelcomeScreen
-    ↓ "Load Saved Plan" (JSON file picker)
-Dashboard (loaded scenario)
+Header Actions menu → "Import" (JSON file picker)
+    ↓ handleLoadScenario — supports v3 (flat scenarios[]), v2 (users[] wrapper), legacy (plain array)
+Dashboard (loaded scenario, merged into existing scenario list)
 ```
 
 ## Application Layers
@@ -373,9 +372,10 @@ npm run generate:golden     # regenerate golden regression snapshots (run after 
 
 ```javascript
 // Top-level state in App.jsx
-const [scenarios, setScenarios] = useState([createDefaultScenario()])
-const [currentScenarioId, setCurrentScenarioId] = useState(...)
-const [view, setView] = useState('welcome')
+// scenarios[] is the top-level array — no users[] nesting
+const [scenarios, setScenarios] = useState([])           // empty → wizard; populated → dashboard
+const [currentScenarioId, setCurrentScenarioId] = useState(null)
+const [view, setView] = useState('wizard')               // 'wizard' when no scenarios, 'dashboard' when scenarios exist
 const [wizardStep, setWizardStep] = useState(0)
 const [whatIfOverrides, setWhatIfOverrides] = useState({})
 
@@ -468,3 +468,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | Full couple support: spouse CPP/OAS bug fix, spouse employment/pension/savings, two-tax-call |
 | 2026-03-02 | effectiveScenario propagated to Dashboard, report, and audit; surplus formula fixed in PDF; couple fields added to report and audit; auditProjection.js split into auditInputSnapshot.js, auditProjection.js, auditTaxDebt.js |
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
+| 2026-03-02 | app-state-refactor: collapsed users[] → flat scenarios[] state model; removed user management (handleAddUser, handleSwitchUser, handleRenameUser, handleDeleteUser, updateScenarios helper); deleted NewPersonScreen.jsx; deprecated WelcomeScreen.jsx; initial view is now 'wizard' when no scenarios exist |

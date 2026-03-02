@@ -3,7 +3,7 @@ import FormField from '../../components/FormField';
 import Card from '../../components/Card';
 import { PROVINCE_NAMES, PROVINCE_CODES } from '../../constants/taxTables.js';
 
-export default function PersonalInfoStep({ scenario, onChange, userName, onUserNameChange }) {
+export default function PersonalInfoStep({ scenario, onChange }) {
   const handleChange = (field) => (value) => {
     onChange({ [field]: value });
   };
@@ -20,20 +20,6 @@ export default function PersonalInfoStep({ scenario, onChange, userName, onUserN
           Tell us about yourself to build your retirement timeline.
         </p>
       </div>
-
-      {/* Name */}
-      <Card>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Your Name</h3>
-        <FormField
-          label="Name"
-          name="userName"
-          type="text"
-          value={userName || ''}
-          onChange={(val) => onUserNameChange?.(val)}
-          helper="This name will appear throughout your plan and reports"
-          placeholder="e.g. Mary, John & Sarah"
-        />
-      </Card>
 
       <Card>
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Your Details</h3>

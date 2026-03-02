@@ -9,6 +9,10 @@ import CompareView from './views/compare/CompareView';
 import EstateView from './views/estate/EstateView';
 import DebtView from './views/debt/DebtView';
 import WhatIfPanel from './views/WhatIfPanel';
+import SaveNudgeScreen from './views/SaveNudgeScreen';
+import MyPlansView from './views/MyPlansView';
+
+const WIZARD_CHECKPOINT_KEY = 'rp-wizard-step';
 
 const NAV_TABS = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -68,10 +72,18 @@ export default function App() {
   });
   const [view, setView] = useState(() => {
     const saved = loadSaved();
-    if (saved?.view && saved.view !== 'wizard') return saved.view;
-    return scenarios.length > 0 ? 'dashboard' : 'wizard';
+    if (saved?.scenarios?.length > 0) return 'dashboard';
+    return 'wizard';
   });
-  const [wizardStep, setWizardStep] = useState(0);
+  const [wizardStep, setWizardStep] = useState(() => {
+    const saved = loadSaved();
+    if (saved?.scenarios?.length > 0) return 0;
+    try {
+      const checkpoint = parseInt(localStorage.getItem(WIZARD_CHECKPOINT_KEY), 10);
+      if (!isNaN(checkpoint) && checkpoint >= 0 && checkpoint <= 8) return checkpoint;
+    } catch { /* ignore */ }
+    return 0;
+  });
   const [whatIfOverrides, setWhatIfOverrides] = useState({});
   const [whatIfExpanded, setWhatIfExpanded] = useState(true);
   const importInputRef = useRef(null);
@@ -80,6 +92,15 @@ export default function App() {
   useEffect(() => {
     const data = { scenarios, currentScenarioId, view: view === 'wizard' ? 'dashboard' : view };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }, [scenarios, currentScenarioId, view]);
+
+  // Show My Plans picker when 2+ scenarios exist and no valid scenario is selected
+  useEffect(() => {
+    if (view !== 'dashboard' && view !== 'wizard' && view !== 'save-nudge') return;
+    const hasValidCurrent = scenarios.some((s) => s.id === currentScenarioId);
+    if (scenarios.length >= 2 && !hasValidCurrent) {
+      setView('my-plans');
+    }
   }, [scenarios, currentScenarioId, view]);
 
   // Derived state
@@ -124,6 +145,7 @@ export default function App() {
     setScenarios((prev) => [...prev, newScenario]);
     setCurrentScenarioId(newScenario.id);
     setWizardStep(0);
+    localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
     setWhatIfOverrides({});
     setView('wizard');
   }, []);
@@ -157,7 +179,7 @@ export default function App() {
     setView('dashboard');
   }, []);
 
-  const handleWizardComplete = useCallback(() => setView('dashboard'), []);
+  const handleWizardComplete = useCallback(() => setView('save-nudge'), []);
 
   const handleExport = useCallback(() => {
     const payload = { version: 3, scenarios, exportedAt: new Date().toISOString() };
@@ -229,7 +251,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {view !== 'wizard' && (
+      {view !== 'wizard' && view !== 'save-nudge' && (
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div className="px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between gap-3">
           <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight shrink-0">
@@ -376,6 +398,18 @@ export default function App() {
                 lifeExpectancyOverride={whatIfOverrides.lifeExpectancy}
                 onLifeExpectancyChange={(v) => handleOverrideChange('lifeExpectancy', v)} />
             </div>
+          )}
+
+          {view === 'save-nudge' && (
+            <SaveNudgeScreen onSkip={() => setView('dashboard')} />
+          )}
+
+          {view === 'my-plans' && (
+            <MyPlansView
+              scenarios={scenarios}
+              onSelect={(id) => { setCurrentScenarioId(id); setWhatIfOverrides({}); setView('dashboard'); }}
+              onStartNew={handleStartNew}
+            />
           )}
         </div>
       </main>

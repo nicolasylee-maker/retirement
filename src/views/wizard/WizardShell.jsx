@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Button from '../../components/Button';
 import { STEP_LABELS, WIZARD_STEPS } from '../../constants/defaults';
 import PersonalInfoStep from './PersonalInfoStep';
@@ -10,6 +10,8 @@ import LiabilitiesStep from './LiabilitiesStep';
 import ExpensesStep from './ExpensesStep';
 import WithdrawalStep from './WithdrawalStep';
 import EstateStep from './EstateStep';
+
+const WIZARD_CHECKPOINT_KEY = 'rp-wizard-step';
 
 const STEP_COMPONENTS = [
   PersonalInfoStep,
@@ -34,12 +36,18 @@ export default function WizardShell({
   const isLastStep = currentStep === WIZARD_STEPS - 1;
   const StepComponent = STEP_COMPONENTS[currentStep];
 
+  // Persist step to localStorage so the user resumes where they left off
+  useEffect(() => {
+    localStorage.setItem(WIZARD_CHECKPOINT_KEY, String(currentStep));
+  }, [currentStep]);
+
   const handleBack = () => {
     if (!isFirstStep) onStepChange(currentStep - 1);
   };
 
   const handleNext = () => {
     if (isLastStep) {
+      localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
       onComplete();
     } else {
       onStepChange(currentStep + 1);

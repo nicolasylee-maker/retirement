@@ -72,7 +72,8 @@ retirement/
 │   ├── utils/
 │   │   ├── formatters.js                   ← Currency, percent, UUID, math utilities
 │   │   ├── generateReport.js               ← HTML retirement report (PDF-printable, inputs + projection)
-│   │   └── downloadAudit.js                ← Audit report assembler + Markdown download trigger
+│   │   ├── downloadAudit.js                ← Audit report assembler + Markdown download trigger
+│   │   └── analytics.js                    ← Analytics stub (trackEvent); wire up to Plausible/Segment later
 │   │
 │   ├── components/                         ← Reusable UI components
 │   │   ├── AiInsight.jsx                   ← AI recommendation card (Gemini integration)
@@ -87,7 +88,9 @@ retirement/
 │   │   └── SunsetIllustration.jsx          ← Welcome screen SVG illustration
 │   │
 │   └── views/                              ← Page-level view components
-│       ├── WelcomeScreen.jsx               ← DEPRECATED: no longer rendered; will be replaced by onboarding-ux spec
+│       ├── WelcomeScreen.jsx               ← DEPRECATED: no longer rendered; replaced by wizard-first onboarding (onboarding-ux spec)
+│       ├── SaveNudgeScreen.jsx             ← Post-wizard interstitial: save plan via Google or magic link, or skip
+│       ├── MyPlansView.jsx                 ← Plan picker for users with 2+ scenarios; grid of cards with Open + New Plan
 │       ├── WhatIfPanel.jsx                 ← Collapsible parameter override panel
 │       │
 │       ├── wizard/                         ← 9-step input wizard (entry point when no scenarios exist)
@@ -146,12 +149,22 @@ retirement/
 
 ### Flow 1: Create New Retirement Plan
 ```
-App.jsx (no scenarios → view = 'wizard')
+App.jsx (no scenarios → view = 'wizard', step restored from localStorage 'rp-wizard-step' checkpoint)
     ↓ user fills 9-step wizard (Personal → Benefits → Pensions → Savings → Assets → Liabilities → Expenses → Withdrawal → Estate)
-    ↓ "View Dashboard" / "Finish"
+    ↓ "View Dashboard" / "Finish" → clears 'rp-wizard-step' checkpoint
+SaveNudgeScreen (save via Google or magic link, or skip)
+    ↓ skip or sign-in
 Dashboard (projections, KPIs, charts)
     ↓ optional
 WhatIfPanel (adjust return, inflation, expenses, life expectancy → live re-projection)
+```
+
+### Flow 1b: Returning User with Multiple Plans
+```
+App.jsx (2+ scenarios, no valid currentScenarioId → view = 'my-plans')
+MyPlansView (grid of scenario cards)
+    ↓ click Open
+Dashboard (selected scenario)
 ```
 
 ### Flow 2: Compare Scenarios
@@ -375,8 +388,11 @@ npm run generate:golden     # regenerate golden regression snapshots (run after 
 // scenarios[] is the top-level array — no users[] nesting
 const [scenarios, setScenarios] = useState([])           // empty → wizard; populated → dashboard
 const [currentScenarioId, setCurrentScenarioId] = useState(null)
-const [view, setView] = useState('wizard')               // 'wizard' when no scenarios, 'dashboard' when scenarios exist
-const [wizardStep, setWizardStep] = useState(0)
+// Views: 'wizard' | 'save-nudge' | 'dashboard' | 'debt' | 'compare' | 'estate' | 'my-plans'
+// 'wizard' when no scenarios; 'save-nudge' after wizard completes; 'dashboard' for returning users
+// 'my-plans' when 2+ scenarios exist and no valid currentScenarioId is set
+const [view, setView] = useState('wizard')
+const [wizardStep, setWizardStep] = useState(0)          // restored from localStorage 'rp-wizard-step' checkpoint when no saved scenarios
 const [whatIfOverrides, setWhatIfOverrides] = useState({})
 
 // Derived (memoized)
@@ -469,3 +485,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | effectiveScenario propagated to Dashboard, report, and audit; surplus formula fixed in PDF; couple fields added to report and audit; auditProjection.js split into auditInputSnapshot.js, auditProjection.js, auditTaxDebt.js |
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
 | 2026-03-02 | app-state-refactor: collapsed users[] → flat scenarios[] state model; removed user management (handleAddUser, handleSwitchUser, handleRenameUser, handleDeleteUser, updateScenarios helper); deleted NewPersonScreen.jsx; deprecated WelcomeScreen.jsx; initial view is now 'wizard' when no scenarios exist |
+| 2026-03-02 | onboarding-ux: wizard-first entry (no welcome screen); localStorage step checkpoint ('rp-wizard-step'); post-wizard save nudge screen (SaveNudgeScreen.jsx); MyPlansView.jsx for 2+ scenario users; new views: 'save-nudge', 'my-plans'; analytics stub (src/utils/analytics.js) |

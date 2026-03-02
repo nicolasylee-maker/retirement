@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { getAiRecommendation, QuotaExceededError } from '../services/geminiService'
 import { useSubscription } from '../contexts/SubscriptionContext'
 import UpgradePrompt from './UpgradePrompt'
@@ -212,9 +213,9 @@ export default function AiInsight({ type, data, scenarioKey }) {
       )}
     </div>
 
-    {upgradeOpen && (
+    {upgradeOpen && createPortal(
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
         onMouseDown={(e) => { if (e.target === e.currentTarget) setUpgradeOpen(false) }}
       >
         <div className="relative mx-4">
@@ -228,7 +229,8 @@ export default function AiInsight({ type, data, scenarioKey }) {
           </button>
           <UpgradePrompt variant="full" featureName="AI Insights" modal />
         </div>
-      </div>
+      </div>,
+      document.body
     )}
     </>
   )

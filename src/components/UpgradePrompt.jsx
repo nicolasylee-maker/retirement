@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useSubscription } from '../contexts/SubscriptionContext'
+import { useAuth } from '../contexts/AuthContext'
 import { startCheckout } from '../services/stripeService'
 import AuthPanel from './AuthPanel'
 
@@ -32,6 +33,7 @@ const FEATURES = [
 
 export default function UpgradePrompt({ variant = 'full', featureName, modal = false }) {
   const { isLoading } = useSubscription()
+  const { user } = useAuth()
   const [billingPlan, setBillingPlan] = useState('yearly')
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
@@ -147,13 +149,15 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
         {checkoutLoading ? 'Loading...' : 'Start free trial'}
       </button>
 
-      <button
-        type="button"
-        onClick={() => setAuthOpen(true)}
-        className="text-sm text-gray-500 hover:text-gray-700 underline"
-      >
-        Already subscribed? Sign in
-      </button>
+      {!user && (
+        <button
+          type="button"
+          onClick={() => setAuthOpen(true)}
+          className="text-sm text-gray-500 hover:text-gray-700 underline"
+        >
+          Already subscribed? Sign in
+        </button>
+      )}
     </div>
   )
 

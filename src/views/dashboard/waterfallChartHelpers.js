@@ -145,7 +145,7 @@ export function buildWaterfallData(scenario, projectionData) {
     const taxableNPI     = taxableNpiFromRow(row);
     // hasPension for T_s: only DB pension qualifies when there are no RRSP withdrawals
     const hasPensionForTs = row.pensionIncome > 0;
-    const T_s             = calcTotalTax(taxableNPI, row.age, hasPensionForTs);
+    const T_s             = calcTotalTax(taxableNPI, row.age, hasPensionForTs, s.province || 'ON');
     const T               = row.totalTax || 0;
     const portfolioFundedTax = Math.max(0, T - T_s);
 
@@ -165,8 +165,8 @@ export function buildWaterfallData(scenario, projectionData) {
       const rrifMin      = calcRrifMinimum(rrspStart, row.age);
       const meltdownExtra = Math.max(0, row.rrspWithdrawal - rrifMin);
       if (meltdownExtra > 0) {
-        const taxWithRrifOnly  = calcTotalTax(taxableNPI + rrifMin,            row.age, hasPensionForTs);
-        const taxWithMeltdown  = calcTotalTax(taxableNPI + row.rrspWithdrawal, row.age, hasPensionForTs);
+        const taxWithRrifOnly  = calcTotalTax(taxableNPI + rrifMin,            row.age, hasPensionForTs, s.province || 'ON');
+        const taxWithMeltdown  = calcTotalTax(taxableNPI + row.rrspWithdrawal, row.age, hasPensionForTs, s.province || 'ON');
         meltdownTaxLeakage     = Math.max(0, taxWithMeltdown - taxWithRrifOnly);
       }
     }

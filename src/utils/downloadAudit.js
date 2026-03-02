@@ -5,13 +5,9 @@
  * and triggers a browser download.
  */
 
-import {
-  auditInputSnapshot,
-  auditProjectionTable,
-  auditCppOasVerification,
-  auditTaxVerification,
-  auditDebtTrace,
-} from '../engines/auditProjection.js';
+import { auditInputSnapshot } from '../engines/auditInputSnapshot.js';
+import { auditProjectionTable, auditCppOasVerification } from '../engines/auditProjection.js';
+import { auditTaxVerification, auditDebtTrace } from '../engines/auditTaxDebt.js';
 
 import {
   auditEstateVerification,

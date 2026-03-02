@@ -176,23 +176,25 @@ export default function GovBenefitsStep({ scenario, onChange }) {
             </div>
           </label>
 
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={scenario.gainsEligible}
-              onChange={() => onChange({ gainsEligible: !scenario.gainsEligible })}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-sunset-500 focus:ring-sunset-400"
-            />
-            <div>
-              <span className="text-sm font-medium text-gray-800 flex items-center gap-1">
-                GAINS Eligible
-                <HelpIcon text="GAINS is an Ontario-only benefit that tops up your income if you already receive OAS and GIS. It's automatic — no application required." />
-              </span>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Ontario-only top-up for seniors already receiving GIS — provides a bit more each month
-              </p>
-            </div>
-          </label>
+          {(scenario.province || 'ON') === 'ON' && (
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={scenario.gainsEligible}
+                onChange={() => onChange({ gainsEligible: !scenario.gainsEligible })}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-sunset-500 focus:ring-sunset-400"
+              />
+              <div>
+                <span className="text-sm font-medium text-gray-800 flex items-center gap-1">
+                  GAINS Eligible
+                  <HelpIcon text="GAINS is an Ontario-only benefit that tops up your income if you already receive OAS and GIS. It's automatic — no application required." />
+                </span>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Ontario-only top-up for seniors already receiving GIS — provides a bit more each month
+                </p>
+              </div>
+            </label>
+          )}
         </div>
       </Card>
 

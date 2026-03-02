@@ -2,7 +2,7 @@
 
 ## Overview
 
-A client-side React single-page application for Ontario residents planning retirement. Users build scenarios through a 9-step wizard, then explore year-by-year projections, compare scenarios side-by-side, and analyze estate impact — all computed in-browser with no backend.
+A client-side React single-page application for Canadian residents planning retirement. Supports all 9 English Canadian provinces (ON, BC, AB, SK, MB, NB, NS, NL, PE) with province-specific income tax, probate, and intestacy rules. Users build scenarios through a 9-step wizard, then explore year-by-year projections, compare scenarios side-by-side, and analyze estate impact — all computed in-browser with no backend.
 
 ## Tech Stack
 
@@ -32,7 +32,18 @@ retirement/
 ├── docs/
 │   ├── architecture.md                     ← This file (structure, patterns, data flow)
 │   ├── AGENTS.md                           ← AI agent protocol (boot sequence, task loop, rules)
-│   └── learned-rules.md                    ← Domain pitfalls (tax, estate, withdrawal)
+│   ├── learned-rules.md                    ← Domain pitfalls (tax, estate, withdrawal)
+│   └── CALCULATION_AUDIT.md                ← Audit methodology and worked examples
+│
+├── data/
+│   ├── federal.json                        ← 2025 federal tax brackets, credits, OAS/TFSA params
+│   └── provinces/                          ← 2025 provincial data (one JSON per province)
+│       ├── ON.json  BC.json  AB.json  SK.json  MB.json
+│       └── NB.json  NS.json  NL.json  PE.json
+│
+├── scripts/
+│   ├── update-tax-data.js                  ← Annual update checklist (data freshness + CRA links)
+│   └── check-canlii.js                     ← CanLII amendment monitor for probate/intestacy acts
 │
 ├── src/
 │   ├── main.jsx                            ← React root render (StrictMode → App)
@@ -40,22 +51,28 @@ retirement/
 │   ├── index.css                           ← Tailwind directives, custom classes, animations
 │   │
 │   ├── constants/
-│   │   ├── defaults.js                     ← Default scenario values, wizard step definitions, presets
+│   │   ├── defaults.js                     ← Default scenario values (province:'ON'), wizard steps, presets
 │   │   ├── designTokens.js                 ← Color palettes, chart styles, design constants
-│   │   └── taxTables.js                    ← 2024 Federal/Ontario tax brackets, credits, thresholds
+│   │   └── taxTables.js                    ← Imports data/*.json; exports PROVINCE_DATA, PROVINCE_CODES, PROVINCE_NAMES + backward-compat constants
 │   │
 │   ├── engines/                            ← Pure business logic (zero React dependencies)
 │   │   ├── projectionEngine.js             ← Year-by-year retirement cash flow projections
 │   │   ├── incomeHelpers.js                ← Pure income benefit helpers (CPP, OAS, GIS, GAINS, capital gains)
 │   │   ├── taxEngine.js                    ← Federal + Ontario tax, OAS clawback, RRIF minimums
 │   │   ├── estateEngine.js                 ← Estate tax, probate, distribution analysis
-│   │   └── withdrawalCalc.js               ← Sustainable withdrawal binary search
+│   │   ├── withdrawalCalc.js               ← Sustainable withdrawal binary search
+│   │   ├── auditInputSnapshot.js           ← Audit section 1: full input snapshot table
+│   │   ├── auditProjection.js              ← Audit sections 2–3: projection table + CPP/OAS verification
+│   │   ├── auditTaxDebt.js                 ← Audit sections 4–5: tax worked example + debt trace
+│   │   └── auditAnalysis.js                ← Audit sections 6–10: estate, withdrawal, RRIF, gaps, KPIs
 │   │
 │   ├── services/
 │   │   └── geminiService.js                ← Google Gemini AI integration (optional insights)
 │   │
 │   ├── utils/
-│   │   └── formatters.js                   ← Currency, percent, UUID, math utilities
+│   │   ├── formatters.js                   ← Currency, percent, UUID, math utilities
+│   │   ├── generateReport.js               ← HTML retirement report (PDF-printable, inputs + projection)
+│   │   └── downloadAudit.js                ← Audit report assembler + Markdown download trigger
 │   │
 │   ├── components/                         ← Reusable UI components
 │   │   ├── AiInsight.jsx                   ← AI recommendation card (Gemini integration)
@@ -104,11 +121,19 @@ retirement/
 │           ├── EstateSummaryCards.jsx       ← Estate KPI cards
 │           └── EstateBreakdown.jsx         ← Tax breakdown + distribution to heirs
 │
-├── tests/                                  ← Vitest test files
-│   ├── taxEngine.test.js                   ← Federal/Ontario tax, surtax, OAS clawback, RRIF mins
-│   ├── projectionEngine.test.js            ← Year-by-year projections with persona scenarios
-│   ├── estateEngine.test.js                ← Death tax, probate, intestacy distribution
-│   └── withdrawalCalc.test.js              ← Sustainable withdrawal, overrides, monotonicity
+├── tests/                                  ← Vitest test files (277 tests, 8 files)
+│   ├── taxEngine.test.js                   ← Federal/Ontario tax, surtax, OAS clawback, RRIF mins (51)
+│   ├── projectionEngine.test.js            ← Year-by-year projections with persona scenarios (45)
+│   ├── estateEngine.test.js                ← Death tax, probate, intestacy distribution (32)
+│   ├── withdrawalCalc.test.js              ← Sustainable withdrawal, overrides, monotonicity (20)
+│   ├── multiProvinceEngine.test.js         ← Province-aware tax/probate/intestacy for all provinces (47)
+│   ├── goldenFileTests.test.js             ← Per-province regression snapshots (36, 4 asserts × 9 provinces)
+│   ├── portfolioChartHelpers.test.js       ← Chart helper functions (20)
+│   ├── waterfallChartHelpers.test.js       ← Waterfall chart helpers (26)
+│   └── golden/                             ← Committed JSON snapshots (regenerate: npm run generate:golden)
+│       ├── generate.test.js                ← Generator (excluded from npm test, run via generate:golden)
+│       ├── generate.config.js              ← Vitest config for generator only
+│       └── {ON,BC,AB,SK,MB,NB,NS,NL,PE}-golden.json
 │
 ├── dist/                                   ← Production build output (Vite)
 │
@@ -278,7 +303,12 @@ tests/yourModuleEngine.test.js    ← Unit tests for engine functions
 |------|---------|
 | `src/App.jsx` | App shell — all top-level state, view routing, scenario CRUD |
 | `src/constants/defaults.js` | Scenario shape, wizard steps, preset values |
-| `src/constants/taxTables.js` | 2024 Federal/Ontario tax brackets and parameters |
+| `src/constants/taxTables.js` | Imports `data/*.json`; exports `PROVINCE_DATA`, `PROVINCE_CODES`, `PROVINCE_NAMES`, and backward-compat constants |
+| `data/federal.json` | 2025 federal tax brackets, OAS/TFSA parameters |
+| `data/provinces/*.json` | 2025 provincial brackets, credits, probate, intestacy per province |
+| `data/canlii-state.json` | Last-seen CanLII amendment dates for 18 probate/intestacy acts |
+| `scripts/update-tax-data.js` | Annual tax data freshness audit + update checklist |
+| `scripts/check-canlii.js` | CanLII legislation amendment monitor (pass `--fetch` to hit URLs) |
 | `src/engines/projectionEngine.js` | Year-by-year retirement cash flow engine |
 | `src/engines/taxEngine.js` | Tax calculation (federal, Ontario, clawbacks, credits) |
 | `src/engines/estateEngine.js` | Estate tax, probate, distribution |
@@ -299,7 +329,7 @@ npm install
 # Run development server (http://localhost:5173)
 npm run dev
 
-# Run tests
+# Run tests (277 tests)
 npm test
 
 # Run tests in watch mode
@@ -313,6 +343,11 @@ npm run build
 
 # Preview production build locally
 npm run preview
+
+# Annual maintenance
+npm run update:tax          # audit data freshness + CRA update checklist
+npm run check:legislation   # show CanLII acts on watch; add --fetch to detect amendments
+npm run generate:golden     # regenerate golden regression snapshots (run after tax-year update)
 ```
 
 ## Code Style
@@ -357,25 +392,33 @@ const projectionData = useMemo(() =>
 
 ```
 tests/
-  taxEngine.test.js           ← Federal/Ontario tax, surtax, OAS clawback, RRIF minimums (51 tests)
-  projectionEngine.test.js    ← Year-by-year projection with multiple persona scenarios (28 tests)
-  estateEngine.test.js        ← Death tax, probate, intestacy distribution (32 tests)
-  withdrawalCalc.test.js      ← Sustainable withdrawal binary search, overrides, monotonicity (20 tests)
+  taxEngine.test.js             ← Federal/Ontario tax, surtax, OAS clawback, RRIF minimums (51)
+  projectionEngine.test.js      ← Year-by-year projection with multiple persona scenarios (45)
+  estateEngine.test.js          ← Death tax, probate, intestacy distribution (32)
+  withdrawalCalc.test.js        ← Sustainable withdrawal binary search, overrides, monotonicity (20)
+  multiProvinceEngine.test.js   ← Province-aware calcProvincialTax/probate/intestacy (47)
+  goldenFileTests.test.js       ← Per-province regression snapshots — 4 assertions × 9 provinces (36)
+  portfolioChartHelpers.test.js ← Chart milestone helpers (20)
+  waterfallChartHelpers.test.js ← Waterfall chart tax helpers (26)
+  golden/                       ← Committed JSON snapshots; regenerate with: npm run generate:golden
 ```
 
 - **Framework**: Vitest (Vite-native, Jest-compatible API)
-- **Run**: `npm test` or `npx vitest run`
+- **Run**: `npm test` (277 tests) or `npx vitest run`
 - **Watch**: `npm run test:watch` or `npx vitest`
 - Unit tests for all engine functions (tax, projection, estate, withdrawal)
+- Province-aware tests in `multiProvinceEngine.test.js` for all 9 provinces
+- Golden regression tests lock down full end-to-end output per province; failing = unintentional change
 - Test with sample scenario JSON files for persona-based validation
 - Edge cases to cover:
   - Zero income, zero balances
   - Maximum age (100+), minimum age
   - Tax bracket boundaries (exact threshold values)
-  - OAS clawback zone (~$91K boundary)
+  - OAS clawback zone (~$93.4K in 2025)
   - RRIF minimum percentages at each age
   - Couple vs. single scenarios
   - Negative surplus (portfolio depletion)
+  - Manitoba: zero probate; NS: no age-amount phase-out
 - Mock `geminiService.js` for any service-level tests
 
 ## Shared Component Rules
@@ -391,7 +434,7 @@ tests/
 - **No router library**: Simple state-based view switching in `App.jsx` — app has <6 views
 - **No state library**: React `useState` + prop drilling — component tree is shallow (max 3 levels)
 - **All tax math isolated**: Engines have zero UI dependencies, independently testable
-- **Ontario-specific**: Federal + Ontario tax only — no multi-province support
+- **Multi-province**: 9 English Canadian provinces (ON, BC, AB, SK, MB, NB, NS, NL, PE) — tax/probate/intestacy data per province in `data/provinces/*.json`
 - **No backend**: All computation client-side, persistence via JSON file export/import
 - **Optional AI**: Gemini integration is fully optional — app works without any API key
   - API key stored in localStorage (user-provided)
@@ -423,3 +466,5 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2025-01-01 | Initial architecture document created |
 | 2026-03-01 | Comprehensive rewrite — full project structure, data flow, conventions |
 | 2026-03-02 | Full couple support: spouse CPP/OAS bug fix, spouse employment/pension/savings, two-tax-call |
+| 2026-03-02 | effectiveScenario propagated to Dashboard, report, and audit; surplus formula fixed in PDF; couple fields added to report and audit; auditProjection.js split into auditInputSnapshot.js, auditProjection.js, auditTaxDebt.js |
+| 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |

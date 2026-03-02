@@ -1,0 +1,47 @@
+{
+  "province": "NS",
+  "name": "Nova Scotia",
+  "taxYear": 2025,
+  "lastVerified": "2026-03-02",
+  "sources": [
+    "https://www.taxtips.ca/taxrates/ns.htm",
+    "https://www.novascotia.ca/personal-income-tax-rates-and-indexation"
+  ],
+  "brackets": [
+    { "min": 0,      "max": 30507,  "rate": 0.0879 },
+    { "min": 30507,  "max": 61015,  "rate": 0.1495 },
+    { "min": 61015,  "max": 95883,  "rate": 0.1667 },
+    { "min": 95883,  "max": 154650, "rate": 0.1750 },
+    { "min": 154650, "max": null,   "rate": 0.2100 }
+  ],
+  "surtax": null,
+  "credits": {
+    "basicPersonal": 11744,
+    "ageAmount": 5734,
+    "ageIncomeThreshold": null,
+    "ageClawbackRate": 0.0,
+    "pensionCredit": 1173,
+    "creditRate": 0.0879,
+    "_note": "NS Budget 2025 eliminated the age amount phase-out. All NS residents 65+ receive the full $5,734 age amount regardless of income. ageIncomeThreshold is null (no clawback)."
+  },
+  "probate": {
+    "type": "tiered",
+    "tiers": [
+      { "upTo": 10000,  "ratePerThousand": 0    },
+      { "upTo": 25000,  "ratePerThousand": 8.50 },
+      { "upTo": 50000,  "ratePerThousand": 15.0 },
+      { "upTo": 100000, "ratePerThousand": 15.0 },
+      { "upTo": null,   "ratePerThousand": 16.95 }
+    ],
+    "source": "https://www.canlii.org/en/ns/laws/regu/ns-reg-119-2001/latest/ns-reg-119-2001.html",
+    "_note": "NS Probate Court Practice Regulations. Complex tiered schedule. Rates approximate — verify against regulation Schedule A for exact fee table."
+  },
+  "intestacy": {
+    "spousePreferentialShare": 50000,
+    "spouseFractionOneChild": 0.5,
+    "spouseFractionMultipleChildren": 0.3333333333333333,
+    "source": "https://www.canlii.org/en/ns/laws/stat/rsns-1989-c-236/latest/rsns-1989-c-236.html",
+    "_note": "NS Intestate Succession Act RSNS 1989 c 236. Spouse gets $50K preferential share; 1/2 with 1 child, 1/3 with 2+ children."
+  },
+  "lowIncomeSupplement": null
+}

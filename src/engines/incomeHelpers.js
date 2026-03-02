@@ -2,15 +2,13 @@ import {
   CPP_PARAMS, OAS_PARAMS, GIS_PARAMS, GAINS_PARAMS, CAPITAL_GAINS,
 } from '../constants/taxTables.js';
 
-/** Tiered capital gains inclusion: 50% on first $250K, 66.7% above. */
+/**
+ * Flat 50% capital gains inclusion for 2025.
+ * The proposed tiered 66.67% rate was cancelled March 21, 2025.
+ */
 export function calcTaxableCapitalGain(gain) {
   if (gain <= 0) return 0;
-  if (gain <= CAPITAL_GAINS.enhancedThreshold) {
-    return gain * CAPITAL_GAINS.inclusionRate;
-  }
-  const base = CAPITAL_GAINS.enhancedThreshold * CAPITAL_GAINS.inclusionRate;
-  const excess = (gain - CAPITAL_GAINS.enhancedThreshold) * CAPITAL_GAINS.enhancedRate;
-  return base + excess;
+  return gain * CAPITAL_GAINS.inclusionRate;
 }
 
 /** CPP annual benefit adjusted for start age vs 65. */
@@ -45,8 +43,15 @@ export function calcGisBenefit(receivingOas, otherIncome) {
   return Math.max(0, GIS_PARAMS.maxAnnual - reduction);
 }
 
-/** Ontario GAINS benefit. */
-export function calcGainsBenefit(age, privateIncome) {
+/**
+ * Ontario GAINS benefit.
+ * Returns 0 for any province other than ON — GAINS is an Ontario-only program.
+ * @param {number} age
+ * @param {number} privateIncome
+ * @param {string} [province]  Defaults to 'ON' for backward compat
+ */
+export function calcGainsBenefit(age, privateIncome, province = 'ON') {
+  if (province !== 'ON') return 0;
   if (age < GAINS_PARAMS.minAge) return 0;
   const reduction = Math.max(0, privateIncome - GAINS_PARAMS.singleIncomeThreshold);
   return Math.max(0, GAINS_PARAMS.maxAnnual - reduction * GAINS_PARAMS.clawbackRate);

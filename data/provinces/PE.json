@@ -1,0 +1,44 @@
+{
+  "province": "PE",
+  "name": "Prince Edward Island",
+  "taxYear": 2025,
+  "lastVerified": "2026-03-02",
+  "sources": [
+    "https://www.taxtips.ca/taxrates/pe.htm"
+  ],
+  "brackets": [
+    { "min": 0,      "max": 33328,  "rate": 0.0950 },
+    { "min": 33328,  "max": 64656,  "rate": 0.1347 },
+    { "min": 64656,  "max": 105000, "rate": 0.1660 },
+    { "min": 105000, "max": 140000, "rate": 0.1762 },
+    { "min": 140000, "max": null,   "rate": 0.1900 }
+  ],
+  "surtax": null,
+  "_note_surtax": "PEI eliminated its surtax when it moved to the 5-bracket system in 2024. No surtax applies for 2025.",
+  "credits": {
+    "basicPersonal": 14650,
+    "ageAmount": 6510,
+    "ageIncomeThreshold": 36600,
+    "ageClawbackRate": 0.15,
+    "pensionCredit": 1000,
+    "creditRate": 0.0950
+  },
+  "probate": {
+    "type": "flat_tiers",
+    "tiers": [
+      { "upTo": 100000, "fee": 400 },
+      { "upTo": null,   "fee": null, "ratePerThousandAbove": 4, "aboveThreshold": 100000 }
+    ],
+    "_type_note": "PEI uses $400 flat for first $100K, then $4/$1K above. Using flat_tiers type with a special ratePerThousandAbove field for the top tier.",
+    "source": "https://www.canlii.org/en/pe/laws/regu/pei-reg-ec200-12/latest/pei-reg-ec200-12.html",
+    "_note": "PEI Probate Act Fees Regulations EC200/12. $400 for first $100K; $4 per $1,000 above $100K."
+  },
+  "intestacy": {
+    "spousePreferentialShare": 0,
+    "spouseFractionOneChild": 0.5,
+    "spouseFractionMultipleChildren": 0.3333333333333333,
+    "source": "https://www.canlii.org/en/pe/laws/stat/rspei-1988-c-p-21/latest/",
+    "_note": "PEI Probate Act Part IV governs intestacy. Older statute, no preferential share equivalent. Values approximate — legal review recommended."
+  },
+  "lowIncomeSupplement": null
+}

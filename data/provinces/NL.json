@@ -1,0 +1,45 @@
+{
+  "province": "NL",
+  "name": "Newfoundland and Labrador",
+  "taxYear": 2025,
+  "lastVerified": "2026-03-02",
+  "sources": [
+    "https://www.taxtips.ca/taxrates/nl.htm"
+  ],
+  "brackets": [
+    { "min": 0,       "max": 44192,   "rate": 0.0870 },
+    { "min": 44192,   "max": 88382,   "rate": 0.1450 },
+    { "min": 88382,   "max": 157792,  "rate": 0.1580 },
+    { "min": 157792,  "max": 220910,  "rate": 0.1780 },
+    { "min": 220910,  "max": 282214,  "rate": 0.1980 },
+    { "min": 282214,  "max": 564429,  "rate": 0.2080 },
+    { "min": 564429,  "max": 1128858, "rate": 0.2130 },
+    { "min": 1128858, "max": null,    "rate": 0.2180 }
+  ],
+  "surtax": null,
+  "credits": {
+    "basicPersonal": 11067,
+    "ageAmount": 7064,
+    "ageIncomeThreshold": 38712,
+    "ageClawbackRate": 0.15,
+    "pensionCredit": 1000,
+    "creditRate": 0.0870
+  },
+  "probate": {
+    "type": "tiered",
+    "tiers": [
+      { "upTo": 1000, "ratePerThousand": 60 },
+      { "upTo": null, "ratePerThousand": 6  }
+    ],
+    "source": "https://www.canlii.org/en/nl/laws/regu/nlr-90-07/latest/nlr-90-07.html",
+    "_note": "NL Supreme Court Fees Regulations NLR 90/07. Minimum fee $60 (on first $1,000); $6 per $1,000 above. Verify against current Schedule of Fees."
+  },
+  "intestacy": {
+    "spousePreferentialShare": 0,
+    "spouseFractionOneChild": 0.5,
+    "spouseFractionMultipleChildren": 0.3333333333333333,
+    "source": "https://www.canlii.org/en/nl/laws/stat/rsnl-1990-c-i-21/latest/rsnl-1990-c-i-21.html",
+    "_note": "NL Intestate Succession Act RSNL 1990 c I-21. Older statute with no preferential share mechanism. Estate divided equally between spouse and children. Values approximate — legal review recommended."
+  },
+  "lowIncomeSupplement": null
+}

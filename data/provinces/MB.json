@@ -1,0 +1,37 @@
+{
+  "province": "MB",
+  "name": "Manitoba",
+  "taxYear": 2025,
+  "lastVerified": "2026-03-02",
+  "sources": [
+    "https://www.taxtips.ca/taxrates/mb.htm"
+  ],
+  "brackets": [
+    { "min": 0,      "max": 47000,  "rate": 0.1080 },
+    { "min": 47000,  "max": 100000, "rate": 0.1275 },
+    { "min": 100000, "max": null,   "rate": 0.1740 }
+  ],
+  "surtax": null,
+  "credits": {
+    "basicPersonal": 15780,
+    "ageAmount": 3728,
+    "ageIncomeThreshold": 27749,
+    "ageClawbackRate": 0.15,
+    "pensionCredit": 1000,
+    "creditRate": 0.1080
+  },
+  "probate": {
+    "type": "none",
+    "fee": 0,
+    "source": "https://www.canlii.org/en/mb/laws/stat/ccsm-c-l80/latest/ccsm-c-l80.html",
+    "_note": "Manitoba eliminated the Estate Administration Tax effective November 6, 2020. Court filing fees (nominal) still apply but are not estate-value-based."
+  },
+  "intestacy": {
+    "spousePreferentialShare": 50000,
+    "spouseFractionOneChild": 0.5,
+    "spouseFractionMultipleChildren": 0.5,
+    "source": "https://www.canlii.org/en/mb/laws/stat/ccsm-c-i85/latest/ccsm-c-i85.html",
+    "_note": "MB Intestate Succession Act. Spouse gets $50K preferential share; 1/2 of remainder (regardless of number of children). Verify preferential share amount — may have been updated by regulation."
+  },
+  "lowIncomeSupplement": null
+}

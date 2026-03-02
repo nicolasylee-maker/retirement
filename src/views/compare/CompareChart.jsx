@@ -1,10 +1,11 @@
 import React from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
+  ResponsiveContainer,
 } from 'recharts';
 import { SCENARIO_COLORS, CHART_STYLE, COLORS } from '../../constants/designTokens';
 import { formatCurrencyShort, formatCurrency } from '../../utils/formatters';
+import ChartLegend from '../../components/ChartLegend';
 
 function buildChartData(projections) {
   const ageMap = new Map();
@@ -58,9 +59,10 @@ export default function CompareChart({ projections, scenarioNames, colors }) {
 
   return (
     <div className="card-base p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <h3 className="text-lg font-semibold text-gray-900 mb-1">
         Portfolio Comparison
       </h3>
+      <ChartLegend items={scenarioNames.map((label, idx) => ({ color: lineColors[idx], label }))} />
       <ResponsiveContainer width="100%" height={400}>
         <LineChart
           data={chartData}
@@ -85,12 +87,6 @@ export default function CompareChart({ projections, scenarioNames, colors }) {
             width={60}
           />
           <Tooltip content={<CustomTooltip scenarioNames={scenarioNames} />} />
-          <Legend
-            verticalAlign="top"
-            height={36}
-            iconType="line"
-            wrapperStyle={{ fontSize: CHART_STYLE.fontSize }}
-          />
 
           {scenarioNames.map((name, idx) => (
             <Line

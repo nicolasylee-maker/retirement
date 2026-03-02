@@ -116,8 +116,8 @@ export default function Dashboard({
               const startAge = scenario.rrspMeltdownStartAge ?? scenario.retirementAge;
               const preRetYears = scenario.retirementAge - Math.max(startAge, scenario.currentAge);
               if (preRetYears <= 0) return null;
-              const extraTax = calcTotalTax(empIncome + meltdownAnnual, scenario.currentAge)
-                - calcTotalTax(empIncome, scenario.currentAge);
+              const extraTax = calcTotalTax(empIncome + meltdownAnnual, scenario.currentAge, false, scenario.province || 'ON')
+                - calcTotalTax(empIncome, scenario.currentAge, false, scenario.province || 'ON');
               if (extraTax <= 0) return null;
               return (
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-start gap-2">

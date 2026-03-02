@@ -187,10 +187,11 @@ describe('non-reg cost basis proportional tracking', () => {
   });
 });
 
-// -- 9. Capital gains tiered inclusion ---------------------------------------
+// -- 9. Capital gains inclusion (2025: flat 50%) ------------------------------
+// Note: The proposed tiered 66.67% rate was cancelled March 21, 2025.
 
-describe('capital gains tiered inclusion', () => {
-  it('gain <= $250K uses 50% inclusion', () => {
+describe('capital gains inclusion (2025: flat 50%)', () => {
+  it('small gain uses 50% inclusion', () => {
     // Non-reg exactly covers expenses so it's fully depleted; TFSA covers tax gross-up
     const s = minimal({
       nonRegInvestments: 120000, nonRegCostBasis: 48000,
@@ -202,7 +203,7 @@ describe('capital gains tiered inclusion', () => {
     // Withdraw $120K from non-reg (depleted). Gain ratio 0.6 => gain $72K. 50% inclusion => $36K
     expect(r[0].totalTaxableIncome).toBe(Math.round(72000 * 0.5));
   });
-  it('gain > $250K uses enhanced 66.7% rate above threshold', () => {
+  it('large gain (>$250K) still uses flat 50% inclusion (no tiered rate)', () => {
     // Non-reg exactly covers expenses so it's fully depleted; TFSA covers tax gross-up
     const s = minimal({
       nonRegInvestments: 360000, nonRegCostBasis: 1,
@@ -213,7 +214,8 @@ describe('capital gains tiered inclusion', () => {
     const r = projectScenario(s);
     const gainRatio = (360000 - 1) / 360000;
     const totalGain = 360000 * gainRatio;
-    const taxable = 250000 * 0.5 + (totalGain - 250000) * 0.6667;
+    // Flat 50% on all gains — tiered 66.67% above $250K was cancelled March 21, 2025
+    const taxable = totalGain * 0.5;
     expect(r[0].totalTaxableIncome).toBe(Math.round(taxable));
   });
 });

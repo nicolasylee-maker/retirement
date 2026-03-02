@@ -19,6 +19,7 @@ export function createDefaultScenario(name = 'My Scenario') {
     createdAt: new Date().toISOString(),
 
     // Step 1: Personal
+    province: 'ON',
     currentAge: 60,
     retirementAge: 65,
     lifeExpectancy: 90,

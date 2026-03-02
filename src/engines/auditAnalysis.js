@@ -186,7 +186,7 @@ export function auditKnownGaps() {
 
   const gaps = [
     ['**CPP/OAS inflation-indexed**', 'Benefits are indexed to inflation (fixed in v2). Realistic income growth modeled.', 'Accurate representation of real benefit growth'],
-    ['**No TFSA contributions**', "Model doesn't add annual TFSA room ($7K/yr)", 'Understates TFSA growth, especially pre-retirement'],
+    ['**No proactive TFSA top-up**', 'Surplus cash is routed to TFSA, but no independent annual contribution ($7K/yr) is made regardless of surplus', 'Slightly understates TFSA growth when surplus is low or negative'],
     ['**Real estate static**', 'House value stays at initial amount, no appreciation', 'Could understate net worth significantly over 30 years'],
     ['**No tax bracket indexing**', "Federal/Ontario brackets don't adjust for inflation", 'Overstates taxes in later years (bracket creep)'],
     ['**Single tax year**', 'Uses 2024 brackets for all future years', 'Tax rates may change'],

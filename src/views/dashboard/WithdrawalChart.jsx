@@ -1,10 +1,11 @@
 import React from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, Legend,
+  ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { CHART_COLORS, CHART_STYLE, COLORS } from '../../constants/designTokens';
 import { formatCurrencyShort, formatCurrency } from '../../utils/formatters';
+import ChartLegend from '../../components/ChartLegend';
 
 function CustomTooltip({ active, payload }) {
   if (!active || !payload || !payload.length) return null;
@@ -52,9 +53,15 @@ export default function WithdrawalChart({ projectionData, scenario }) {
 
   return (
     <div className="card-base p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <h3 className="text-lg font-semibold text-gray-900 mb-1">
         Annual Withdrawals by Account
       </h3>
+      <ChartLegend items={[
+        ...(hasRrsp   ? [{ color: CHART_COLORS.rrsp,   label: 'RRSP/RRIF' }] : []),
+        ...(hasTfsa   ? [{ color: CHART_COLORS.tfsa,   label: 'TFSA' }]      : []),
+        ...(hasNonReg ? [{ color: CHART_COLORS.nonReg, label: 'Non-Reg' }]   : []),
+        ...(hasOther  ? [{ color: CHART_COLORS.other,  label: 'Other' }]     : []),
+      ]} />
       <ResponsiveContainer width="100%" height={280}>
         <BarChart
           data={data}
@@ -79,7 +86,6 @@ export default function WithdrawalChart({ projectionData, scenario }) {
             width={60}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
 
           {/* RRIF convert reference line */}
           {scenario.rrspBalance > 0 && 72 >= scenario.currentAge && (

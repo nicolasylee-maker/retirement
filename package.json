@@ -8,7 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "generate:golden": "vitest run --config tests/golden/generate.config.js",
+    "update:tax": "node scripts/update-tax-data.js",
+    "check:legislation": "node scripts/check-canlii.js"
   },
   "dependencies": {
     "react": "^18.3.1",

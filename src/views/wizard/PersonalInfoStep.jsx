@@ -1,6 +1,7 @@
 import React from 'react';
 import FormField from '../../components/FormField';
 import Card from '../../components/Card';
+import { PROVINCE_NAMES, PROVINCE_CODES } from '../../constants/taxTables.js';
 
 export default function PersonalInfoStep({ scenario, onChange, userName, onUserNameChange }) {
   const handleChange = (field) => (value) => {
@@ -36,6 +37,25 @@ export default function PersonalInfoStep({ scenario, onChange, userName, onUserN
 
       <Card>
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Your Details</h3>
+        {/* Province selector */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="province">
+            Province
+          </label>
+          <select
+            id="province"
+            value={scenario.province || 'ON'}
+            onChange={(e) => onChange({ province: e.target.value })}
+            className="w-full sm:w-auto rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-sunset-400 focus:outline-none focus:ring-1 focus:ring-sunset-400"
+          >
+            {PROVINCE_CODES.map((code) => (
+              <option key={code} value={code}>{code} — {PROVINCE_NAMES[code]}</option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Selects provincial tax brackets, probate fees, and intestacy rules
+          </p>
+        </div>
         <div className="grid sm:grid-cols-3 gap-4">
           <FormField
             label="Current Age"

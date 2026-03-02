@@ -1,10 +1,11 @@
 import React from 'react';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
+  ResponsiveContainer,
 } from 'recharts';
 import { INCOME_COLORS, CHART_STYLE, COLORS } from '../../constants/designTokens';
 import { formatCurrencyShort, formatCurrency } from '../../utils/formatters';
+import ChartLegend from '../../components/ChartLegend';
 
 const INCOME_SOURCES = [
   { key: 'employmentIncome', label: 'Employment', color: INCOME_COLORS.employment },
@@ -78,6 +79,11 @@ export default function IncomeExpenseChart({ projectionData }) {
       <h3 className="text-lg font-semibold text-gray-900 mb-1">
         Income vs Expenses Over Time
       </h3>
+      <ChartLegend items={[
+        ...activeSources.map(s => ({ color: s.color, label: s.label })),
+        { color: INCOME_COLORS.expenses, label: 'Expenses' },
+        ...(hasDebt ? [{ color: INCOME_COLORS.debtPayments, label: 'Debt Payments' }] : []),
+      ]} />
       <p className="text-xs text-gray-500 mb-4">
         Stacked areas show where your money comes from each year; lines show where it goes.
         The gap between income and expenses is the portfolio drain (or surplus).
@@ -106,7 +112,6 @@ export default function IncomeExpenseChart({ projectionData }) {
             width={60}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
 
           {/* Stacked income areas */}
           {activeSources.map(s => (

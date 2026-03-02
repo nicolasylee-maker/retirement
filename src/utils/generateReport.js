@@ -14,22 +14,61 @@ function inputsTable(s) {
     ['Current Age', s.currentAge],
     ['Retirement Age', s.retirementAge],
     ['Life Expectancy', s.lifeExpectancy],
-    ['Monthly Expenses', $(s.monthlyExpenses)],
-    ['Inflation Rate', pct(s.inflationRate)],
-    ['Investment Return', pct(s.realReturn)],
+  ];
+
+  if (s.isCouple) {
+    rows.push(
+      ['Is Couple', 'Yes'],
+      ['Spouse Age', s.spouseAge],
+      ['Spouse Retirement Age', s.spouseRetirementAge],
+    );
+    if (s.spouseEmploymentIncome > 0) rows.push(['Spouse Employment', `${$(s.spouseEmploymentIncome)}/yr`]);
+  }
+
+  if (s.stillWorking && s.employmentIncome > 0) rows.push(['Employment Income', `${$(s.employmentIncome)}/yr`]);
+  if (s.nonTaxedIncome > 0) rows.push(['Non-Taxed Income', `${$(s.nonTaxedIncome)}/yr (ages ${s.nonTaxedIncomeStartAge ?? s.currentAge}–${s.nonTaxedIncomeEndAge ?? s.lifeExpectancy})`]);
+
+  rows.push(
     ['CPP', `${$(s.cppMonthly)}/mo starting age ${s.cppStartAge}`],
     ['OAS', `${$(s.oasMonthly)}/mo starting age ${s.oasStartAge}`],
-  ];
-  if (s.pensionType === 'db') rows.push(['DB Pension', `${$(s.dbPensionAnnual)}/yr starting age ${s.dbPensionStartAge}`]);
-  if (s.pensionType === 'dc') rows.push(['DC Balance', $(s.dcPensionBalance)]);
-  rows.push(
-    ['RRSP', $(s.rrspBalance)], ['TFSA', $(s.tfsaBalance)],
-    ['Non-Registered', $(s.nonRegInvestments)], ['Cash Savings', $(s.cashSavings)],
   );
+  if (s.isCouple) {
+    rows.push(
+      ['Spouse CPP', `${$(s.spouseCppMonthly)}/mo starting age ${s.spouseCppStartAge}`],
+      ['Spouse OAS', `${$(s.spouseOasMonthly)}/mo starting age ${s.spouseOasStartAge}`],
+    );
+  }
+  if (s.gisEligible) rows.push(['GIS', 'Eligible']);
+  if (s.gainsEligible) rows.push(['GAINS', 'Eligible']);
+
+  if (s.pensionType === 'db') rows.push(['DB Pension', `${$(s.dbPensionAnnual)}/yr starting age ${s.dbPensionStartAge}${s.dbPensionIndexed ? ' (indexed)' : ''}`]);
+  if (s.pensionType === 'dc') rows.push(['DC Balance', $(s.dcPensionBalance)]);
+  if (s.isCouple && s.spousePensionType === 'db') rows.push(['Spouse DB Pension', `${$(s.spouseDbPensionAnnual)}/yr starting age ${s.spouseDbPensionStartAge}${s.spouseDbPensionIndexed ? ' (indexed)' : ''}`]);
+  if (s.isCouple && s.spousePensionType === 'dc') rows.push(['Spouse DC Balance', $(s.spouseDcPensionBalance)]);
+
+  rows.push(['RRSP', $(s.rrspBalance)], ['TFSA', $(s.tfsaBalance)]);
+  if (s.liraBalance > 0) rows.push(['LIRA', $(s.liraBalance)]);
+  if (s.isCouple && (s.spouseRrspBalance || 0) + (s.spouseRrifBalance || 0) > 0) rows.push(['Spouse RRSP', $(s.spouseRrspBalance + (s.spouseRrifBalance || 0))]);
+  if (s.isCouple && s.spouseTfsaBalance > 0) rows.push(['Spouse TFSA', $(s.spouseTfsaBalance)]);
+
+  rows.push(['Non-Registered', $(s.nonRegInvestments)], ['Cash Savings', $(s.cashSavings)]);
+  if (s.otherAssets > 0) rows.push(['Other Assets', $(s.otherAssets)]);
   if (s.realEstateValue > 0) rows.push(['Real Estate', $(s.realEstateValue)]);
   if (s.mortgageBalance > 0) rows.push(['Mortgage', $(s.mortgageBalance)]);
-  if (s.liraBalance > 0) rows.push(['LIRA', $(s.liraBalance)]);
-  if (s.rrspMeltdownEnabled) rows.push(['RRSP Meltdown', `${$(s.rrspMeltdownAnnual)}/yr until age ${s.rrspMeltdownTargetAge}`]);
+  if (s.consumerDebt > 0) rows.push(['Consumer Debt', $(s.consumerDebt)]);
+  if (s.otherDebt > 0) rows.push(['Other Debt', $(s.otherDebt)]);
+
+  rows.push(
+    ['Monthly Expenses', $(s.monthlyExpenses)],
+    ['Expense Reduction at Retirement', pct(s.expenseReductionAtRetirement)],
+    ['Inflation Rate', pct(s.inflationRate)],
+    ['Investment Return', pct(s.realReturn)],
+  );
+  if ((s.tfsaReturn || s.realReturn) !== s.realReturn) rows.push(['TFSA Return', pct(s.tfsaReturn)]);
+  if ((s.nonRegReturn || s.realReturn) !== s.realReturn) rows.push(['Non-Reg Return', pct(s.nonRegReturn)]);
+
+  if (s.rrspMeltdownEnabled) rows.push(['RRSP Meltdown', `${$(s.rrspMeltdownAnnual)}/yr, ages ${s.rrspMeltdownStartAge ?? s.retirementAge}–${s.rrspMeltdownTargetAge}`]);
+
   return rows.map(([k, v]) => `<tr><td>${k}</td><td class="num">${v}</td></tr>`).join('');
 }
 
@@ -62,7 +101,7 @@ export function generateReport(scenario, projectionData, userName) {
   const { sustainableMonthly } = calcSustainableWithdrawal(scenario);
   const estate = calcEstateImpact(scenario, projectionData, scenario.lifeExpectancy);
   const depleted = projectionData.find((r) => r.totalPortfolio <= 0);
-  const surplus = (retRow?.totalIncome || 0) - (retRow?.totalTax || 0) - scenario.monthlyExpenses * 12;
+  const surplus = (retRow?.afterTaxIncome || 0) - (retRow?.expenses || 0) - (retRow?.debtPayments || 0);
 
   const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">

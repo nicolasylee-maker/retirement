@@ -1,0 +1,76 @@
+{
+  "taxYear": 2025,
+  "lastVerified": "2026-03-02",
+  "sources": [
+    "https://www.taxtips.ca/taxrates/canada.htm",
+    "https://www.canada.ca/en/revenue-agency/services/tax/individuals/frequently-asked-questions-individuals/canadian-income-tax-rates-individuals-current-previous-years.html"
+  ],
+  "brackets": [
+    { "min": 0,      "max": 57375,   "rate": 0.145  },
+    { "min": 57375,  "max": 114750,  "rate": 0.205  },
+    { "min": 114750, "max": 177882,  "rate": 0.26   },
+    { "min": 177882, "max": 253414,  "rate": 0.29   },
+    { "min": 253414, "max": null,    "rate": 0.33   }
+  ],
+  "_note_first_bracket": "14.5% is the effective 2025 rate: 15% Jan-Jun, 14% Jul-Dec, blended annually per CRA T4127 Jan 2026",
+  "_note_fourth_bracket": "Statutory rate 29%. Effective marginal rate ~29.31% due to BPA phase-out across $177,882-$253,414. BPA is modelled separately as a phasing credit.",
+  "credits": {
+    "basicPersonal": 16129,
+    "basicPersonalMin": 14538,
+    "basicPersonalPhaseStart": 177882,
+    "basicPersonalPhaseEnd": 253414,
+    "ageAmount": 9028,
+    "ageIncomeThreshold": 45522,
+    "ageClawbackRate": 0.15,
+    "pensionCredit": 2000,
+    "creditRate": 0.145
+  },
+  "_note_bpa": "BPA phases from $16,129 down to $14,538 for income $177,882-$253,414. This app uses the full $16,129 (conservative, ignores phase-out). Update if high-income accuracy is required.",
+  "oas": {
+    "maxMonthlyAge65to74": 740.09,
+    "maxMonthlyAge75plus": 814.10,
+    "maxAnnual": 8881,
+    "clawbackThreshold": 93454,
+    "clawbackRate": 0.15,
+    "startAge": 65,
+    "deferralBonusPerMonth": 0.006,
+    "maxDeferAge": 70
+  },
+  "_note_oas": "maxAnnual = maxMonthlyAge65to74 * 12 rounded. Clawback threshold $93,454 is 2025 tax-year threshold. Q4 2025 (Oct-Dec) rates used as representative annual amounts.",
+  "cpp": {
+    "maxMonthlyAt65": 1433,
+    "maxAnnualAt65": 17196,
+    "earlyReductionPerMonth": 0.006,
+    "lateIncreasePerMonth": 0.007,
+    "earliestAge": 60,
+    "latestAge": 70
+  },
+  "gis": {
+    "maxMonthly": 1108.74,
+    "maxAnnual": 13305,
+    "singleIncomeThreshold": 22488,
+    "clawbackRate": 0.50
+  },
+  "_note_gis": "GIS is income-tested; first $5K of employment income is exempt from clawback. This app uses simplified clawback on all non-OAS income.",
+  "tfsa": {
+    "annualLimit": 7000,
+    "cumulativeSince2009": 102000
+  },
+  "rrsp": {
+    "annualLimit": 32490
+  },
+  "capitalGains": {
+    "inclusionRate": 0.50,
+    "_note": "Flat 50% inclusion for 2025. The Budget 2024 proposal of tiered 50%/$250K/66.67% was formally cancelled March 21, 2025. No threshold applies."
+  },
+  "rrifMinRates": {
+    "71": 0.0528, "72": 0.0540, "73": 0.0553, "74": 0.0567,
+    "75": 0.0582, "76": 0.0598, "77": 0.0617, "78": 0.0636,
+    "79": 0.0658, "80": 0.0682, "81": 0.0708, "82": 0.0738,
+    "83": 0.0771, "84": 0.0808, "85": 0.0851, "86": 0.0899,
+    "87": 0.0955, "88": 0.1021, "89": 0.1099, "90": 0.1192,
+    "91": 0.1306, "92": 0.1449, "93": 0.1634, "94": 0.1879,
+    "95": 0.2000
+  },
+  "_note_rrif": "CRA prescribed factors for qualifying (post-1992) RRIFs. Age 95+ uses 20% flat rate. Unchanged from 2015."
+}

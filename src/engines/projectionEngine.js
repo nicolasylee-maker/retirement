@@ -160,7 +160,7 @@ export function projectScenario(scenario, overrides = {}) {
 
     let gainsIncome = 0;
     if (s.gainsEligible) {
-      gainsIncome = calcGainsBenefit(age, pensionIncome + rrspWithdrawal);
+      gainsIncome = calcGainsBenefit(age, pensionIncome + rrspWithdrawal, s.province || 'ON');
     }
 
     const spouseKnownIncome = s.isCouple
@@ -241,11 +241,11 @@ export function projectScenario(scenario, overrides = {}) {
         const spouseHasPension = spousePensionIncome > 0 || (spouseRrifConverted && spouseRrspWithdrawal > 0);
         const spouseTaxable = spouseEmploymentIncome + spouseCppIncome + spouseOasIncome + spousePensionIncome + spouseRrspWithdrawal;
         totalTaxableIncome = primaryTaxable + nonRegTaxableGain + spouseTaxable;
-        totalTax = calcTotalTax(primaryTaxable + nonRegTaxableGain, age, primaryHasPension)
-          + calcTotalTax(spouseTaxable, spouseAgeThisYear, spouseHasPension);
+        totalTax = calcTotalTax(primaryTaxable + nonRegTaxableGain, age, primaryHasPension, s.province || 'ON')
+          + calcTotalTax(spouseTaxable, spouseAgeThisYear, spouseHasPension, s.province || 'ON');
       } else {
         totalTaxableIncome = primaryTaxable + nonRegTaxableGain;
-        totalTax = calcTotalTax(totalTaxableIncome, age, primaryHasPension);
+        totalTax = calcTotalTax(totalTaxableIncome, age, primaryHasPension, s.province || 'ON');
       }
       grossIncome = employmentIncome + nonTaxedIncome + cppIncome + oasIncome + gisIncome + gainsIncome
         + pensionIncome + rrspWithdrawal + tfsaWithdrawal + nonRegWithdrawal + otherWithdrawal

@@ -1,0 +1,46 @@
+{
+  "province": "BC",
+  "name": "British Columbia",
+  "taxYear": 2025,
+  "lastVerified": "2026-03-02",
+  "sources": [
+    "https://www.taxtips.ca/taxrates/bc.htm",
+    "https://www2.gov.bc.ca/gov/content/taxes/income-taxes/personal/tax-rates"
+  ],
+  "brackets": [
+    { "min": 0,      "max": 49279,  "rate": 0.0506 },
+    { "min": 49279,  "max": 98560,  "rate": 0.0770 },
+    { "min": 98560,  "max": 113158, "rate": 0.1050 },
+    { "min": 113158, "max": 137407, "rate": 0.1229 },
+    { "min": 137407, "max": 186306, "rate": 0.1470 },
+    { "min": 186306, "max": 259829, "rate": 0.1680 },
+    { "min": 259829, "max": null,   "rate": 0.2050 }
+  ],
+  "surtax": null,
+  "credits": {
+    "basicPersonal": 12932,
+    "ageAmount": 5799,
+    "ageIncomeThreshold": 43169,
+    "ageClawbackRate": 0.15,
+    "pensionCredit": 1000,
+    "creditRate": 0.0506
+  },
+  "probate": {
+    "type": "tiered",
+    "tiers": [
+      { "upTo": 25000, "ratePerThousand": 0  },
+      { "upTo": 50000, "ratePerThousand": 6  },
+      { "upTo": null,  "ratePerThousand": 14 }
+    ],
+    "source": "https://www.canlii.org/en/bc/laws/stat/sbc-1999-c-4/latest/sbc-1999-c-4.html",
+    "_note": "BC Probate Fee Act. No fee on first $25K; $6 per $1,000 on $25K-$50K; $14 per $1,000 above $50K."
+  },
+  "intestacy": {
+    "spousePreferentialShare": 300000,
+    "spouseFractionOneChild": 0.5,
+    "spouseFractionMultipleChildren": 0.3333333333333333,
+    "source": "https://www.canlii.org/en/bc/laws/stat/sbc-2009-c-13/latest/sbc-2009-c-13.html",
+    "_note": "BC Wills, Estates and Succession Act (WESA) s.21. Spouse gets $300K preferential share; 1/2 remainder with 1 child, 1/3 with 2+ children."
+  },
+  "lowIncomeSupplement": null
+}

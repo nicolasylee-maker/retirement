@@ -1,0 +1,132 @@
+{
+  "description": "Last-seen CanLII amendment dates for probate and intestacy acts. Managed by scripts/check-canlii.js.",
+  "lastRun": null,
+  "acts": [
+    {
+      "province": "ON",
+      "type": "probate",
+      "act": "Estate Administration Tax Act, 1998",
+      "url": "https://www.canlii.org/en/on/laws/stat/so-1998-c-34-sched/latest/",
+      "lastAmendment": "2021"
+    },
+    {
+      "province": "ON",
+      "type": "intestacy",
+      "act": "Succession Law Reform Act",
+      "url": "https://www.canlii.org/en/on/laws/stat/rso-1990-c-s26/latest/",
+      "lastAmendment": "2021"
+    },
+    {
+      "province": "BC",
+      "type": "probate",
+      "act": "Probate Fee Act",
+      "url": "https://www.canlii.org/en/bc/laws/stat/sbc-1999-c-4/latest/",
+      "lastAmendment": "1999"
+    },
+    {
+      "province": "BC",
+      "type": "intestacy",
+      "act": "Wills, Estates and Succession Act",
+      "url": "https://www.canlii.org/en/bc/laws/stat/sbc-2009-c-13/latest/",
+      "lastAmendment": "2023"
+    },
+    {
+      "province": "AB",
+      "type": "probate",
+      "act": "Surrogate Rules (Court of King's Bench)",
+      "url": "https://www.canlii.org/en/ab/laws/regu/alta-reg-130-1995/latest/",
+      "lastAmendment": "2024"
+    },
+    {
+      "province": "AB",
+      "type": "intestacy",
+      "act": "Wills and Succession Act",
+      "url": "https://www.canlii.org/en/ab/laws/stat/sa-2010-c-w-12.2/latest/",
+      "lastAmendment": "2022"
+    },
+    {
+      "province": "SK",
+      "type": "probate",
+      "act": "Probate Court Act, 1998",
+      "url": "https://www.canlii.org/en/sk/laws/stat/ss-1998-c-p-32.21/latest/",
+      "lastAmendment": "2022"
+    },
+    {
+      "province": "SK",
+      "type": "intestacy",
+      "act": "Intestate Succession Act, 1996",
+      "url": "https://www.canlii.org/en/sk/laws/stat/ss-1996-c-i-13.1/latest/",
+      "lastAmendment": "2019"
+    },
+    {
+      "province": "MB",
+      "type": "probate",
+      "act": "Court of King's Bench Surrogate Practice Act (fees eliminated 2020)",
+      "url": "https://www.canlii.org/en/mb/laws/stat/ccsm-c-c290/latest/",
+      "lastAmendment": "2020"
+    },
+    {
+      "province": "MB",
+      "type": "intestacy",
+      "act": "Intestate Succession Act",
+      "url": "https://www.canlii.org/en/mb/laws/stat/ccsm-c-i85/latest/",
+      "lastAmendment": "2014"
+    },
+    {
+      "province": "NB",
+      "type": "probate",
+      "act": "Probate Court Act",
+      "url": "https://www.canlii.org/en/nb/laws/stat/snb-1982-c-p-17.1/latest/",
+      "lastAmendment": "2023"
+    },
+    {
+      "province": "NB",
+      "type": "intestacy",
+      "act": "Devolution of Estates Act",
+      "url": "https://www.canlii.org/en/nb/laws/stat/rsnb-2011-c-115/latest/",
+      "lastAmendment": "2011"
+    },
+    {
+      "province": "NS",
+      "type": "probate",
+      "act": "Probate Act",
+      "url": "https://www.canlii.org/en/ns/laws/stat/rsns-1989-c-359/latest/",
+      "lastAmendment": "2020"
+    },
+    {
+      "province": "NS",
+      "type": "intestacy",
+      "act": "Intestate Succession Act",
+      "url": "https://www.canlii.org/en/ns/laws/stat/rsns-1989-c-236/latest/",
+      "lastAmendment": "2010"
+    },
+    {
+      "province": "NL",
+      "type": "probate",
+      "act": "Judicature Act (probate fees in Rules)",
+      "url": "https://www.canlii.org/en/nl/laws/stat/rsnl-1990-c-j-4/latest/",
+      "lastAmendment": "2023"
+    },
+    {
+      "province": "NL",
+      "type": "intestacy",
+      "act": "Intestate Succession Act, 1981",
+      "url": "https://www.canlii.org/en/nl/laws/stat/rsnl-1990-c-i-21/latest/",
+      "lastAmendment": "1990"
+    },
+    {
+      "province": "PE",
+      "type": "probate",
+      "act": "Probate Act",
+      "url": "https://www.canlii.org/en/pe/laws/stat/rspei-1988-c-p-21/latest/",
+      "lastAmendment": "2022"
+    },
+    {
+      "province": "PE",
+      "type": "intestacy",
+      "act": "Intestate Succession Act",
+      "url": "https://www.canlii.org/en/pe/laws/stat/rspei-1988-c-i-5/latest/",
+      "lastAmendment": "2022"
+    }
+  ]
+}

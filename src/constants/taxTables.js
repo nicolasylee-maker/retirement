@@ -1,117 +1,120 @@
-// 2024 Federal tax brackets
-export const FEDERAL_BRACKETS = [
-  { min: 0,       max: 57375,   rate: 0.15   },
-  { min: 57375,   max: 114750,  rate: 0.205  },
-  { min: 114750,  max: 158468,  rate: 0.26   },
-  { min: 158468,  max: 221708,  rate: 0.29   },
-  { min: 221708,  max: Infinity, rate: 0.33  },
-];
+// ---------------------------------------------------------------------------
+// taxTables.js — 2025 Canadian tax constants
+//
+// All bracket/credit data lives in data/provinces/*.json and data/federal.json.
+// This file imports those files, re-exports the named constants that engines
+// already depend on (backward compat), and exposes PROVINCE_DATA for
+// province-aware calculations.
+//
+// To update for a new tax year: edit the JSON files, run `npm run update:tax`.
+// ---------------------------------------------------------------------------
 
-// 2024 Ontario tax brackets
-export const ONTARIO_BRACKETS = [
-  { min: 0,       max: 51446,   rate: 0.0505 },
-  { min: 51446,   max: 102894,  rate: 0.0915 },
-  { min: 102894,  max: 150000,  rate: 0.1116 },
-  { min: 150000,  max: 220000,  rate: 0.1216 },
-  { min: 220000,  max: Infinity, rate: 0.1316 },
-];
+import FEDERAL   from '../../data/federal.json';
+import ON_DATA   from '../../data/provinces/ON.json';
+import BC_DATA   from '../../data/provinces/BC.json';
+import AB_DATA   from '../../data/provinces/AB.json';
+import SK_DATA   from '../../data/provinces/SK.json';
+import MB_DATA   from '../../data/provinces/MB.json';
+import NB_DATA   from '../../data/provinces/NB.json';
+import NS_DATA   from '../../data/provinces/NS.json';
+import NL_DATA   from '../../data/provinces/NL.json';
+import PE_DATA   from '../../data/provinces/PE.json';
 
-// Ontario surtax thresholds
-export const ONTARIO_SURTAX = {
-  threshold1: 4991,
-  rate1: 0.20,
-  threshold2: 6387,
-  rate2: 0.36,
+// ---------------------------------------------------------------------------
+// Bracket normalization: JSON uses null for "no upper limit"; engines use Infinity
+// ---------------------------------------------------------------------------
+function normalizeBrackets(brackets) {
+  return brackets.map(b => ({ ...b, max: b.max ?? Infinity }));
+}
+
+function normalizeProvince(data) {
+  return { ...data, brackets: normalizeBrackets(data.brackets) };
+}
+
+// ---------------------------------------------------------------------------
+// All provinces keyed by code — used by province-aware engine functions
+// ---------------------------------------------------------------------------
+export const PROVINCE_DATA = {
+  ON: normalizeProvince(ON_DATA), BC: normalizeProvince(BC_DATA),
+  AB: normalizeProvince(AB_DATA), SK: normalizeProvince(SK_DATA),
+  MB: normalizeProvince(MB_DATA), NB: normalizeProvince(NB_DATA),
+  NS: normalizeProvince(NS_DATA), NL: normalizeProvince(NL_DATA),
+  PE: normalizeProvince(PE_DATA),
 };
 
-// Federal credits & amounts
-export const FEDERAL_CREDITS = {
-  basicPersonal: 15705,
-  ageAmount: 8790,
-  ageIncomeThreshold: 44325,
-  ageClawbackRate: 0.15,
-  pensionCredit: 2000,
-  creditRate: 0.15,
-};
+export const PROVINCE_CODES = Object.keys(PROVINCE_DATA);
 
-// Ontario credits & amounts
-export const ONTARIO_CREDITS = {
-  basicPersonal: 11865,
-  ageAmount: 5586,
-  ageIncomeThreshold: 42335,
-  ageClawbackRate: 0.15,
-  pensionCredit: 1640,
-  creditRate: 0.0505,
-};
+export const PROVINCE_NAMES = Object.fromEntries(
+  Object.entries(PROVINCE_DATA).map(([k, v]) => [k, v.name])
+);
 
-// OAS parameters
+// ---------------------------------------------------------------------------
+// Federal — named exports for backward compat with existing engine imports
+// ---------------------------------------------------------------------------
+export const FEDERAL_BRACKETS = normalizeBrackets(FEDERAL.brackets);
+export const FEDERAL_CREDITS  = FEDERAL.credits;
+
+// Ontario brackets/credits/surtax — kept for backward compat
+export const ONTARIO_BRACKETS = PROVINCE_DATA.ON.brackets;
+export const ONTARIO_CREDITS  = ON_DATA.credits;
+export const ONTARIO_SURTAX   = ON_DATA.surtax;
+
+// Federal benefit program params
 export const OAS_PARAMS = {
-  maxAnnual: 8560,           // ~$713/month × 12
-  clawbackStart: 90997,
-  clawbackRate: 0.15,
-  clawbackFullRepay: 148065,
-  startAge: 65,
-  deferralBonus: 0.006,      // 0.6% per month deferred past 65, max age 70
-  maxDeferAge: 70,
+  maxAnnual:        FEDERAL.oas.maxAnnual,
+  clawbackStart:    FEDERAL.oas.clawbackThreshold,
+  clawbackRate:     FEDERAL.oas.clawbackRate,
+  clawbackFullRepay: Math.round(
+    FEDERAL.oas.clawbackThreshold + FEDERAL.oas.maxAnnual / FEDERAL.oas.clawbackRate
+  ),
+  startAge:         FEDERAL.oas.startAge,
+  deferralBonus:    FEDERAL.oas.deferralBonusPerMonth,
+  maxDeferAge:      FEDERAL.oas.maxDeferAge,
+  maxMonthlyAge65to74: FEDERAL.oas.maxMonthlyAge65to74,
+  maxMonthlyAge75plus: FEDERAL.oas.maxMonthlyAge75plus,
 };
 
-// CPP parameters
 export const CPP_PARAMS = {
-  maxAt65: 16375,            // ~$1,365/month × 12
-  earlyReduction: 0.006,     // 0.6% per month before 65
-  lateIncrease: 0.007,       // 0.7% per month after 65
-  earliestAge: 60,
-  latestAge: 70,
+  maxAt65:       FEDERAL.cpp.maxAnnualAt65,
+  earlyReduction: FEDERAL.cpp.earlyReductionPerMonth,
+  lateIncrease:   FEDERAL.cpp.lateIncreasePerMonth,
+  earliestAge:    FEDERAL.cpp.earliestAge,
+  latestAge:      FEDERAL.cpp.latestAge,
 };
 
-// GIS parameters (single, approximate)
 export const GIS_PARAMS = {
-  maxAnnual: 12432,
-  incomeThreshold: 21624,
-  clawbackRate: 0.50,
+  maxAnnual:         FEDERAL.gis.maxAnnual,
+  incomeThreshold:   FEDERAL.gis.singleIncomeThreshold,
+  clawbackRate:      FEDERAL.gis.clawbackRate,
 };
 
-// Ontario GAINS (Guaranteed Annual Income System)
 export const GAINS_PARAMS = {
-  maxAnnual: 1632,
-  singleIncomeThreshold: 1632,
-  clawbackRate: 1.0,         // Reduced dollar-for-dollar above private income threshold
-  minAge: 65,
+  maxAnnual:               ON_DATA.lowIncomeSupplement.maxAnnual,
+  singleIncomeThreshold:   ON_DATA.lowIncomeSupplement.singleIncomeThreshold,
+  clawbackRate:            ON_DATA.lowIncomeSupplement.clawbackRate,
+  minAge:                  ON_DATA.lowIncomeSupplement.minAge,
 };
 
-// RRIF minimum withdrawal percentages by age
-export const RRIF_MIN_RATES = {
-  // Under 71: 1/(90-age) but typically not forced until 71
-  71: 0.0528, 72: 0.0540, 73: 0.0553, 74: 0.0567,
-  75: 0.0582, 76: 0.0598, 77: 0.0617, 78: 0.0636,
-  79: 0.0658, 80: 0.0682, 81: 0.0708, 82: 0.0738,
-  83: 0.0771, 84: 0.0808, 85: 0.0851, 86: 0.0899,
-  87: 0.0955, 88: 0.1021, 89: 0.1099, 90: 0.1192,
-  91: 0.1306, 92: 0.1449, 93: 0.1634, 94: 0.1879,
-  95: 0.2000,  // 20% for 95+
-};
+export const RRIF_MIN_RATES = Object.fromEntries(
+  Object.entries(FEDERAL.rrifMinRates).map(([k, v]) => [Number(k), v])
+);
 
-// Capital gains inclusion rates (2024+ rules)
 export const CAPITAL_GAINS = {
-  inclusionRate: 0.50,
-  enhancedThreshold: 250000,
-  enhancedRate: 0.6667,
+  inclusionRate: FEDERAL.capitalGains.inclusionRate,
 };
 
-// TFSA parameters
 export const TFSA_PARAMS = {
-  annualLimit: 7000,   // 2024+ annual contribution limit
+  annualLimit: FEDERAL.tfsa.annualLimit,
 };
 
-// Ontario probate (Estate Administration Tax)
+// Ontario-specific probate — kept for backward compat with auditAnalysis.js
 export const PROBATE = {
-  firstThreshold: 50000,
-  firstRate: 5 / 1000,       // $5 per $1,000
-  aboveRate: 15 / 1000,      // $15 per $1,000
+  firstThreshold: ON_DATA.probate.tiers[0].upTo,
+  firstRate:      ON_DATA.probate.tiers[0].ratePerThousand / 1000,
+  aboveRate:      ON_DATA.probate.tiers[1].ratePerThousand / 1000,
 };
 
-// Intestacy rules (Ontario SLRA)
+// Ontario-specific intestacy — kept for backward compat
 export const INTESTACY = {
-  spousePreferentialShare: 350000,
-  // Remainder: spouse gets 1/2 if one child, 1/3 if two+ children
+  spousePreferentialShare: ON_DATA.intestacy.spousePreferentialShare,
 };

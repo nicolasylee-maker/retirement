@@ -156,8 +156,8 @@ export default function WithdrawalStep({ scenario, onChange }) {
               const startAge = scenario.rrspMeltdownStartAge ?? scenario.retirementAge;
               const preRetYears = scenario.retirementAge - Math.max(startAge, scenario.currentAge);
               if (preRetYears <= 0) return null;
-              const taxWithMeltdown = calcTotalTax(empIncome + meltdownAnnual, scenario.currentAge);
-              const taxWithout = calcTotalTax(empIncome, scenario.currentAge);
+              const taxWithMeltdown = calcTotalTax(empIncome + meltdownAnnual, scenario.currentAge, false, scenario.province || 'ON');
+              const taxWithout = calcTotalTax(empIncome, scenario.currentAge, false, scenario.province || 'ON');
               const extraTaxPerYear = taxWithMeltdown - taxWithout;
               const totalExtraTax = extraTaxPerYear * preRetYears;
               const marginalRate = meltdownAnnual > 0

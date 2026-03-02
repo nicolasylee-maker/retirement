@@ -1,0 +1,39 @@
+{
+  "province": "NB",
+  "name": "New Brunswick",
+  "taxYear": 2025,
+  "lastVerified": "2026-03-02",
+  "sources": [
+    "https://www.taxtips.ca/taxrates/nb.htm"
+  ],
+  "brackets": [
+    { "min": 0,      "max": 51306,  "rate": 0.0940 },
+    { "min": 51306,  "max": 102614, "rate": 0.1400 },
+    { "min": 102614, "max": 190060, "rate": 0.1600 },
+    { "min": 190060, "max": null,   "rate": 0.1950 }
+  ],
+  "surtax": null,
+  "credits": {
+    "basicPersonal": 13396,
+    "ageAmount": 6037,
+    "ageIncomeThreshold": 44945,
+    "ageClawbackRate": 0.15,
+    "pensionCredit": 1000,
+    "creditRate": 0.0940
+  },
+  "probate": {
+    "type": "per_thousand",
+    "ratePerThousand": 5,
+    "minimumFee": 25,
+    "source": "https://www.canlii.org/en/nb/laws/regu/nb-reg-84-9/latest/nb-reg-84-9.html",
+    "_note": "NB Probate Rules NB Reg 84-9. $5 per $1,000 of gross estate, minimum fee $25."
+  },
+  "intestacy": {
+    "spousePreferentialShare": 50000,
+    "spouseFractionOneChild": 0.5,
+    "spouseFractionMultipleChildren": 0.3333333333333333,
+    "source": "https://www.canlii.org/en/nb/laws/stat/rsnb-1973-c-d-9/latest/rsnb-1973-c-d-9.html",
+    "_note": "NB Devolution of Estates Act (RSNB 1973 c D-9). Older statute. Values are approximate — law reform under discussion as of 2022. Verify preferential share and fractions."
+  },
+  "lowIncomeSupplement": null
+}

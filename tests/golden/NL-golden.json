@@ -1,0 +1,48 @@
+{
+  "generated": "2026-03-02",
+  "taxYear": 2025,
+  "scenario": {
+    "currentAge": 60,
+    "retirementAge": 65,
+    "lifeExpectancy": 90,
+    "employmentIncome": 70000,
+    "stillWorking": true,
+    "rrspBalance": 300000,
+    "tfsaBalance": 100000,
+    "tfsaContributionRoom": 0,
+    "nonRegInvestments": 50000,
+    "nonRegCostBasis": 50000,
+    "otherAssets": 0,
+    "realEstateValue": 0,
+    "monthlyExpenses": 4000,
+    "expenseReductionAtRetirement": 0,
+    "cppMonthly": 800,
+    "cppStartAge": 65,
+    "oasMonthly": 713,
+    "oasStartAge": 65,
+    "realReturn": 0.04,
+    "tfsaReturn": 0.04,
+    "nonRegReturn": 0.04,
+    "inflationRate": 0.025,
+    "isCouple": false,
+    "pensionType": "none",
+    "gisEligible": false,
+    "gainsEligible": false,
+    "rrspMeltdownEnabled": false,
+    "withdrawalOrder": [
+      "nonReg",
+      "rrsp",
+      "tfsa"
+    ],
+    "hasWill": true,
+    "primaryBeneficiary": "children",
+    "numChildren": 2,
+    "province": "NL"
+  },
+  "expected": {
+    "year1TotalTax": 15193,
+    "age65AfterTaxIncome": 54304,
+    "portfolioAtAge85": 0,
+    "estateNetToHeirsAtAge85": 0
+  }
+}

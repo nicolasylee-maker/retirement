@@ -173,16 +173,17 @@ describe('Return value structure', () => {
   });
 });
 
-// --- 7. Capital gains tiered inclusion ---
-describe('Capital gains tiered inclusion', () => {
-  it('gain under $250K uses 50% inclusion', () => {
+// --- 7. Capital gains inclusion (2025: flat 50%) ---
+// Note: The proposed tiered 66.67% rate was cancelled March 21, 2025.
+describe('Capital gains inclusion (2025: flat 50%)', () => {
+  it('any gain uses 50% inclusion', () => {
     const r = calcEstateImpact(noEstateSc, wrap(mockRow(80, { nonRegBalance: 200000, nonRegCostBasis: 0 })), 80);
     expect(r.capitalGainsTax).toBeGreaterThan(0);
   });
-  it('gain above $250K uses enhanced 66.7% on excess', () => {
+  it('larger gain yields more than 1.5x the tax of a half-sized gain (due to bracket progression)', () => {
     const rSmall = calcEstateImpact(noEstateSc, wrap(mockRow(80, { nonRegBalance: 250000, nonRegCostBasis: 0 })), 80);
-    const rBig = calcEstateImpact(noEstateSc, wrap(mockRow(80, { nonRegBalance: 500000, nonRegCostBasis: 0 })), 80);
-    // Enhanced rate makes big gain more than 1.5x the small gain's tax
+    const rBig   = calcEstateImpact(noEstateSc, wrap(mockRow(80, { nonRegBalance: 500000, nonRegCostBasis: 0 })), 80);
+    // Progressive tax on doubled taxable income (125K vs 250K) exceeds 1.5x linear scaling
     expect(rBig.capitalGainsTax).toBeGreaterThan(rSmall.capitalGainsTax * 1.5);
   });
 });

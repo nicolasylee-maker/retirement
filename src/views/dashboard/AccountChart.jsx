@@ -1,10 +1,11 @@
 import React from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
+  ResponsiveContainer,
 } from 'recharts';
 import { CHART_COLORS, CHART_STYLE, COLORS } from '../../constants/designTokens';
 import { formatCurrencyShort, formatCurrency } from '../../utils/formatters';
+import ChartLegend from '../../components/ChartLegend';
 
 const ACCOUNTS = [
   { key: 'rrspBalance', label: 'RRSP/RRIF', color: CHART_COLORS.rrsp },
@@ -43,9 +44,10 @@ export default function AccountChart({ projectionData }) {
 
   return (
     <div className="card-base p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <h3 className="text-lg font-semibold text-gray-900 mb-1">
         Account Balances
       </h3>
+      <ChartLegend items={ACCOUNTS.map(({ color, label }) => ({ color, label }))} />
       <ResponsiveContainer width="100%" height={320}>
         <AreaChart
           data={projectionData}
@@ -70,12 +72,6 @@ export default function AccountChart({ projectionData }) {
             width={60}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend
-            verticalAlign="top"
-            height={36}
-            iconType="circle"
-            wrapperStyle={{ fontSize: CHART_STYLE.fontSize }}
-          />
 
           {ACCOUNTS.map(({ key, label, color }) => (
             <Area

@@ -1,0 +1,39 @@
+{
+  "province": "SK",
+  "name": "Saskatchewan",
+  "taxYear": 2025,
+  "lastVerified": "2026-03-02",
+  "sources": [
+    "https://www.taxtips.ca/taxrates/sk.htm"
+  ],
+  "brackets": [
+    { "min": 0,      "max": 53463,  "rate": 0.1050 },
+    { "min": 53463,  "max": 152750, "rate": 0.1250 },
+    { "min": 152750, "max": null,   "rate": 0.1450 }
+  ],
+  "surtax": null,
+  "credits": {
+    "basicPersonal": 19491,
+    "ageAmount": 5785,
+    "ageIncomeThreshold": 43065,
+    "ageClawbackRate": 0.15,
+    "pensionCredit": 1000,
+    "creditRate": 0.1050,
+    "_note": "SK also has a flat $213 senior supplement credit for age 65+ (not income-tested). Not modelled here."
+  },
+  "probate": {
+    "type": "per_thousand",
+    "ratePerThousand": 7,
+    "minimumFee": 0,
+    "source": "https://www.canlii.org/en/sk/laws/regu/rrs-c--a-4.1-reg-2/latest/rrs-c--a-4.1-reg-2.html",
+    "_note": "SK Administration of Estates Regulations 2020. Approximately $7 per $1,000 of gross estate value. Verify exact schedule against CanLII source."
+  },
+  "intestacy": {
+    "spousePreferentialShare": 100000,
+    "spouseFractionOneChild": 0.3333333333333333,
+    "spouseFractionMultipleChildren": 0.3333333333333333,
+    "source": "https://www.canlii.org/en/sk/laws/stat/ss-2019-c-i-13.2/latest/ss-2019-c-i-13.2.html",
+    "_note": "SK Intestate Succession Act 2019 s.14. Spouse gets $100K preferential share; 1/3 of remainder (regardless of number of children)."
+  },
+  "lowIncomeSupplement": null
+}

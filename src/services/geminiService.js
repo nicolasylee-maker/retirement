@@ -1,27 +1,20 @@
-const API_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent';
+import { supabase } from './supabaseClient'
+
+export class QuotaExceededError extends Error {
+  constructor(used, limit, resetAt) {
+    super(`Monthly AI quota reached (${used}/${limit})`)
+    this.name = 'QuotaExceededError'
+    this.used = used
+    this.limit = limit
+    this.resetAt = resetAt
+  }
+}
 
 // Simple in-memory cache keyed by type+hash
-const cache = new Map();
-
-export function getApiKey() {
-  return localStorage.getItem('gemini_api_key') || '';
-}
-
-export function setApiKey(key) {
-  localStorage.setItem('gemini_api_key', key.trim());
-}
-
-export function hasApiKey() {
-  return !!getApiKey();
-}
-
-export function clearApiKey() {
-  localStorage.removeItem('gemini_api_key');
-}
+const cache = new Map()
 
 function hashData(obj) {
-  return JSON.stringify(obj).slice(0, 200);
+  return JSON.stringify(obj).slice(0, 200)
 }
 
 function buildPrompt(type, data) {
@@ -39,7 +32,7 @@ function buildPrompt(type, data) {
     '2. **Second Point:** Details here.\n- Alternative: Another option.\n\n',
     '3. **Third Point:** Details here.\n- Alternative: Another option.\n\n',
     '4. **Fourth Point:** Details here.\n- Alternative: Another option.',
-  ].join(' ');
+  ].join(' ')
 
   if (type === 'dashboard') {
     return `${base}
@@ -55,7 +48,7 @@ Based on this Ontario retirement scenario, provide exactly 4 numbered recommenda
 - CPP: $${data.cppMonthly}/mo at age ${data.cppStartAge}, OAS: $${data.oasMonthly}/mo at age ${data.oasStartAge}
 ${data.pensionIncome ? `- Pension: $${data.pensionIncome}/yr` : '- No employer pension'}
 
-For each recommendation, explain the financial impact in dollars and suggest an alternative strategy.`;
+For each recommendation, explain the financial impact in dollars and suggest an alternative strategy.`
   }
 
   if (type === 'compare') {
@@ -66,13 +59,13 @@ For each recommendation, explain the financial impact in dollars and suggest an 
           `Sustainable monthly $${s.sustainableMonthly}, Tax $${s.annualTax}, ` +
           `Portfolio at ${s.lifeExpectancy}: $${s.portfolioAtEnd}`,
       )
-      .join('\n');
+      .join('\n')
     return `${base}
 
 Compare these Ontario retirement scenarios and recommend which is better:
 ${scenarioText}
 
-Highlight key trade-offs with specific dollar amounts. For each point, suggest an alternative approach.`;
+Highlight key trade-offs with specific dollar amounts. For each point, suggest an alternative approach.`
   }
 
   if (type === 'estate') {
@@ -85,7 +78,7 @@ Analyze this Ontario estate plan:
 - Primary beneficiary: ${data.primaryBeneficiary}
 - RRSP/RRIF at death: $${data.rrspBalance}, Spouse rollover: ${data.spouseRollover ? 'Yes' : 'No'}
 
-Provide exactly 4 numbered estate planning recommendations with alternatives, focused on Ontario-specific tax reduction strategies.`;
+Provide exactly 4 numbered estate planning recommendations with alternatives, focused on Ontario-specific tax reduction strategies.`
   }
 
   if (type === 'debt') {
@@ -98,43 +91,42 @@ Analyze this Ontario retiree's debt situation and its impact on retirement:
 - Current age: ${data.currentAge}, Retirement age: ${data.retirementAge}, Debt-free by: age ${data.debtFreeAge}
 - Monthly debt payments: $${Math.round(data.monthlyPayments || 0)}
 
-Provide exactly 4 numbered recommendations about managing debt before and during retirement, including the opportunity cost of debt payments vs investing.`;
+Provide exactly 4 numbered recommendations about managing debt before and during retirement, including the opportunity cost of debt payments vs investing.`
   }
 
-  return `${base}\n\nProvide general Ontario retirement planning advice with alternatives.`;
+  return `${base}\n\nProvide general Ontario retirement planning advice with alternatives.`
 }
 
 export async function getAiRecommendation(type, data, forceRefresh = false) {
-  const apiKey = getApiKey();
-  if (!apiKey) throw new Error('NO_API_KEY');
+  const cacheKey = `${type}:${hashData(data)}`
+  if (!forceRefresh && cache.has(cacheKey)) return cache.get(cacheKey)
+  if (forceRefresh) cache.delete(cacheKey)
 
-  const cacheKey = `${type}:${hashData(data)}`;
-  if (!forceRefresh && cache.has(cacheKey)) return cache.get(cacheKey);
-  if (forceRefresh) cache.delete(cacheKey);
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Must be signed in to use AI features')
 
-  const prompt = buildPrompt(type, data);
+  const prompt = buildPrompt(type, data)
 
-  const response = await fetch(`${API_URL}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
-    }),
-  });
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-proxy`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt, context: { type, data } }),
+    },
+  )
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('INVALID_API_KEY');
-    }
-    throw new Error(err.error?.message || `API error ${response.status}`);
+  if (res.status === 429) {
+    const body = await res.json()
+    throw new QuotaExceededError(body.used, body.limit, body.resetAt)
   }
+  if (res.status === 403) throw new Error('subscription_required')
+  if (!res.ok) throw new Error('AI request failed')
 
-  const result = await response.json();
-  const text =
-    result.candidates?.[0]?.content?.parts?.[0]?.text ||
-    'No recommendation available.';
-  cache.set(cacheKey, text);
-  return text;
+  const { text } = await res.json()
+  cache.set(cacheKey, text)
+  return text
 }

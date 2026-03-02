@@ -14,7 +14,7 @@ A client-side React single-page application for Canadian residents planning reti
 | Styling | Tailwind CSS 3.4 | Utility-first, rapid iteration, consistent design |
 | Charts | Recharts 2.15 | React-native charting, composable, responsive |
 | Testing | Vitest | Vite-native test runner, fast, Jest-compatible API |
-| AI (optional) | Google Gemini API | User-provided API key, optional retirement insights |
+| AI | Google Gemini API (server-side proxy via Supabase Edge Function) | App-managed API key, paid-only retirement insights with monthly quota |
 | Database | Supabase (Postgres, ca-central-1) | Canadian data residency, built-in auth |
 | Auth | Supabase Auth (Google OAuth + magic link) | No passwords to manage |
 | Payments | Stripe Billing | Subscriptions, trial, Customer Portal |
@@ -41,7 +41,8 @@ retirement/
 │   └── functions/
 │       ├── stripe-checkout/index.ts        ← Edge Function: create Stripe Checkout Session (with 7-day trial)
 │       ├── stripe-webhook/index.ts         ← Edge Function: handle Stripe webhook events, sync to subscriptions table
-│       └── stripe-portal/index.ts          ← Edge Function: create Stripe Customer Portal session
+│       ├── stripe-portal/index.ts          ← Edge Function: create Stripe Customer Portal session
+│       └── gemini-proxy/index.ts           ← Edge Function: proxy Gemini API calls (JWT auth, subscription check, 30/month quota)
 │
 ├── docs/
 │   ├── architecture.md                     ← This file (structure, patterns, data flow)
@@ -390,7 +391,7 @@ npm run generate:golden     # regenerate golden regression snapshots (run after 
 - Projections cached via `useMemo` — only recompute when scenario or overrides change
 - Charts use Recharts responsive containers — avoid unnecessary re-renders
 - Sustainable withdrawal uses binary search (not brute force) for efficiency
-- No network calls except optional Gemini API (user-initiated)
+- No network calls except Gemini proxy Edge Function (user-initiated, paid users only)
 
 ## State Management Patterns
 
@@ -460,12 +461,13 @@ tests/
 - **Multi-province**: 9 English Canadian provinces (ON, BC, AB, SK, MB, NB, NS, NL, PE) — tax/probate/intestacy data per province in `data/provinces/*.json`
 - **No backend**: All computation client-side, persistence via JSON file export/import
 - **Backend (planned)**: Supabase (auth, Postgres DB, Edge Functions) + Stripe (billing) — see specs/pending/ for implementation specs
-- **Optional AI**: Gemini integration is fully optional — app works without any API key
-  - API key stored in localStorage (user-provided)
-  - `src/services/geminiService.js`: API wrapper with in-memory caching
-  - `src/components/AiInsight.jsx`: Card component with shimmer loading
+- **Server-side AI proxy**: Gemini API calls are proxied through the `gemini-proxy` Edge Function
+  - API key is an Edge Function secret — never exposed to the browser
+  - Only paid (active/trialing/override) users can call the proxy
+  - Per-user monthly quota of 30 generations enforced server-side via `ai_usage` table
+  - `src/services/geminiService.js`: Calls the Edge Function, handles QuotaExceededError
+  - `src/components/AiInsight.jsx`: Card component with shimmer loading and quota messaging
   - Integrated into Dashboard, Compare, and Estate views
-  - Graceful degradation: works without API key, shows setup prompt
 
 ## Deploy Pipeline
 
@@ -480,8 +482,8 @@ npm run build
 # S3: aws s3 sync dist/ s3://your-bucket --delete
 ```
 
-No server-side code, no environment variables required.
-Gemini API key is user-provided at runtime (stored in localStorage).
+Requires VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.
+Gemini API key is a server-side Supabase Edge Function secret (never in the browser).
 
 ## Version History
 
@@ -494,3 +496,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
 | 2026-03-02 | Auth layer: Supabase Auth with Google OAuth + magic link; AuthContext, AuthPanel, AccountMenu, supabaseClient |
 | 2026-03-02 | Stripe subscriptions: SubscriptionContext, SubscriptionBadge, stripeService, three Edge Functions (stripe-checkout, stripe-webhook, stripe-portal) |
+| 2026-03-02 | Gemini API proxy: server-side key via gemini-proxy Edge Function, subscription check, 30/month quota in ai_usage table, QuotaExceededError client handling |

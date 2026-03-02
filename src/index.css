@@ -93,6 +93,37 @@ input[type='range']::-moz-range-thumb {
   @apply w-5 h-5 rounded-full bg-sunset-500 border-2 border-white shadow-md;
 }
 
+/* Print styles for PDF report */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  @page {
+    margin: 0.5in 0.6in;
+    size: letter;
+  }
+  .print-page {
+    page-break-after: always;
+  }
+  .print-page:last-child {
+    page-break-after: avoid;
+  }
+  /* Hide interactive chrome inside print report */
+  .print-report button {
+    display: none !important;
+  }
+  .print-report [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+  .print-report input[type="checkbox"] {
+    display: none !important;
+  }
+  .print-report label {
+    display: none !important;
+  }
+}
+
 /* Smooth page transitions */
 .view-enter {
   animation: fadeSlideIn 0.3s ease-out;

@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { createDefaultScenario, createDefaultUser } from './constants/defaults';
 import { projectScenario } from './engines/projectionEngine';
-import { openReport } from './utils/generateReport';
+import { openPrintReport } from './utils/openPrintReport';
 import { downloadAudit } from './utils/downloadAudit';
 import defaultData from './data/defaultData.json';
 import WelcomeScreen from './views/WelcomeScreen';
+import NewPersonScreen from './views/NewPersonScreen';
 import WizardShell from './views/wizard/WizardShell';
 import Dashboard from './views/dashboard/Dashboard';
 import CompareView from './views/compare/CompareView';
@@ -72,7 +73,7 @@ export default function App() {
   });
   const [view, setView] = useState(() => {
     const saved = loadSaved();
-    if (saved?.view && saved.view !== 'wizard') return saved.view;
+    if (saved?.view && saved.view !== 'wizard' && saved.view !== 'new-person') return saved.view;
     // Show welcome if no scenarios exist yet
     const user = users.find((u) => u.id === currentUserId) || users[0];
     return user?.scenarios.length > 0 ? 'dashboard' : 'welcome';
@@ -84,7 +85,7 @@ export default function App() {
 
   // Auto-save to localStorage
   useEffect(() => {
-    const data = { users, currentUserId, currentScenarioId, view: view === 'wizard' ? 'dashboard' : view };
+    const data = { users, currentUserId, currentScenarioId, view: (view === 'wizard' || view === 'new-person') ? 'dashboard' : view };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [users, currentUserId, currentScenarioId, view]);
 
@@ -102,6 +103,12 @@ export default function App() {
     () => (currentScenario ? projectScenario(currentScenario, whatIfOverrides) : []),
     [currentScenario, whatIfOverrides],
   );
+  // Scenario with what-if overrides merged in — used for display/calculations that
+  // should reflect slider changes (Key Assumptions, Safe Spend, etc.)
+  const effectiveScenario = useMemo(
+    () => (currentScenario ? { ...currentScenario, ...whatIfOverrides } : null),
+    [currentScenario, whatIfOverrides],
+  );
 
   // Helper: update scenarios for current user
   const updateScenarios = useCallback(
@@ -114,9 +121,9 @@ export default function App() {
   );
 
   // --- User management ---
-  const handleAddUser = useCallback(() => {
-    const name = prompt('Enter name for new individual:', `Individual ${users.length + 1}`);
-    if (!name?.trim()) return;
+  const handleAddUser = useCallback(() => setView('new-person'), []);
+
+  const handleNewPersonStart = useCallback((name) => {
     const newUser = createDefaultUser(name.trim());
     const newScenario = createDefaultScenario(`${name.trim()}'s Plan`);
     newUser.scenarios = [newScenario];
@@ -126,7 +133,37 @@ export default function App() {
     setWhatIfOverrides({});
     setWizardStep(0);
     setView('wizard');
-  }, [users.length]);
+  }, []);
+
+  const handleNewPersonLoad = useCallback((jsonData) => {
+    let incoming = [];
+    if (jsonData?.version === 2 && Array.isArray(jsonData.users)) {
+      incoming = jsonData.users
+        .filter((u) => u?.name && Array.isArray(u.scenarios) && u.scenarios.length > 0)
+        .map((u) => ({
+          ...u,
+          id: u.id || uid(),
+          scenarios: u.scenarios.map((s) => ({ ...createDefaultScenario(), ...s, id: s.id || uid() })),
+        }));
+    } else {
+      const arr = Array.isArray(jsonData) ? jsonData : [jsonData];
+      const valid = arr.filter((s) => s?.currentAge != null && s?.retirementAge != null);
+      if (valid.length === 0) { alert('Invalid file.'); return; }
+      const user = createDefaultUser(valid[0].name || 'Imported');
+      user.scenarios = valid.map((s) => ({ ...createDefaultScenario(), ...s, id: s.id || uid() }));
+      incoming = [user];
+    }
+    if (incoming.length === 0) { alert('No valid data found.'); return; }
+    setUsers((prev) => {
+      const existingIds = new Set(prev.map((u) => u.id));
+      const toAdd = incoming.map((u) => existingIds.has(u.id) ? { ...u, id: uid() } : u);
+      return [...prev, ...toAdd];
+    });
+    setCurrentUserId(incoming[0].id);
+    setCurrentScenarioId(incoming[0].scenarios[0].id);
+    setWhatIfOverrides({});
+    setView('dashboard');
+  }, []);
 
   const handleSwitchUser = useCallback(
     (userId) => {
@@ -308,6 +345,16 @@ export default function App() {
 
   const menuAction = (fn) => () => { setMenuOpen(false); fn(); };
 
+  if (view === 'new-person') {
+    return (
+      <NewPersonScreen
+        onStartNew={handleNewPersonStart}
+        onLoadFile={handleNewPersonLoad}
+        onCancel={() => setView('dashboard')}
+      />
+    );
+  }
+
   if (view === 'welcome') {
     return <WelcomeScreen onStartNew={handleStartNew} onLoadScenario={handleLoadScenario} />;
   }
@@ -379,13 +426,13 @@ export default function App() {
                     Duplicate Plan
                   </button>
                   {currentScenario && (
-                    <button onClick={menuAction(() => openReport(currentScenario, projectionData, currentUser.name))}
+                    <button onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentUser.name))}
                       className="menu-item">
                       PDF Report
                     </button>
                   )}
                   {currentScenario && (
-                    <button onClick={menuAction(() => downloadAudit(currentScenario, projectionData))}
+                    <button onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData))}
                       className="menu-item">
                       Calculation Audit
                     </button>
@@ -400,13 +447,21 @@ export default function App() {
                     Import
                   </button>
 
-                  {scenarios.length > 1 && (
+                  {(scenarios.length > 1 || users.length > 1) && (
                     <>
                       <div className="border-t border-gray-100 my-1.5 mx-3" />
-                      <button onClick={menuAction(() => { if (confirm(`Delete "${currentScenario?.name}"?`)) handleDeleteScenario(currentScenarioId); })}
-                        className="menu-item text-red-600 hover:!bg-red-50">
-                        Delete Plan
-                      </button>
+                      {scenarios.length > 1 && (
+                        <button onClick={menuAction(() => { if (confirm(`Delete "${currentScenario?.name}"?`)) handleDeleteScenario(currentScenarioId); })}
+                          className="menu-item text-red-600 hover:!bg-red-50">
+                          Delete Plan
+                        </button>
+                      )}
+                      {users.length > 1 && (
+                        <button onClick={menuAction(handleDeleteUser)}
+                          className="menu-item text-red-600 hover:!bg-red-50">
+                          Delete Person
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
@@ -447,7 +502,7 @@ export default function App() {
               <WhatIfPanel scenario={currentScenario} overrides={whatIfOverrides}
                 onOverrideChange={handleOverrideChange} onReset={handleResetOverrides}
                 expanded={whatIfExpanded} onToggle={() => setWhatIfExpanded(v => !v)} />
-              <Dashboard scenario={currentScenario} projectionData={projectionData} onScenarioChange={handleScenarioChange} />
+              <Dashboard scenario={effectiveScenario} projectionData={projectionData} onScenarioChange={handleScenarioChange} />
             </div>
           )}
 

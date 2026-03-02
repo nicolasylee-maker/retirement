@@ -5,36 +5,11 @@ import SummaryCard from '../../components/SummaryCard';
 import AiInsight from '../../components/AiInsight';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ReferenceLine, Legend,
+  ReferenceLine,
 } from 'recharts';
-
-function calcDebtSchedule(balance, rate, payoffAge, currentAge, label) {
-  if (!balance || balance <= 0 || payoffAge <= currentAge) return [];
-  const years = payoffAge - currentAge;
-  let annual;
-  if (rate === 0) {
-    annual = balance / years;
-  } else {
-    annual = balance * (rate * Math.pow(1 + rate, years)) / (Math.pow(1 + rate, years) - 1);
-  }
-  const rows = [];
-  let remaining = balance;
-  let totalInterest = 0;
-  for (let y = 0; y <= years; y++) {
-    const age = currentAge + y;
-    if (y === 0) {
-      rows.push({ age, balance: Math.round(remaining), interest: 0, principal: 0, payment: 0, totalInterest: 0, label });
-      continue;
-    }
-    const interest = remaining * rate;
-    const payment = Math.min(remaining + interest, annual);
-    const principal = payment - interest;
-    remaining = Math.max(0, remaining - principal);
-    totalInterest += interest;
-    rows.push({ age, balance: Math.round(remaining), interest: Math.round(interest), principal: Math.round(principal), payment: Math.round(payment), totalInterest: Math.round(totalInterest), label });
-  }
-  return rows;
-}
+import { CHART_STYLE } from '../../constants/designTokens';
+import ChartLegend from '../../components/ChartLegend';
+import { calcDebtSchedule } from '../../utils/debtCalc';
 
 export default function DebtView({ scenario, projectionData, onNavigate }) {
   const consumerPayoffAge = scenario.consumerDebtPayoffAge || (scenario.currentAge + 10);
@@ -147,7 +122,11 @@ export default function DebtView({ scenario, projectionData, onNavigate }) {
         {/* Debt payoff chart */}
         {chartData.length > 0 && (
           <Card>
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Debt Payoff Timeline</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-1">Debt Payoff Timeline</h3>
+            <ChartLegend items={[
+              ...(scenario.mortgageBalance > 0 ? [{ color: '#3b82f6', label: 'Mortgage' }]      : []),
+              ...(scenario.consumerDebt > 0    ? [{ color: '#f97316', label: 'Consumer Debt' }] : []),
+            ]} />
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -167,7 +146,6 @@ export default function DebtView({ scenario, projectionData, onNavigate }) {
                 )}
                 <ReferenceLine x={scenario.retirementAge} stroke="#9333ea" strokeDasharray="5 5"
                   label={{ value: 'Retirement', position: 'top', fontSize: 11, fill: '#9333ea' }} />
-                <Legend />
               </AreaChart>
             </ResponsiveContainer>
           </Card>

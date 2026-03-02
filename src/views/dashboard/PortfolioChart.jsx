@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, ReferenceLine, ReferenceDot,
 } from 'recharts';
 import { COLORS, CHART_STYLE } from '../../constants/designTokens';
+import ChartLegend from '../../components/ChartLegend';
 import { formatCurrencyShort } from '../../utils/formatters';
 import { projectScenario } from '../../engines/projectionEngine';
 import CustomTooltip from './PortfolioChartTooltip';
@@ -134,7 +135,7 @@ function WaterfallLegend({ hasDebt, hasMeltdown, hasSurplus, hasShortfall }) {
   ].filter(i => i.show);
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 text-xs text-gray-500">
       {items.map(i => (
         <span key={i.label} className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
@@ -150,11 +151,11 @@ function WaterfallLegend({ hasDebt, hasMeltdown, hasSurplus, hasShortfall }) {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function PortfolioChart({ projectionData, scenario }) {
+export default function PortfolioChart({ projectionData, scenario, forceView }) {
   if (!projectionData || projectionData.length === 0) return null;
 
   const [showNoDebt,  setShowNoDebt]  = useState(false);
-  const [activeView,  setActiveView]  = useState('balance'); // 'balance' | 'drivers'
+  const [activeView,  setActiveView]  = useState(forceView || 'balance'); // 'balance' | 'drivers'
   const hasConsumerDebt = (scenario.consumerDebt || 0) + (scenario.otherDebt || 0) > 0;
 
   // ── Balance-view data ──────────────────────────────────────────────────────
@@ -181,11 +182,12 @@ export default function PortfolioChart({ projectionData, scenario }) {
 
   // ── Drivers-view data (lazy — only computed when Drivers tab is active) ───
   // O(n) extra calcTotalTax() calls; keep behind the activeView guard.
+  // When forceView='drivers' is set, compute unconditionally on mount.
   const waterfallData = useMemo(
-    () => activeView === 'drivers'
+    () => (activeView === 'drivers' || forceView === 'drivers')
       ? buildWaterfallData(scenario, projectionData)
       : null,
-    [activeView, scenario, projectionData],
+    [activeView, forceView, scenario, projectionData],
   );
 
   // ── Shared chart infrastructure ───────────────────────────────────────────
@@ -248,45 +250,64 @@ export default function PortfolioChart({ projectionData, scenario }) {
     <div className="card-base p-6">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
         <h3 className="text-lg font-semibold text-gray-900">
           {activeView === 'balance' ? 'Total Portfolio Over Time' : "What's Driving the Change?"}
         </h3>
 
-        <div className="flex items-center gap-3">
-          {/* No-debt toggle — balance view only */}
-          {activeView === 'balance' && hasConsumerDebt && (
-            <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={showNoDebt}
-                onChange={e => setShowNoDebt(e.target.checked)}
-                className="rounded border-gray-300 text-indigo-500 focus:ring-indigo-400"
-              />
-              Without consumer debt
-            </label>
-          )}
+        {!forceView && (
+          <div className="flex items-center gap-3">
+            {/* No-debt toggle — balance view only */}
+            {activeView === 'balance' && hasConsumerDebt && (
+              <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showNoDebt}
+                  onChange={e => setShowNoDebt(e.target.checked)}
+                  className="rounded border-gray-300 text-indigo-500 focus:ring-indigo-400"
+                />
+                Without consumer debt
+              </label>
+            )}
 
-          {/* Segmented control — Balance / Drivers */}
-          <div className="flex rounded-full border border-gray-200 bg-gray-50 p-0.5 gap-0.5">
-            {['balance', 'drivers'].map(view => (
-              <button
-                key={view}
-                type="button"
-                onClick={() => setActiveView(view)}
-                className={[
-                  'px-3 py-1 rounded-full text-xs font-medium transition-colors duration-150',
-                  activeView === view
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700',
-                ].join(' ')}
-              >
-                {view === 'balance' ? 'Balance' : 'Drivers'}
-              </button>
-            ))}
+            {/* Segmented control — Balance / Drivers */}
+            <div className="flex rounded-full border border-gray-200 bg-gray-50 p-0.5 gap-0.5">
+              {['balance', 'drivers'].map(view => (
+                <button
+                  key={view}
+                  type="button"
+                  onClick={() => setActiveView(view)}
+                  className={[
+                    'px-3 py-1 rounded-full text-xs font-medium transition-colors duration-150',
+                    activeView === view
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700',
+                  ].join(' ')}
+                >
+                  {view === 'balance' ? 'Balance' : 'Drivers'}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* ── Legend — below title, view-specific ──────────────────────────── */}
+      {activeView === 'balance' && (
+        <ChartLegend items={[
+          { color: COLORS.sunset.main, label: 'Portfolio' },
+          ...(hasDrain ? [{ color: '#6366f1', label: 'Annual gap funded by portfolio' }] : []),
+          ...(showNoDebt && hasConsumerDebt ? [{ color: '#9ca3af', label: 'Without consumer debt' }] : []),
+        ]} />
+      )}
+      {activeView === 'drivers' && waterfallData && (
+        <WaterfallLegend
+          hasDebt={wfHasDebt}
+          hasMeltdown={wfHasMeltdown}
+          hasSurplus={wfHasSurplus}
+          hasShortfall={wfHasShortfall}
+        />
+      )}
 
       {/* ── Waterfall insight line ─────────────────────────────────────────── */}
       {activeView === 'drivers' && waterfallInsight && (
@@ -339,7 +360,7 @@ export default function PortfolioChart({ projectionData, scenario }) {
                   type="monotone" dataKey="noDebtPortfolio"
                   stroke="#9ca3af" strokeWidth={1.5} strokeDasharray="3 4"
                   dot={false} activeDot={false}
-                  name="Without consumer debt" legendType="none"
+                  name="Without consumer debt"
                 />
               )}
 
@@ -419,33 +440,6 @@ export default function PortfolioChart({ projectionData, scenario }) {
           )}
         </div>
       </div>
-
-      {/* ── Legend ─────────────────────────────────────────────────────────── */}
-      {activeView === 'balance' && (hasDrain || (showNoDebt && hasConsumerDebt)) && (
-        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-500">
-          {hasDrain && (
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-6 border-t-2 border-dotted border-indigo-400" />
-              annual gap funded by portfolio
-            </span>
-          )}
-          {showNoDebt && hasConsumerDebt && (
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-6 border-t-2 border-dotted border-gray-400" />
-              without consumer debt
-            </span>
-          )}
-        </div>
-      )}
-
-      {activeView === 'drivers' && waterfallData && (
-        <WaterfallLegend
-          hasDebt={wfHasDebt}
-          hasMeltdown={wfHasMeltdown}
-          hasSurplus={wfHasSurplus}
-          hasShortfall={wfHasShortfall}
-        />
-      )}
 
       {/* ── Phase annotation cards ─────────────────────────────────────────── */}
       {annotations.length > 0 && (

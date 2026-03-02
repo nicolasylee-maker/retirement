@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import Button from '../../components/Button';
 import { STEP_LABELS, WIZARD_STEPS } from '../../constants/defaults';
+import { trackEvent } from '../../utils/analytics';
 import PersonalInfoStep from './PersonalInfoStep';
 import GovBenefitsStep from './GovBenefitsStep';
 import PensionsStep from './PensionsStep';
@@ -48,8 +49,10 @@ export default function WizardShell({
   const handleNext = () => {
     if (isLastStep) {
       localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
+      trackEvent('wizard_completed');
       onComplete();
     } else {
+      trackEvent('wizard_step_completed', { step: currentStep + 1 });
       onStepChange(currentStep + 1);
     }
   };

@@ -1,7 +1,9 @@
-// Analytics stub — wire up to a real analytics provider (e.g. Plausible, Segment) later.
-// All calls are no-ops until then.
-export function trackEvent(eventName, properties) {
-  // TODO: replace with real analytics call
-  void eventName;
-  void properties;
+/**
+ * Thin wrapper around Plausible Analytics custom events.
+ * No-ops silently when window.plausible is undefined (dev, ad-blockers).
+ */
+export function trackEvent(name, props = {}) {
+  if (typeof window.plausible !== 'undefined') {
+    window.plausible(name, { props });
+  }
 }

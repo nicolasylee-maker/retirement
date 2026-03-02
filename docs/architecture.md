@@ -15,9 +15,6 @@ A client-side React single-page application for Canadian residents planning reti
 | Charts | Recharts 2.15 | React-native charting, composable, responsive |
 | Testing | Vitest | Vite-native test runner, fast, Jest-compatible API |
 | AI (optional) | Google Gemini API | User-provided API key, optional retirement insights |
-| Database | Supabase (Postgres, ca-central-1) | Canadian data residency, built-in auth |
-| Auth | Supabase Auth (Google OAuth + magic link) | No passwords to manage |
-| Payments | Stripe Billing | Subscriptions, trial, Customer Portal |
 | State Management | React hooks (useState/useMemo) | App is shallow enough — no external library needed |
 | Routing | Custom view state in App.jsx | Simple state-based switching — no router library |
 | Persistence | JSON export/import | No backend; user saves/loads scenario files |
@@ -31,13 +28,6 @@ retirement/
 ├── vite.config.js                          ← Vite dev server (port 5173) + React plugin
 ├── tailwind.config.js                      ← Custom colors (sunset, lake, forest), Inter font
 ├── postcss.config.js                       ← PostCSS + Tailwind + Autoprefixer
-├── .env.example                            ← Environment variable template (copy to .env)
-│
-├── supabase/
-│   ├── config.toml                         ← Supabase CLI local dev config
-│   └── migrations/
-│       ├── 001_initial_schema.sql          ← users, scenarios, subscriptions, ai_usage tables
-│       └── 002_rls_policies.sql            ← RLS policies + new-user trigger
 │
 ├── docs/
 │   ├── architecture.md                     ← This file (structure, patterns, data flow)
@@ -80,14 +70,15 @@ retirement/
 │   │   └── geminiService.js                ← Google Gemini AI integration (optional insights)
 │   │
 │   ├── utils/
+│   │   ├── analytics.js                    ← Plausible custom event helper (no-ops if window.plausible absent)
 │   │   ├── formatters.js                   ← Currency, percent, UUID, math utilities
 │   │   ├── generateReport.js               ← HTML retirement report (PDF-printable, inputs + projection)
-│   │   ├── downloadAudit.js                ← Audit report assembler + Markdown download trigger
-│   │   └── analytics.js                    ← Analytics stub (trackEvent); wire up to Plausible/Segment later
+│   │   └── downloadAudit.js                ← Audit report assembler + Markdown download trigger
 │   │
 │   ├── components/                         ← Reusable UI components
 │   │   ├── AiInsight.jsx                   ← AI recommendation card (Gemini integration)
 │   │   ├── Button.jsx                      ← Primary/secondary/text button variants
+│   │   ├── ErrorFallback.jsx               ← Sentry ErrorBoundary fallback UI (friendly reload screen)
 │   │   ├── Card.jsx                        ← Base card wrapper with border + shadow
 │   │   ├── FormField.jsx                   ← Input with label, helper text, $ prefix, validation
 │   │   ├── HelpIcon.jsx                    ← Tooltip with info icon
@@ -98,12 +89,10 @@ retirement/
 │   │   └── SunsetIllustration.jsx          ← Welcome screen SVG illustration
 │   │
 │   └── views/                              ← Page-level view components
-│       ├── WelcomeScreen.jsx               ← DEPRECATED: no longer rendered; replaced by wizard-first onboarding (onboarding-ux spec)
-│       ├── SaveNudgeScreen.jsx             ← Post-wizard interstitial: save plan via Google or magic link, or skip
-│       ├── MyPlansView.jsx                 ← Plan picker for users with 2+ scenarios; grid of cards with Open + New Plan
+│       ├── WelcomeScreen.jsx               ← Landing page (New Plan / Load Saved Plan)
 │       ├── WhatIfPanel.jsx                 ← Collapsible parameter override panel
 │       │
-│       ├── wizard/                         ← 9-step input wizard (entry point when no scenarios exist)
+│       ├── wizard/                         ← 9-step input wizard
 │       │   ├── WizardShell.jsx             ← Wizard container, navigation, step management
 │       │   ├── PersonalInfoStep.jsx        ← Age, retirement age, couple toggle
 │       │   ├── GovBenefitsStep.jsx         ← CPP, OAS, GIS, GAINS configuration
@@ -148,12 +137,6 @@ retirement/
 │       ├── generate.config.js              ← Vitest config for generator only
 │       └── {ON,BC,AB,SK,MB,NB,NS,NL,PE}-golden.json
 │
-├── public/
-│   ├── privacy.html                        ← Privacy policy (PIPEDA compliant)
-│   └── terms.html                          ← Terms of service
-│
-├── vercel.json                             ← URL rewrites for /privacy and /terms
-│
 ├── dist/                                   ← Production build output (Vite)
 │
 ├── test-scenario.json                      ← Sample scenario: Margaret (default)
@@ -165,22 +148,13 @@ retirement/
 
 ### Flow 1: Create New Retirement Plan
 ```
-App.jsx (no scenarios → view = 'wizard', step restored from localStorage 'rp-wizard-step' checkpoint)
-    ↓ user fills 9-step wizard (Personal → Benefits → Pensions → Savings → Assets → Liabilities → Expenses → Withdrawal → Estate)
-    ↓ "View Dashboard" / "Finish" → clears 'rp-wizard-step' checkpoint
-SaveNudgeScreen (save via Google or magic link, or skip)
-    ↓ skip or sign-in
+WelcomeScreen
+    ↓ "Start New Plan"
+WizardShell (9 steps: Personal → Benefits → Pensions → Savings → Assets → Liabilities → Expenses → Withdrawal → Estate)
+    ↓ "Finish"
 Dashboard (projections, KPIs, charts)
     ↓ optional
 WhatIfPanel (adjust return, inflation, expenses, life expectancy → live re-projection)
-```
-
-### Flow 1b: Returning User with Multiple Plans
-```
-App.jsx (2+ scenarios, no valid currentScenarioId → view = 'my-plans')
-MyPlansView (grid of scenario cards)
-    ↓ click Open
-Dashboard (selected scenario)
 ```
 
 ### Flow 2: Compare Scenarios
@@ -205,9 +179,9 @@ EstateBreakdown (tax by source, distribution rules)
 
 ### Flow 4: Load Saved Plan
 ```
-Header Actions menu → "Import" (JSON file picker)
-    ↓ handleLoadScenario — supports v3 (flat scenarios[]), v2 (users[] wrapper), legacy (plain array)
-Dashboard (loaded scenario, merged into existing scenario list)
+WelcomeScreen
+    ↓ "Load Saved Plan" (JSON file picker)
+Dashboard (loaded scenario)
 ```
 
 ## Application Layers
@@ -343,6 +317,7 @@ tests/yourModuleEngine.test.js    ← Unit tests for engine functions
 | `src/engines/withdrawalCalc.js` | Sustainable withdrawal (binary search) |
 | `src/engines/incomeHelpers.js` | Pure income helper functions (CPP, OAS, GIS, GAINS, capital gains) |
 | `src/services/geminiService.js` | Optional AI insights via Gemini API |
+| `src/utils/analytics.js` | Plausible custom event helper — trackEvent(name, props) |
 | `src/utils/formatters.js` | Currency/percent formatting, UUID generation |
 | `docs/architecture.md` | This file |
 | `docs/AGENTS.md` | AI agent protocol |
@@ -401,14 +376,10 @@ npm run generate:golden     # regenerate golden regression snapshots (run after 
 
 ```javascript
 // Top-level state in App.jsx
-// scenarios[] is the top-level array — no users[] nesting
-const [scenarios, setScenarios] = useState([])           // empty → wizard; populated → dashboard
-const [currentScenarioId, setCurrentScenarioId] = useState(null)
-// Views: 'wizard' | 'save-nudge' | 'dashboard' | 'debt' | 'compare' | 'estate' | 'my-plans'
-// 'wizard' when no scenarios; 'save-nudge' after wizard completes; 'dashboard' for returning users
-// 'my-plans' when 2+ scenarios exist and no valid currentScenarioId is set
-const [view, setView] = useState('wizard')
-const [wizardStep, setWizardStep] = useState(0)          // restored from localStorage 'rp-wizard-step' checkpoint when no saved scenarios
+const [scenarios, setScenarios] = useState([createDefaultScenario()])
+const [currentScenarioId, setCurrentScenarioId] = useState(...)
+const [view, setView] = useState('welcome')
+const [wizardStep, setWizardStep] = useState(0)
 const [whatIfOverrides, setWhatIfOverrides] = useState({})
 
 // Derived (memoized)
@@ -468,7 +439,6 @@ tests/
 - **All tax math isolated**: Engines have zero UI dependencies, independently testable
 - **Multi-province**: 9 English Canadian provinces (ON, BC, AB, SK, MB, NB, NS, NL, PE) — tax/probate/intestacy data per province in `data/provinces/*.json`
 - **No backend**: All computation client-side, persistence via JSON file export/import
-- **Backend (planned)**: Supabase (auth, Postgres DB, Edge Functions) + Stripe (billing) — see specs/pending/ for implementation specs
 - **Optional AI**: Gemini integration is fully optional — app works without any API key
   - API key stored in localStorage (user-provided)
   - `src/services/geminiService.js`: API wrapper with in-memory caching
@@ -492,9 +462,6 @@ npm run build
 No server-side code, no environment variables required.
 Gemini API key is user-provided at runtime (stored in localStorage).
 
-`vercel.json` handles URL rewrites so that `/privacy` and `/terms` resolve to
-`/privacy.html` and `/terms.html` respectively, enabling clean URLs on Vercel deployments.
-
 ## Version History
 
 | Date | Change |
@@ -504,5 +471,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | Full couple support: spouse CPP/OAS bug fix, spouse employment/pension/savings, two-tax-call |
 | 2026-03-02 | effectiveScenario propagated to Dashboard, report, and audit; surplus formula fixed in PDF; couple fields added to report and audit; auditProjection.js split into auditInputSnapshot.js, auditProjection.js, auditTaxDebt.js |
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
-| 2026-03-02 | app-state-refactor: collapsed users[] → flat scenarios[] state model; removed user management (handleAddUser, handleSwitchUser, handleRenameUser, handleDeleteUser, updateScenarios helper); deleted NewPersonScreen.jsx; deprecated WelcomeScreen.jsx; initial view is now 'wizard' when no scenarios exist |
-| 2026-03-02 | onboarding-ux: wizard-first entry (no welcome screen); localStorage step checkpoint ('rp-wizard-step'); post-wizard save nudge screen (SaveNudgeScreen.jsx); MyPlansView.jsx for 2+ scenario users; new views: 'save-nudge', 'my-plans'; analytics stub (src/utils/analytics.js) |
+| 2026-03-02 | Analytics & error monitoring: Plausible script tag, trackEvent helper, wizard funnel events, Sentry init + ErrorBoundary |

@@ -110,15 +110,46 @@ npm run build
 npm run preview
 ```
 
-## Git Workflow
+## GitHub Repository
 
-1. Branch from `main` for each task: `git checkout -b feat/description` or `fix/description`
+- **Repo:** https://github.com/nicolasylee-maker/retirement
+- **Default branch:** `main`
+- **Clone:** `git clone https://github.com/nicolasylee-maker/retirement.git`
+
+## Git Workflow — Parallel Worktrees
+
+This project uses **git worktrees** so multiple agents can work on separate branches simultaneously without interfering with each other. Each agent gets its own worktree — an isolated checkout at a separate filesystem path — while sharing the same `.git` object store.
+
+### Setup (one-time, after cloning)
+
+```bash
+# Clone the repo into the primary worktree
+git clone https://github.com/nicolasylee-maker/retirement.git
+cd retirement
+
+# Create sibling worktrees for parallel work (paths are beside the main clone)
+git worktree add ../retirement-feat-<name> feat/<name>
+git worktree add ../retirement-fix-<name>  fix/<name>
+```
+
+### Per-task workflow (inside a worktree)
+
+1. `git checkout -b feat/description` (or start directly in the worktree branch)
 2. Make atomic commits — one logical change per commit
 3. Commit message format: `type: short description`
    - Types: `feat`, `fix`, `refactor`, `test`, `docs`, `style`, `chore`
    - Example: `feat: add RRSP meltdown slider to withdrawal step`
-4. Run `npm test && npm run build` before pushing — never push failing tests or a broken build
-5. Update docs if the change affects architecture, file structure, or domain rules
+4. Run `npm install && npm test && npm run build` in the worktree before pushing
+5. Push the branch: `git push -u origin feat/description`
+6. Open a PR to `main` via `gh pr create`
+
+### Worktree rules
+
+- Each worktree must run its own `npm install` — `node_modules` is not shared
+- Never check out the same branch in two worktrees simultaneously
+- List active worktrees: `git worktree list`
+- Remove a finished worktree: `git worktree remove ../retirement-feat-<name>`
+- Update docs if the change affects architecture, file structure, or domain rules
 
 ## Domain-Specific Reminders
 

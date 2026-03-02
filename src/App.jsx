@@ -12,7 +12,9 @@ import CompareView from './views/compare/CompareView';
 import EstateView from './views/estate/EstateView';
 import DebtView from './views/debt/DebtView';
 import WhatIfPanel from './views/WhatIfPanel';
-import AccountMenu from './components/AccountMenu';
+import AccountMenu from './components/AccountMenu'
+import AdminView from './views/admin/AdminView'
+import { useAuth } from './contexts/AuthContext';
 
 const NAV_TABS = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -51,7 +53,11 @@ function loadSaved() {
   return null;
 }
 
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
+
 export default function App() {
+  const { user } = useAuth()
+  const isAdmin = user?.email === ADMIN_EMAIL
   const [users, setUsers] = useState(() => {
     const saved = loadSaved();
     if (saved) return saved.users;
@@ -472,7 +478,7 @@ export default function App() {
             <input ref={importInputRef} type="file" accept=".json,application/json"
               onChange={handleImport} className="hidden" aria-label="Import scenario file" />
 
-            <AccountMenu />
+            <AccountMenu onAdmin={isAdmin ? () => setView('admin') : undefined} />
           </div>
         </div>
 
@@ -530,6 +536,8 @@ export default function App() {
                 onLifeExpectancyChange={(v) => handleOverrideChange('lifeExpectancy', v)} />
             </div>
           )}
+
+          {view === 'admin' && (isAdmin ? <AdminView /> : null)}
         </div>
       </main>
 

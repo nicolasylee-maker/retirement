@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import AuthPanel from './AuthPanel'
 
-export default function AccountMenu() {
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
+
+export default function AccountMenu({ onAdmin }) {
   const { user, isLoading, signOut } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [panelOpen, setPanelOpen] = useState(false)
@@ -83,6 +85,15 @@ export default function AccountMenu() {
           <p className="px-4 py-2 text-xs text-gray-500 truncate">Signed in as</p>
           <p className="px-4 pb-2 text-sm font-medium text-gray-800 truncate">{email}</p>
           <div className="border-t border-gray-100 my-1" />
+          {user?.email === ADMIN_EMAIL && onAdmin && (
+            <button
+              type="button"
+              onClick={() => { setDropdownOpen(false); onAdmin() }}
+              className="w-full text-left px-4 py-2 text-sm text-purple-700 hover:bg-purple-50 transition-colors"
+            >
+              Admin
+            </button>
+          )}
           <button
             type="button"
             onClick={() => { setDropdownOpen(false); signOut() }}

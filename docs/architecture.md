@@ -35,9 +35,12 @@ retirement/
 │
 ├── supabase/
 │   ├── config.toml                         ← Supabase CLI local dev config
-│   └── migrations/
-│       ├── 001_initial_schema.sql          ← users, scenarios, subscriptions, ai_usage tables
-│       └── 002_rls_policies.sql            ← RLS policies + new-user trigger
+│   ├── migrations/
+│   │   ├── 001_initial_schema.sql          ← users, scenarios, subscriptions, ai_usage tables
+│   │   └── 002_rls_policies.sql            ← RLS policies + new-user trigger
+│   └── functions/
+│       ├── send-invite/index.ts            ← Edge Function: invite user + set subscription_override
+│       └── revoke-override/index.ts        ← Edge Function: clear subscription_override for a user
 │
 ├── docs/
 │   ├── architecture.md                     ← This file (structure, patterns, data flow)
@@ -132,10 +135,14 @@ retirement/
 │       │   ├── CompareChart.jsx            ← Multi-line portfolio comparison chart
 │       │   └── CompareTable.jsx            ← Year-by-year comparison table
 │       │
-│       └── estate/                         ← Estate planning view
-│           ├── EstateView.jsx              ← Death age slider, will toggle
-│           ├── EstateSummaryCards.jsx       ← Estate KPI cards
-│           └── EstateBreakdown.jsx         ← Tax breakdown + distribution to heirs
+│       ├── estate/                         ← Estate planning view
+│       │   ├── EstateView.jsx              ← Death age slider, will toggle
+│       │   ├── EstateSummaryCards.jsx       ← Estate KPI cards
+│       │   └── EstateBreakdown.jsx         ← Tax breakdown + distribution to heirs
+│       └── admin/                          ← Admin-only invite management view
+│           ├── AdminView.jsx               ← Admin page: invite form + override list (guarded by VITE_ADMIN_EMAIL)
+│           ├── InviteForm.jsx              ← Send-invite form (email + tier radio + submit)
+│           └── OverrideList.jsx            ← Table of users with overrides + revoke buttons
 │
 ├── tests/                                  ← Vitest test files (277 tests, 8 files)
 │   ├── taxEngine.test.js                   ← Federal/Ontario tax, surtax, OAS clawback, RRIF mins (51)
@@ -486,3 +493,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | effectiveScenario propagated to Dashboard, report, and audit; surplus formula fixed in PDF; couple fields added to report and audit; auditProjection.js split into auditInputSnapshot.js, auditProjection.js, auditTaxDebt.js |
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
 | 2026-03-02 | Auth layer: Supabase Auth with Google OAuth + magic link; AuthContext, AuthPanel, AccountMenu, supabaseClient |
+| 2026-03-02 | Admin invite system: send-invite + revoke-override Edge Functions; AdminView with InviteForm + OverrideList; AccountMenu Admin link |

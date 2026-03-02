@@ -76,8 +76,12 @@ retirement/
 │   │   ├── auditTaxDebt.js                 ← Audit sections 4–5: tax worked example + debt trace
 │   │   └── auditAnalysis.js                ← Audit sections 6–10: estate, withdrawal, RRIF, gaps, KPIs
 │   │
+│   ├── contexts/
+│   │   └── AuthContext.jsx                 ← Supabase auth state (user, session, signIn/Out helpers)
+│   │
 │   ├── services/
-│   │   └── geminiService.js                ← Google Gemini AI integration (optional insights)
+│   │   ├── geminiService.js                ← Google Gemini AI integration (optional insights)
+│   │   └── supabaseClient.js               ← Supabase JS client singleton (URL + anon key)
 │   │
 │   ├── utils/
 │   │   ├── formatters.js                   ← Currency, percent, UUID, math utilities
@@ -85,7 +89,9 @@ retirement/
 │   │   └── downloadAudit.js                ← Audit report assembler + Markdown download trigger
 │   │
 │   ├── components/                         ← Reusable UI components
+│   │   ├── AccountMenu.jsx                 ← Header auth widget: Sign-in button or avatar + dropdown
 │   │   ├── AiInsight.jsx                   ← AI recommendation card (Gemini integration)
+│   │   ├── AuthPanel.jsx                   ← Sign-in panel: Google OAuth button + magic link email form
 │   │   ├── Button.jsx                      ← Primary/secondary/text button variants
 │   │   ├── Card.jsx                        ← Base card wrapper with border + shadow
 │   │   ├── FormField.jsx                   ← Input with label, helper text, $ prefix, validation
@@ -479,3 +485,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | Full couple support: spouse CPP/OAS bug fix, spouse employment/pension/savings, two-tax-call |
 | 2026-03-02 | effectiveScenario propagated to Dashboard, report, and audit; surplus formula fixed in PDF; couple fields added to report and audit; auditProjection.js split into auditInputSnapshot.js, auditProjection.js, auditTaxDebt.js |
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
+| 2026-03-02 | Auth layer: Supabase Auth with Google OAuth + magic link; AuthContext, AuthPanel, AccountMenu, supabaseClient |

@@ -13,6 +13,7 @@ import EstateView from './views/estate/EstateView';
 import DebtView from './views/debt/DebtView';
 import WhatIfPanel from './views/WhatIfPanel';
 import AccountMenu from './components/AccountMenu';
+import SubscriptionBadge from './components/SubscriptionBadge';
 
 const NAV_TABS = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -472,6 +473,7 @@ export default function App() {
             <input ref={importInputRef} type="file" accept=".json,application/json"
               onChange={handleImport} className="hidden" aria-label="Import scenario file" />
 
+            <SubscriptionBadge />
             <AccountMenu />
           </div>
         </div>

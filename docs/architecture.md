@@ -35,9 +35,13 @@ retirement/
 │
 ├── supabase/
 │   ├── config.toml                         ← Supabase CLI local dev config
-│   └── migrations/
-│       ├── 001_initial_schema.sql          ← users, scenarios, subscriptions, ai_usage tables
-│       └── 002_rls_policies.sql            ← RLS policies + new-user trigger
+│   ├── migrations/
+│   │   ├── 001_initial_schema.sql          ← users, scenarios, subscriptions, ai_usage tables
+│   │   └── 002_rls_policies.sql            ← RLS policies + new-user trigger
+│   └── functions/
+│       ├── stripe-checkout/index.ts        ← Edge Function: create Stripe Checkout Session (with 7-day trial)
+│       ├── stripe-webhook/index.ts         ← Edge Function: handle Stripe webhook events, sync to subscriptions table
+│       └── stripe-portal/index.ts          ← Edge Function: create Stripe Customer Portal session
 │
 ├── docs/
 │   ├── architecture.md                     ← This file (structure, patterns, data flow)
@@ -77,10 +81,12 @@ retirement/
 │   │   └── auditAnalysis.js                ← Audit sections 6–10: estate, withdrawal, RRIF, gaps, KPIs
 │   │
 │   ├── contexts/
-│   │   └── AuthContext.jsx                 ← Supabase auth state (user, session, signIn/Out helpers)
+│   │   ├── AuthContext.jsx                 ← Supabase auth state (user, session, signIn/Out helpers)
+│   │   └── SubscriptionContext.jsx         ← Stripe/override subscription state (isPaid, isTrial, isPastDue, override)
 │   │
 │   ├── services/
 │   │   ├── geminiService.js                ← Google Gemini AI integration (optional insights)
+│   │   ├── stripeService.js                ← Client-side helpers: startCheckout(), openBillingPortal()
 │   │   └── supabaseClient.js               ← Supabase JS client singleton (URL + anon key)
 │   │
 │   ├── utils/
@@ -89,7 +95,8 @@ retirement/
 │   │   └── downloadAudit.js                ← Audit report assembler + Markdown download trigger
 │   │
 │   ├── components/                         ← Reusable UI components
-│   │   ├── AccountMenu.jsx                 ← Header auth widget: Sign-in button or avatar + dropdown
+│   │   ├── AccountMenu.jsx                 ← Header auth widget: Sign-in button or avatar + dropdown; includes Manage subscription
+│   │   ├── SubscriptionBadge.jsx           ← Header pill/banner: Trial, Past Due, Beta, Lifetime indicators
 │   │   ├── AiInsight.jsx                   ← AI recommendation card (Gemini integration)
 │   │   ├── AuthPanel.jsx                   ← Sign-in panel: Google OAuth button + magic link email form
 │   │   ├── Button.jsx                      ← Primary/secondary/text button variants
@@ -486,3 +493,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | effectiveScenario propagated to Dashboard, report, and audit; surplus formula fixed in PDF; couple fields added to report and audit; auditProjection.js split into auditInputSnapshot.js, auditProjection.js, auditTaxDebt.js |
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
 | 2026-03-02 | Auth layer: Supabase Auth with Google OAuth + magic link; AuthContext, AuthPanel, AccountMenu, supabaseClient |
+| 2026-03-02 | Stripe subscriptions: SubscriptionContext, SubscriptionBadge, stripeService, three Edge Functions (stripe-checkout, stripe-webhook, stripe-portal) |

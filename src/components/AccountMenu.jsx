@@ -1,12 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useSubscription } from '../contexts/SubscriptionContext'
+import { openBillingPortal } from '../services/stripeService'
 import AuthPanel from './AuthPanel'
 
 export default function AccountMenu() {
   const { user, isLoading, signOut } = useAuth()
+  const { isOverride, override } = useSubscription()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [panelOpen, setPanelOpen] = useState(false)
+  const [portalLoading, setPortalLoading] = useState(false)
   const dropdownRef = useRef(null)
+
+  async function handleManageSubscription() {
+    setDropdownOpen(false)
+    setPortalLoading(true)
+    try {
+      await openBillingPortal()
+    } catch {
+      // openBillingPortal redirects on success; reaching here means it failed
+    } finally {
+      setPortalLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!dropdownOpen) return
@@ -82,6 +98,24 @@ export default function AccountMenu() {
                         border border-gray-200 py-1.5 z-50">
           <p className="px-4 py-2 text-xs text-gray-500 truncate">Signed in as</p>
           <p className="px-4 pb-2 text-sm font-medium text-gray-800 truncate">{email}</p>
+          <div className="border-t border-gray-100 my-1" />
+
+          {isOverride ? (
+            <p className="px-4 py-2 text-xs text-gray-500">
+              {override === 'lifetime' ? 'Lifetime access' : 'Beta access'}
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleManageSubscription}
+              disabled={portalLoading}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700
+                         hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              {portalLoading ? 'Loading…' : 'Manage subscription'}
+            </button>
+          )}
+
           <div className="border-t border-gray-100 my-1" />
           <button
             type="button"

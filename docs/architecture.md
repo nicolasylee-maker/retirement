@@ -86,10 +86,12 @@ retirement/
 │       │
 │       ├── dashboard/                      ← Main results view
 │       │   ├── Dashboard.jsx               ← Dashboard container (KPIs + charts)
-│       │   ├── SummaryCards.jsx             ← Net worth, income, tax, surplus KPIs
-│       │   ├── PortfolioChart.jsx           ← Area chart of total portfolio over time
-│       │   ├── AccountChart.jsx             ← Stacked bar chart by account type
-│       │   └── MilestoneCards.jsx           ← Portfolio milestone achievements
+│       │   ├── SummaryCards.jsx            ← Net worth, income, tax, surplus KPIs
+│       │   ├── PortfolioChart.jsx          ← Area chart of total portfolio over time (≤221 lines)
+│       │   ├── PortfolioChartTooltip.jsx   ← Extracted CustomTooltip for PortfolioChart
+│       │   ├── portfolioChartHelpers.js    ← buildMilestones (stagger levels) + buildPhaseAnnotations
+│       │   ├── AccountChart.jsx            ← Stacked bar chart by account type
+│       │   └── MilestoneCards.jsx          ← Portfolio milestone achievements
 │       │
 │       ├── compare/                        ← Scenario comparison view
 │       │   ├── CompareView.jsx             ← Scenario selector + controls

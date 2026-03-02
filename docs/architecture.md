@@ -97,6 +97,8 @@ retirement/
 │   ├── components/                         ← Reusable UI components
 │   │   ├── AccountMenu.jsx                 ← Header auth widget: Sign-in button or avatar + dropdown; includes Manage subscription
 │   │   ├── SubscriptionBadge.jsx           ← Header pill/banner: Trial, Past Due, Beta, Lifetime indicators
+│   │   ├── UpgradePrompt.jsx               ← Upgrade CTA: full-page (Compare/Estate) or compact inline (AI/WhatIf) variant
+│   │   ├── GatedButton.jsx                 ← Disabled-with-tooltip button for free users (PDF/Audit exports)
 │   │   ├── AiInsight.jsx                   ← AI recommendation card (Gemini integration)
 │   │   ├── AuthPanel.jsx                   ← Sign-in panel: Google OAuth button + magic link email form
 │   │   ├── Button.jsx                      ← Primary/secondary/text button variants
@@ -494,3 +496,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
 | 2026-03-02 | Auth layer: Supabase Auth with Google OAuth + magic link; AuthContext, AuthPanel, AccountMenu, supabaseClient |
 | 2026-03-02 | Stripe subscriptions: SubscriptionContext, SubscriptionBadge, stripeService, three Edge Functions (stripe-checkout, stripe-webhook, stripe-portal) |
+| 2026-03-02 | Feature gating: UpgradePrompt, GatedButton; Compare/Estate/What-If/AI/PDF gated behind isPaid; past_due banner |

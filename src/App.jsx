@@ -3,6 +3,7 @@ import { createDefaultScenario, createDefaultUser } from './constants/defaults';
 import { projectScenario } from './engines/projectionEngine';
 import { openPrintReport } from './utils/openPrintReport';
 import { downloadAudit } from './utils/downloadAudit';
+import { openBillingPortal } from './services/stripeService';
 import defaultData from './data/defaultData.json';
 import WelcomeScreen from './views/WelcomeScreen';
 import NewPersonScreen from './views/NewPersonScreen';
@@ -14,6 +15,9 @@ import DebtView from './views/debt/DebtView';
 import WhatIfPanel from './views/WhatIfPanel';
 import AccountMenu from './components/AccountMenu';
 import SubscriptionBadge from './components/SubscriptionBadge';
+import UpgradePrompt from './components/UpgradePrompt';
+import { GatedButton } from './components/GatedButton';
+import { useSubscription } from './contexts/SubscriptionContext';
 
 const NAV_TABS = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -53,6 +57,7 @@ function loadSaved() {
 }
 
 export default function App() {
+  const { isPaid, isPastDue } = useSubscription();
   const [users, setUsers] = useState(() => {
     const saved = loadSaved();
     if (saved) return saved.users;
@@ -363,6 +368,19 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {isPastDue && (
+        <div className="bg-red-600 text-white text-center py-2 text-sm">
+          Your payment failed.{' '}
+          <button
+            type="button"
+            onClick={openBillingPortal}
+            className="underline font-semibold hover:text-red-100 transition-colors"
+          >
+            Update your card
+          </button>{' '}
+          to keep access.
+        </div>
+      )}
       {view !== 'wizard' && (
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div className="px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between gap-3">
@@ -428,16 +446,22 @@ export default function App() {
                     Duplicate Plan
                   </button>
                   {currentScenario && (
-                    <button onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentUser.name))}
-                      className="menu-item">
+                    <GatedButton
+                      featureName="PDF Export"
+                      onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentUser.name))}
+                      className="menu-item w-full text-left"
+                    >
                       PDF Report
-                    </button>
+                    </GatedButton>
                   )}
                   {currentScenario && (
-                    <button onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData))}
-                      className="menu-item">
+                    <GatedButton
+                      featureName="Audit Export"
+                      onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData))}
+                      className="menu-item w-full text-left"
+                    >
                       Calculation Audit
-                    </button>
+                    </GatedButton>
                   )}
 
                   <div className="border-t border-gray-100 my-1.5 mx-3" />
@@ -504,10 +528,13 @@ export default function App() {
 
           {view === 'dashboard' && currentScenario && (
             <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4">
-              <WhatIfPanel scenario={currentScenario} overrides={whatIfOverrides}
-                onOverrideChange={handleOverrideChange} onReset={handleResetOverrides}
-                expanded={whatIfExpanded} onToggle={() => setWhatIfExpanded(v => !v)} />
-              <Dashboard scenario={effectiveScenario} projectionData={projectionData} onScenarioChange={handleScenarioChange} />
+              {isPaid
+                ? <WhatIfPanel scenario={currentScenario} overrides={whatIfOverrides}
+                    onOverrideChange={handleOverrideChange} onReset={handleResetOverrides}
+                    expanded={whatIfExpanded} onToggle={() => setWhatIfExpanded(v => !v)} />
+                : <UpgradePrompt variant="compact" featureName="What-If Analysis" />
+              }
+              <Dashboard scenario={effectiveScenario} projectionData={projectionData} onScenarioChange={handleScenarioChange} isPaid={isPaid} />
             </div>
           )}
 
@@ -520,16 +547,22 @@ export default function App() {
 
           {view === 'compare' && (
             <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4">
-              <CompareView scenarios={scenarios} onNavigate={(v) => setView(v)} />
+              {isPaid
+                ? <CompareView scenarios={scenarios} onNavigate={(v) => setView(v)} />
+                : <UpgradePrompt variant="full" featureName="Compare" />
+              }
             </div>
           )}
 
           {view === 'estate' && currentScenario && (
             <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4">
-              <EstateView scenario={currentScenario} projectionData={projectionData}
-                onNavigate={(v) => setView(v)}
-                lifeExpectancyOverride={whatIfOverrides.lifeExpectancy}
-                onLifeExpectancyChange={(v) => handleOverrideChange('lifeExpectancy', v)} />
+              {isPaid
+                ? <EstateView scenario={currentScenario} projectionData={projectionData}
+                    onNavigate={(v) => setView(v)}
+                    lifeExpectancyOverride={whatIfOverrides.lifeExpectancy}
+                    onLifeExpectancyChange={(v) => handleOverrideChange('lifeExpectancy', v)} />
+                : <UpgradePrompt variant="full" featureName="Estate Planning" />
+              }
             </div>
           )}
         </div>

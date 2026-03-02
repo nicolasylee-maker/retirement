@@ -1,9 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  getAiRecommendation,
-  hasApiKey,
-  setApiKey,
-} from '../services/geminiService';
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { getAiRecommendation, QuotaExceededError } from '../services/geminiService'
 
 function SparkleIcon() {
   return (
@@ -18,7 +14,7 @@ function SparkleIcon() {
         opacity={0.6}
       />
     </svg>
-  );
+  )
 }
 
 function ShimmerLines() {
@@ -29,155 +25,105 @@ function ShimmerLines() {
       <div className="h-4 rounded w-5/6 shimmer-line" />
       <div className="h-4 rounded w-2/3 shimmer-line" />
     </div>
-  );
-}
-
-function ApiKeyPrompt({ onSubmit }) {
-  const [key, setKey] = useState('');
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-gray-600">
-        Connect your Gemini API key for personalized AI retirement insights.
-      </p>
-      <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          type="password"
-          placeholder="Paste your Gemini API key"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && key.trim()) {
-              setApiKey(key.trim());
-              onSubmit();
-            }
-          }}
-          className="flex-1 px-3 py-2 text-sm rounded-lg border border-purple-200
-                     focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
-        />
-        <button
-          onClick={() => { if (key.trim()) { setApiKey(key.trim()); onSubmit(); } }}
-          disabled={!key.trim()}
-          className="px-4 py-2 text-sm font-semibold text-white rounded-lg
-                     bg-gradient-to-r from-purple-600 to-indigo-600
-                     hover:from-purple-700 hover:to-indigo-700
-                     disabled:opacity-40 transition-all whitespace-nowrap"
-        >
-          Connect AI
-        </button>
-      </div>
-      <p className="text-xs text-gray-400">
-        Free key at{' '}
-        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer"
-          className="text-purple-500 hover:text-purple-700 underline">
-          Google AI Studio
-        </a>
-      </p>
-    </div>
-  );
+  )
 }
 
 /** Parse bold markdown and return React nodes */
 function parseBold(text) {
-  // Handle **bold** patterns
   return text.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={j} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>;
+      return <strong key={j} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>
     }
-    // Strip stray ** that didn't close
-    return part.replace(/\*\*/g, '');
-  });
+    return part.replace(/\*\*/g, '')
+  })
 }
 
 function renderText(text) {
-  // First, normalize: join lines that are continuations (not numbered, not bullets, not blank)
-  const rawLines = text.split('\n');
-  const merged = [];
+  const rawLines = text.split('\n')
+  const merged = []
   for (const line of rawLines) {
-    const trimmed = line.trim();
-    if (!trimmed) { merged.push(''); continue; }
-    // Start of a new block: numbered item, bullet, or "Overall Assessment"
+    const trimmed = line.trim()
+    if (!trimmed) { merged.push(''); continue }
     if (/^\d+[\.\)]/.test(trimmed) || /^[-•]/.test(trimmed) || /^Overall/.test(trimmed)) {
-      merged.push(trimmed);
+      merged.push(trimmed)
     } else if (merged.length > 0 && merged[merged.length - 1] !== '') {
-      // Continue the previous line
-      merged[merged.length - 1] += ' ' + trimmed;
+      merged[merged.length - 1] += ' ' + trimmed
     } else {
-      merged.push(trimmed);
+      merged.push(trimmed)
     }
   }
 
   return merged.map((line, i) => {
-    if (!line) return null;
-    // Numbered items
-    const numMatch = line.match(/^(\d+[\.\)])\s*(.*)/);
+    if (!line) return null
+    const numMatch = line.match(/^(\d+[\.\)])\s*(.*)/)
     if (numMatch) {
       return (
         <p key={i} className="ml-1 mb-3 flex gap-2">
           <span className="text-purple-400 font-semibold flex-shrink-0">{numMatch[1]}</span>
           <span className="text-sm text-gray-700 leading-relaxed">{parseBold(numMatch[2])}</span>
         </p>
-      );
+      )
     }
-    // Bullets
     if (/^[-•]/.test(line)) {
       return (
         <p key={i} className="ml-3 mb-1.5 flex gap-2">
           <span className="text-purple-400">{'•'}</span>
           <span className="text-sm text-gray-700">{parseBold(line.slice(1).trim())}</span>
         </p>
-      );
+      )
     }
-    // Regular paragraph (including "Overall Assessment")
-    return <p key={i} className="mb-2 text-sm text-gray-700 leading-relaxed">{parseBold(line)}</p>;
-  }).filter(Boolean);
+    return <p key={i} className="mb-2 text-sm text-gray-700 leading-relaxed">{parseBold(line)}</p>
+  }).filter(Boolean)
 }
 
 // Module-level cache to survive component re-mounts (tab switches)
-const resultCache = new Map();
+const resultCache = new Map()
 
 export default function AiInsight({ type, data, scenarioKey }) {
-  const dataHash = JSON.stringify(data);
-  const cacheKey = `${type}:${dataHash.slice(0, 200)}`;
+  const dataHash = JSON.stringify(data)
+  const cacheKey = `${type}:${dataHash.slice(0, 200)}`
 
-  const [recommendation, setRecommendation] = useState(() => resultCache.get(cacheKey) || '');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [collapsed, setCollapsed] = useState(false);
-  const [needsKey, setNeedsKey] = useState(!hasApiKey());
-  const lastKey = useRef(recommendation ? cacheKey : '');
+  const [recommendation, setRecommendation] = useState(() => resultCache.get(cacheKey) || '')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [quotaInfo, setQuotaInfo] = useState(null) // { used, limit, resetAt } when quota exceeded
+  const [collapsed, setCollapsed] = useState(false)
+  const lastKey = useRef(recommendation ? cacheKey : '')
 
   // Restore cached result when inputs change (no fetch)
   useEffect(() => {
     if (resultCache.has(cacheKey)) {
-      setRecommendation(resultCache.get(cacheKey));
+      setRecommendation(resultCache.get(cacheKey))
     } else if (cacheKey !== lastKey.current) {
-      // Inputs changed and no cache — clear stale result
-      setRecommendation('');
+      setRecommendation('')
     }
-    lastKey.current = cacheKey;
-  }, [cacheKey]);
+    lastKey.current = cacheKey
+  }, [cacheKey])
 
   const fetchRecommendation = useCallback(async () => {
-    if (!hasApiKey()) { setNeedsKey(true); return; }
-    resultCache.delete(cacheKey);
-    setLoading(true);
-    setError('');
-    setRecommendation('');
+    resultCache.delete(cacheKey)
+    setLoading(true)
+    setError('')
+    setQuotaInfo(null)
+    setRecommendation('')
     try {
-      const result = await getAiRecommendation(type, data, true);
-      setRecommendation(result);
-      resultCache.set(cacheKey, result);
+      const result = await getAiRecommendation(type, data, true)
+      setRecommendation(result)
+      resultCache.set(cacheKey, result)
     } catch (e) {
-      if (e.message === 'NO_API_KEY' || e.message === 'INVALID_API_KEY') {
-        setError('Invalid API key. Please check and re-enter.');
-        setNeedsKey(true);
+      if (e instanceof QuotaExceededError) {
+        setQuotaInfo({ used: e.used, limit: e.limit, resetAt: e.resetAt })
+      } else if (e.message === 'subscription_required') {
+        // Should not happen if feature-gating is in place — log and show nothing
+        // eslint-disable-next-line no-warning-comments
+        // Warning: subscription_required reached AiInsight — feature-gating may be misconfigured
       } else {
-        setError(e.message || 'Failed to get recommendation');
+        setError(e.message || 'Failed to get recommendation')
       }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [type, cacheKey, data]);
+  }, [type, cacheKey, data])
 
   return (
     <div className="ai-insight-card">
@@ -203,9 +149,9 @@ export default function AiInsight({ type, data, scenarioKey }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        {!needsKey && !loading && (
+        {!loading && !quotaInfo && (
           <button
-            onClick={(e) => { e.stopPropagation(); fetchRecommendation(); }}
+            onClick={(e) => { e.stopPropagation(); fetchRecommendation() }}
             title={recommendation ? 'Refresh insights' : 'Generate insights'}
             className="p-1.5 rounded-lg text-purple-500 hover:text-purple-700 hover:bg-purple-50
                        transition-colors flex-shrink-0"
@@ -228,9 +174,16 @@ export default function AiInsight({ type, data, scenarioKey }) {
 
       {!collapsed && (
         <div className="px-5 pb-5 max-h-[calc(100vh-10rem)] overflow-y-auto">
-          {needsKey && <ApiKeyPrompt onSubmit={() => setNeedsKey(false)} />}
           {loading && <ShimmerLines />}
-          {error && !needsKey && (
+          {quotaInfo && (
+            <div className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
+              You've used all {quotaInfo.limit} AI insights this month.
+              {quotaInfo.resetAt && (
+                <span> Resets {new Date(quotaInfo.resetAt + 'T00:00:00').toLocaleDateString('en-CA', { month: 'long', day: 'numeric' })}.</span>
+              )}
+            </div>
+          )}
+          {error && !quotaInfo && (
             <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">
               {error}
               <button onClick={fetchRecommendation} className="ml-2 text-red-700 underline font-medium">
@@ -241,7 +194,7 @@ export default function AiInsight({ type, data, scenarioKey }) {
           {recommendation && !loading && (
             <div className="ai-fade-in">{renderText(recommendation)}</div>
           )}
-          {!recommendation && !loading && !needsKey && !error && (
+          {!recommendation && !loading && !quotaInfo && !error && (
             <button
               onClick={fetchRecommendation}
               className="w-full py-3 text-sm font-medium text-purple-600 bg-purple-50
@@ -255,5 +208,5 @@ export default function AiInsight({ type, data, scenarioKey }) {
         </div>
       )}
     </div>
-  );
+  )
 }

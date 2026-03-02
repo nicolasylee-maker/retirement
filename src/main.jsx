@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import App from './App';
 import ErrorFallback from './components/ErrorFallback';
+import { AuthProvider } from './contexts/AuthContext';
+import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import './index.css';
 
 if (import.meta.env.PROD) {
@@ -23,7 +25,11 @@ if (import.meta.env.PROD) {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
-      <App />
+      <AuthProvider>
+        <SubscriptionProvider>
+          <App />
+        </SubscriptionProvider>
+      </AuthProvider>
     </Sentry.ErrorBoundary>
   </React.StrictMode>
 );

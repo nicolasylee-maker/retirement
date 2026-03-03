@@ -66,6 +66,7 @@ const NAV_TABS = [
 
 const STORAGE_KEY = 'retirement-planner-data';
 const CHOICE_SEEN_KEY = 'rp-choice-seen';
+const ANON_SESSION_KEY = 'rp-anonymous-session';
 const uid = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2);
 
 function migrateScenario(s) {
@@ -156,8 +157,27 @@ export default function App() {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
       sessionStorage.removeItem(CHOICE_SEEN_KEY);
+      sessionStorage.removeItem(ANON_SESSION_KEY);
     }
   }, [authUser]);
+
+  // Clear stale anonymous data when returning to the site after closing the browser.
+  // sessionStorage is cleared on browser close, so if there are scenarios in
+  // localStorage but no auth user and no anonymous session flag, it's stale.
+  useEffect(() => {
+    if (authLoading) return;
+    if (authUser) return;
+    if (sessionStorage.getItem(ANON_SESSION_KEY)) return;
+    if (scenarios.length === 0) return;
+    // Stale anonymous data — reset to landing
+    setScenarios([]);
+    setCurrentScenarioId(null);
+    setWizardStep(0);
+    setWhatIfOverrides({});
+    setView('landing');
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
+  }, [authLoading, authUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Show the choice screen once per browser session for logged-in users with scenarios.
   // Covers the case where view initialises to 'dashboard' from localStorage (handleSignIn
@@ -650,6 +670,15 @@ export default function App() {
       )}
 
       <main className="flex-1">
+        {authLoading && view !== 'landing' ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+            <svg className="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            <p className="text-sm text-gray-500">Loading your plans…</p>
+          </div>
+        ) : (
         <div className="view-enter" key={view}>
           {view === 'landing' && (
             authUser
@@ -661,6 +690,7 @@ export default function App() {
                   <p className="text-sm text-gray-500">Loading your plans…</p>
                 </div>
               : <LandingPage onTryAnonymous={() => {
+                  sessionStorage.setItem(ANON_SESSION_KEY, '1');
                   const newScenario = createDefaultScenario('My Plan');
                   setScenarios([newScenario]);
                   setCurrentScenarioId(newScenario.id);
@@ -759,6 +789,7 @@ export default function App() {
           )}
           {view === 'admin' && isAdmin && <AdminView onClose={() => setView('dashboard')} />}
         </div>
+        )}
       </main>
 
       {upgradeModalOpen && createPortal(

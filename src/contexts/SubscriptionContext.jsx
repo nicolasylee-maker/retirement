@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../services/supabaseClient'
 import { useAuth } from './AuthContext'
 
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
+
 const SubscriptionContext = createContext(null)
 
 export function SubscriptionProvider({ children }) {
@@ -65,6 +67,7 @@ export function SubscriptionProvider({ children }) {
   const isPaid = override != null
     || stripeStatus === 'active'
     || stripeStatus === 'trialing'
+    || (!!user && user.email === ADMIN_EMAIL)
 
   const isOverride = override != null
   const isTrial = !isOverride && stripeStatus === 'trialing'

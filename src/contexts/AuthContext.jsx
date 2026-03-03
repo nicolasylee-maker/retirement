@@ -7,18 +7,42 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [session, setSession] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [avatarUrl, setAvatarUrl] = useState(null)
+
+  async function resolveAvatar(u) {
+    if (!u) { setAvatarUrl(null); return }
+    const fromMeta = u.user_metadata?.avatar_url
+    if (fromMeta) { setAvatarUrl(fromMeta); return }
+    const { data } = await supabase.from('users').select('avatar_url').eq('id', u.id).maybeSingle()
+    setAvatarUrl(data?.avatar_url ?? null)
+  }
 
   useEffect(() => {
-    // getSession also handles magic link tokens in the URL hash automatically
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    // getSession reads from localStorage (no network call).
+    // If a session exists, validate it against the server via getUser() so that
+    // deleted accounts are caught and signed out immediately on refresh.
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      if (s) {
+        const { error } = await supabase.auth.getUser()
+        if (error) {
+          await supabase.auth.signOut()
+          setSession(null)
+          setUser(null)
+          resolveAvatar(null)
+          setIsLoading(false)
+          return
+        }
+      }
       setSession(s)
       setUser(s?.user ?? null)
+      resolveAvatar(s?.user ?? null)
       setIsLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
       setUser(s?.user ?? null)
+      resolveAvatar(s?.user ?? null)
       setIsLoading(false)
     })
 
@@ -45,7 +69,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signInWithGoogle, signInWithMagicLink, signOut }}>
+    <AuthContext.Provider value={{ user, session, avatarUrl, isLoading, signInWithGoogle, signInWithMagicLink, signOut }}>
       {children}
     </AuthContext.Provider>
   )

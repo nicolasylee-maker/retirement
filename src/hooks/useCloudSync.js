@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchScenarios, saveScenario, getScenarioCount } from '../services/scenarioService'
+import { useSubscription } from '../contexts/SubscriptionContext'
 
 // saveStatus: 'idle' | 'saving' | 'saved' | 'error'
 
 export function useCloudSync({ user, currentScenario, onSignIn }) {
+  const { isPaid } = useSubscription()
   const [saveStatus, setSaveStatus] = useState('idle')
   const [syncDone, setSyncDone] = useState(false)
   const prevUserIdRef = useRef(null)
@@ -73,6 +75,7 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
 
   // Free tier guard: returns true if creation is allowed, false if blocked
   const checkCanCreate = useCallback(async () => {
+    if (isPaid) return true
     const uid = userRef.current?.id
     if (!uid) return true
     try {
@@ -85,7 +88,7 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
       // If count check fails, allow creation — don't block the user
     }
     return true
-  }, [])
+  }, [isPaid])
 
   return { saveStatus, syncDone, checkCanCreate }
 }

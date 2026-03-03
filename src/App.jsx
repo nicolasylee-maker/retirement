@@ -281,12 +281,14 @@ export default function App() {
   const [signInOpen, setSignInOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+  const [checkoutPending, setCheckoutPending] = useState(false);
   const GATED_TABS = new Set(['compare', 'estate']);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') === 'success') {
       setCheckoutSuccess(true);
+      setCheckoutPending(true);
       history.replaceState(null, '', window.location.pathname);
       setTimeout(() => setCheckoutSuccess(false), 5000);
       // Webhook may not have fired yet — poll a few times to catch it
@@ -295,9 +297,16 @@ export default function App() {
       const t2 = setTimeout(refreshSubscription, 4000);
       const t3 = setTimeout(refreshSubscription, 7000);
       const t4 = setTimeout(refreshSubscription, 11000);
-      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+      // Safety fallback: stop waiting after 13s regardless
+      const t5 = setTimeout(() => setCheckoutPending(false), 13000);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); };
     }
   }, []); // eslint-disable-line
+
+  // Clear pending state as soon as subscription is confirmed
+  useEffect(() => {
+    if (isPaid && checkoutPending) setCheckoutPending(false);
+  }, [isPaid, checkoutPending]);
 
   const handleTabClick = useCallback((tabKey) => {
     if (!isPaid && GATED_TABS.has(tabKey)) {
@@ -322,6 +331,15 @@ export default function App() {
       {checkoutSuccess && (
         <div className="bg-green-600 text-white text-center py-2 text-sm font-medium">
           Your trial is active! Welcome to RetirePlanner Pro.
+        </div>
+      )}
+      {checkoutPending && (
+        <div className="bg-indigo-600 text-white text-center py-2 text-sm font-medium flex items-center justify-center gap-2">
+          <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+          </svg>
+          Activating your Pro access…
         </div>
       )}
       {isPastDue && (

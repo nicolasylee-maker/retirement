@@ -114,6 +114,80 @@ export function buildPhaseAnnotations(scenario, projectionData) {
         annotation.line4 = 'Without the consumer debt, your portfolio would barely drop.';
       }
       annotations.push(annotation);
+    } else if (retAge - scenario.currentAge > 5) {
+      // Accumulation phase: salary covers expenses, surplus is invested
+      const surplusPerRow = preRetRows.map(r => (r.tfsaDeposit || 0) + (r.nonRegDeposit || 0));
+      const minSurplus = Math.min(...surplusPerRow);
+      const maxSurplus = Math.max(...surplusPerRow);
+
+      if (maxSurplus > 0) {
+        // line1: what salary covers
+        const coversParts = ['expenses'];
+        if (scenario.mortgageBalance > 0) coversParts.push('mortgage');
+        if (scenario.consumerDebt > 0) coversParts.push('debt');
+        const coversStr = coversParts.join(', ');
+
+        // line2: surplus range
+        const rangeDiff = maxSurplus - minSurplus;
+        const surplusStr = rangeDiff > 1000
+          ? `~${fmtK(minSurplus)}\u2013${fmtK(maxSurplus)}/yr`
+          : `~${fmtK(maxSurplus)}/yr`;
+
+        // line3 (optional): mortgage/debt payoff detection
+        let payoffLine = null;
+        for (let i = 1; i < preRetRows.length; i++) {
+          const prev = preRetRows[i - 1];
+          const curr = preRetRows[i];
+          if ((prev.mortgageBalance || 0) > 0 && (curr.mortgageBalance || 0) === 0) {
+            payoffLine = `Mortgage paid off at ${curr.age} \u2014 surplus jumps.`;
+            break;
+          }
+        }
+        if (!payoffLine) {
+          for (let i = 1; i < preRetRows.length; i++) {
+            const prev = preRetRows[i - 1];
+            const curr = preRetRows[i];
+            if ((prev.debtPayments || 0) > 0 && (curr.debtPayments || 0) === 0) {
+              payoffLine = `Debt paid off at ${curr.age} \u2014 surplus jumps.`;
+              break;
+            }
+          }
+        }
+
+        // growth line: % of retirement portfolio from compounding
+        const originalSavings = (scenario.rrspBalance || 0) + (scenario.tfsaBalance || 0)
+          + (scenario.cashSavings || 0) + (scenario.nonRegInvestments || 0);
+        const lastPreRetRow = preRetRows[preRetRows.length - 1];
+        const portfolioAtRetirement = lastPreRetRow.totalPortfolio || 0;
+        let growthLine = null;
+        if (portfolioAtRetirement > originalSavings && portfolioAtRetirement > 0) {
+          const growthPercent = Math.round(
+            ((portfolioAtRetirement - originalSavings) / portfolioAtRetirement) * 100,
+          );
+          if (growthPercent > 0) {
+            growthLine = `${growthPercent}% of your retirement portfolio is from compounding, not original savings.`;
+          }
+        }
+
+        const annotation = {
+          phase: 'pre-retirement',
+          ages: `${preRetRows[0].age}\u2013${preRetRows[preRetRows.length - 1].age}`,
+          line1: `Salary covers ${coversStr}, and tax.`,
+          line2: `${surplusStr} surplus invested annually.`,
+        };
+
+        // Assign payoff and growth to line3/line4/line5 as needed
+        if (payoffLine && growthLine) {
+          annotation.line3 = payoffLine;
+          annotation.line4 = growthLine;
+        } else if (payoffLine) {
+          annotation.line3 = payoffLine;
+        } else if (growthLine) {
+          annotation.line3 = growthLine;
+        }
+
+        annotations.push(annotation);
+      }
     }
   }
 

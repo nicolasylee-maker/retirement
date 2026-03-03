@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../services/supabaseClient'
 import { useAuth } from './AuthContext'
 
@@ -53,7 +53,9 @@ export function SubscriptionProvider({ children }) {
     setIsLoading(false)
   }
 
-  const refresh = useCallback(() => load(user), [user])
+  const userRef = useRef(user)
+  useEffect(() => { userRef.current = user }, [user])
+  const refresh = useCallback(() => load(userRef.current), [])
 
   useEffect(() => {
     load(user)

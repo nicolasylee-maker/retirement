@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
+const MonacoEditor = React.lazy(() => import('@monaco-editor/react'))
 import { useTaxData } from '../../../contexts/TaxDataContext'
 import { adminApi } from '../../../services/adminService'
 
@@ -70,6 +71,7 @@ export function runTaxSmokeTest(federalData, provinceData, income = 100000) {
 
 export default function TaxDataEditor() {
   const { bundledProvinces, bundledFederal } = useTaxData()
+  const editorRef = useRef(null)
   const [province, setProvince] = useState('ON')
   const [taxYear, setTaxYear] = useState(CURRENT_YEAR)
   const [rawJson, setRawJson] = useState('')
@@ -90,9 +92,8 @@ export default function TaxDataEditor() {
     setSaveMsg(null)
   }, [province, taxYear, bundledProvinces, bundledFederal])
 
-  function handleChange(e) {
-    const val = e.target.value
-    setRawJson(val)
+  function handleChange(val) {
+    setRawJson(val ?? '')
     setSaveMsg(null)
     setSmokeResult(null)
     setSmokeError(null)
@@ -162,6 +163,13 @@ export default function TaxDataEditor() {
         />
         <button
           type="button"
+          onClick={() => editorRef.current?.getAction('editor.action.formatDocument')?.run()}
+          className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          Format JSON
+        </button>
+        <button
+          type="button"
           onClick={handleSeed}
           disabled={seeding}
           className="ml-auto px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
@@ -170,12 +178,31 @@ export default function TaxDataEditor() {
         </button>
       </div>
 
-      <textarea
-        value={rawJson}
-        onChange={handleChange}
-        spellCheck={false}
-        className={`w-full h-96 font-mono text-xs p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y ${parseError ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-      />
+      <Suspense fallback={
+        <div className="h-96 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center text-sm text-gray-400">
+          Loading editor…
+        </div>
+      }>
+        <div className={`border rounded-lg overflow-hidden ${parseError ? 'border-red-400' : 'border-gray-300'}`}>
+          <MonacoEditor
+            height="384px"
+            language="json"
+            value={rawJson}
+            onChange={handleChange}
+            onMount={editor => { editorRef.current = editor }}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 12,
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              formatOnPaste: true,
+              folding: true,
+              lineNumbers: 'on',
+            }}
+            theme="vs"
+          />
+        </div>
+      </Suspense>
 
       {parseError && (
         <p className="text-xs text-red-600">{parseError}</p>

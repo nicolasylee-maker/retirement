@@ -17,6 +17,7 @@
     "check:legislation": "node scripts/check-canlii.js"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@sentry/react": "^10.41.0",
     "@supabase/supabase-js": "^2.98.0",
     "react": "^18.3.1",

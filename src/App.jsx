@@ -249,10 +249,14 @@ export default function App() {
     // Persist all imported scenarios to cloud immediately
     if (authUser) {
       try {
+        console.log('[import-sync] saving', valid.length, 'scenarios for user', authUser.id);
         await Promise.all(valid.map(s => saveScenario(authUser.id, s)));
-      } catch {
-        // Auto-save will eventually catch the current one
+        console.log('[import-sync] all scenarios saved successfully');
+      } catch (err) {
+        console.error('[import-sync] save failed:', err);
       }
+    } else {
+      console.log('[import-sync] skipped cloud save — no authUser');
     }
   }, [authUser]);
 

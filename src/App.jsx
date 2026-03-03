@@ -153,6 +153,7 @@ export default function App() {
       setView('landing');
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
+      sessionStorage.removeItem(CHOICE_SEEN_KEY);
     }
   }, [authUser]);
 

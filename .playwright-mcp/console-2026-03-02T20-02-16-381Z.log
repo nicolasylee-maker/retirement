@@ -1,4 +1,0 @@
-[     783ms] [WARNING] [GSI_LOGGER]: Your client application uses one of the Google One Tap prompt UI status methods that may stop functioning when FedCM becomes mandatory. Refer to the migration guide to update your code accordingly and opt-in to FedCM to test your changes. Learn more: https://developers.google.com/identity/gsi/web/guides/fedcm-migration?s=dc#display_moment and https://developers.google.com/identity/gsi/web/guides/fedcm-migration?s=dc#skipped_moment @ https://accounts.google.com/gsi/client:80
-[     798ms] [ERROR] Not signed in with the identity provider. @ https://vercel.com/login?next=%2Fdashboard:0
-[     900ms] [WARNING] Deprecated API for given entry type. @ https://vercel.com/_next/static/chunks/bbffbf50fab42643.js?dpl=dpl_55ggjna8DFJ6h9Fw4sh4iLcjHjiT:18
-[     951ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://vercel.com/api/jwt:0

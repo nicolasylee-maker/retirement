@@ -6,25 +6,29 @@ import { fetchScenarios, saveScenario, getScenarioCount } from '../services/scen
 export function useCloudSync({ user, currentScenario, onSignIn }) {
   const [saveStatus, setSaveStatus] = useState('idle')
   const [syncDone, setSyncDone] = useState(false)
-  const prevUserRef = useRef(null)
+  const prevUserIdRef = useRef(null)
+  const userRef = useRef(user)
+  userRef.current = user
 
-  // On sign-in: load cloud scenarios and replace in-memory state
+  const userId = user?.id ?? null
+
+  // On sign-in: load cloud scenarios and replace in-memory state.
+  // Depends on userId (string) so object-reference changes don't cancel the fetch.
   useEffect(() => {
-    const prevUser = prevUserRef.current
-    prevUserRef.current = user
+    const prevUserId = prevUserIdRef.current
+    prevUserIdRef.current = userId
 
-    if (!user) {
+    if (!userId) {
       setSyncDone(false)
       return
     }
-    // Only trigger on transition from null → non-null
-    if (prevUser?.id === user.id) return
+    if (prevUserId === userId) return
 
     setSyncDone(false)
     let cancelled = false
     ;(async () => {
       try {
-        const cloudScenarios = await fetchScenarios(user.id)
+        const cloudScenarios = await fetchScenarios(userId)
         if (!cancelled) {
           onSignIn(cloudScenarios)
           setSyncDone(true)
@@ -39,16 +43,16 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
     })()
 
     return () => { cancelled = true }
-  }, [user, onSignIn])
+  }, [userId, onSignIn])
 
   // Auto-save debounce: save current scenario 1s after it changes
   useEffect(() => {
-    if (!user || !currentScenario || !syncDone) return
+    if (!userId || !currentScenario || !syncDone) return
 
     setSaveStatus('saving')
     const timeout = setTimeout(async () => {
       try {
-        await saveScenario(user.id, currentScenario)
+        await saveScenario(userId, currentScenario)
         setSaveStatus('saved')
       } catch {
         setSaveStatus('error')
@@ -58,7 +62,7 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
     return () => {
       clearTimeout(timeout)
     }
-  }, [user, currentScenario, syncDone])
+  }, [userId, currentScenario, syncDone])
 
   // Fade 'saved' back to 'idle' after 2s
   useEffect(() => {
@@ -69,9 +73,10 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
 
   // Free tier guard: returns true if creation is allowed, false if blocked
   const checkCanCreate = useCallback(async () => {
-    if (!user) return true
+    const uid = userRef.current?.id
+    if (!uid) return true
     try {
-      const count = await getScenarioCount(user.id)
+      const count = await getScenarioCount(uid)
       if (count >= 1) {
         alert('Free plan: 1 saved scenario. Upgrade to save more.')
         return false
@@ -80,7 +85,7 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
       // If count check fails, allow creation — don't block the user
     }
     return true
-  }, [user])
+  }, [])
 
   return { saveStatus, syncDone, checkCanCreate }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { getAiRecommendation, QuotaExceededError } from '../services/geminiService'
 import { useSubscription } from '../contexts/SubscriptionContext'
@@ -79,56 +79,76 @@ function renderText(text) {
   }).filter(Boolean)
 }
 
-// Module-level cache to survive component re-mounts (tab switches)
-const resultCache = new Map()
+/** Deterministic 32-bit polynomial hash of an object, base-36 encoded */
+export function computeHash(data) {
+  const str = JSON.stringify(data)
+  let h = 0
+  for (let i = 0; i < str.length; i++) {
+    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0
+  }
+  return (h >>> 0).toString(36)
+}
 
-export default function AiInsight({ type, data, scenarioKey }) {
+/**
+ * AiInsight card.
+ *
+ * Props:
+ *   type        – 'dashboard' | 'debt' | 'compare' | 'estate'
+ *   data        – current aiData object (used for hash + API call)
+ *   savedInsight – { text, hash } | null  — persisted insight from scenario
+ *   onSave      – (text, hash) => void    — called after a successful fetch
+ */
+export default function AiInsight({ type, data, savedInsight, onSave }) {
   const { isPaid } = useSubscription()
-  const dataHash = JSON.stringify(data)
-  const cacheKey = `${type}:${dataHash.slice(0, 200)}`
+  const dataHash = computeHash(data)
 
-  const [recommendation, setRecommendation] = useState(() => resultCache.get(cacheKey) || '')
+  const isStale = savedInsight != null && savedInsight.hash !== dataHash
+  const initialText = savedInsight?.text || ''
+
+  const [recommendation, setRecommendation] = useState(initialText)
+  const [stale, setStale] = useState(isStale)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [quotaInfo, setQuotaInfo] = useState(null) // { used, limit, resetAt } when quota exceeded
+  const [quotaInfo, setQuotaInfo] = useState(null)
   const [collapsed, setCollapsed] = useState(false)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
-  const lastKey = useRef(recommendation ? cacheKey : '')
 
-  // Restore cached result when inputs change (no fetch)
+  // Sync when savedInsight or data changes (tab switch, WhatIf change, estate slider)
   useEffect(() => {
-    if (resultCache.has(cacheKey)) {
-      setRecommendation(resultCache.get(cacheKey))
-    } else if (cacheKey !== lastKey.current) {
+    if (savedInsight == null) {
       setRecommendation('')
+      setStale(false)
+    } else if (savedInsight.hash === dataHash) {
+      setRecommendation(savedInsight.text)
+      setStale(false)
+    } else {
+      // Keep old text visible; show stale badge
+      setRecommendation(savedInsight.text)
+      setStale(true)
     }
-    lastKey.current = cacheKey
-  }, [cacheKey])
+  }, [dataHash, savedInsight]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchRecommendation = useCallback(async () => {
-    resultCache.delete(cacheKey)
     setLoading(true)
     setError('')
     setQuotaInfo(null)
-    setRecommendation('')
+    setStale(false)
     try {
       const result = await getAiRecommendation(type, data, true)
       setRecommendation(result)
-      resultCache.set(cacheKey, result)
+      onSave?.(result, dataHash)
     } catch (e) {
       if (e instanceof QuotaExceededError) {
         setQuotaInfo({ used: e.used, limit: e.limit, resetAt: e.resetAt })
-      } else if (e.message === 'subscription_required') {
-        // Should not happen if feature-gating is in place — log and show nothing
-        // eslint-disable-next-line no-warning-comments
-        // Warning: subscription_required reached AiInsight — feature-gating may be misconfigured
-      } else {
+      } else if (e.message !== 'subscription_required') {
         setError(e.message || 'Failed to get recommendation')
       }
     } finally {
       setLoading(false)
     }
-  }, [type, cacheKey, data])
+  }, [type, data, dataHash, onSave])
+
+  const handleGenerate = isPaid ? fetchRecommendation : () => setUpgradeOpen(true)
 
   return (
     <>
@@ -145,9 +165,6 @@ export default function AiInsight({ type, data, scenarioKey }) {
             <SparkleIcon />
           </div>
           <span className="font-semibold text-gray-900">AI Insights</span>
-          <span className="text-xs text-purple-500 font-medium bg-purple-50 px-2 py-0.5 rounded-full">
-            Gemini
-          </span>
           <svg
             className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
@@ -157,7 +174,7 @@ export default function AiInsight({ type, data, scenarioKey }) {
         </button>
         {!loading && !quotaInfo && (
           <button
-            onClick={(e) => { e.stopPropagation(); isPaid ? fetchRecommendation() : setUpgradeOpen(true) }}
+            onClick={(e) => { e.stopPropagation(); handleGenerate() }}
             title={recommendation ? 'Refresh insights' : 'Generate insights'}
             className="p-1.5 rounded-lg text-purple-500 hover:text-purple-700 hover:bg-purple-50
                        transition-colors flex-shrink-0"
@@ -181,6 +198,21 @@ export default function AiInsight({ type, data, scenarioKey }) {
       {!collapsed && (
         <div className="px-5 pb-5 max-h-[calc(100vh-10rem)] overflow-y-auto">
           {loading && <ShimmerLines />}
+
+          {stale && !loading && (
+            <div className="flex items-center justify-between gap-2 mb-3 px-3 py-2
+                            bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              <span>Inputs have changed</span>
+              <button
+                onClick={handleGenerate}
+                className="font-semibold text-amber-900 underline underline-offset-2
+                           hover:text-amber-700 whitespace-nowrap"
+              >
+                Regenerate
+              </button>
+            </div>
+          )}
+
           {quotaInfo && (
             <div className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
               You've used all {quotaInfo.limit} AI insights this month.
@@ -200,7 +232,7 @@ export default function AiInsight({ type, data, scenarioKey }) {
           )}
           {!recommendation && !loading && !quotaInfo && !error && (
             <button
-              onClick={isPaid ? fetchRecommendation : () => setUpgradeOpen(true)}
+              onClick={handleGenerate}
               className="w-full py-3 text-sm font-medium text-purple-600 bg-purple-50
                          hover:bg-purple-100 rounded-lg transition-colors
                          flex items-center justify-center gap-2"

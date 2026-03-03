@@ -6,7 +6,7 @@ import { formatCurrency } from '../../utils/formatters';
 import EstateSummaryCards from './EstateSummaryCards';
 import EstateBreakdown from './EstateBreakdown';
 
-export default function EstateView({ scenario, projectionData, onNavigate, lifeExpectancyOverride, onLifeExpectancyChange }) {
+export default function EstateView({ scenario, projectionData, onNavigate, lifeExpectancyOverride, onLifeExpectancyChange, aiInsights, onSaveInsight }) {
   // Use the what-if life expectancy override if present, otherwise scenario value
   const effectiveLifeExpectancy = lifeExpectancyOverride ?? scenario.lifeExpectancy ?? 90;
   const [ageAtDeath, setAgeAtDeath] = useState(
@@ -71,7 +71,8 @@ export default function EstateView({ scenario, projectionData, onNavigate, lifeE
         <AiInsight
           type="estate"
           data={aiData}
-          scenarioKey={`${scenario.id}-${ageAtDeath}-${hasWillOverride}`}
+          savedInsight={aiInsights?.estate}
+          onSave={(text, hash) => onSaveInsight?.('estate', text, hash)}
         />
       </div>
 
@@ -163,7 +164,8 @@ export default function EstateView({ scenario, projectionData, onNavigate, lifeE
           <AiInsight
             type="estate"
             data={aiData}
-            scenarioKey={`${scenario.id}-${ageAtDeath}-${hasWillOverride}`}
+            savedInsight={aiInsights?.estate}
+            onSave={(text, hash) => onSaveInsight?.('estate', text, hash)}
           />
         </div>
       </div>

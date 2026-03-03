@@ -472,6 +472,7 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
           {depletionRow && (
             <span className="text-red-600">Depleted at age <strong>{depletionRow.age}</strong></span>
           )}
+          <span>Tax tables: <strong className="text-gray-900">2025 federal + provincial</strong></span>
         </div>
       </div>
     </div>

@@ -77,7 +77,11 @@ export function LandingPage({ onTryAnonymous }) {
         />
 
         <p className="text-xs text-gray-400 mt-4">
-          Covers all 9 provinces · CPP, OAS, RRSP, TFSA, RRIF, estate &amp; probate · Not financial advice
+          Tax data: 2025 federal &amp; provincial budgets · 9 provinces supported (QC &amp; territories coming soon) · Not financial advice
+        </p>
+        <p className="text-[11px] text-gray-400 mt-1">
+          Last updated: March 2026 · Questions?{' '}
+          <a href="mailto:hello@retireplanner.ca" className="hover:underline">hello@retireplanner.ca</a>
         </p>
       </div>
 

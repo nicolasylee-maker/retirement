@@ -23,7 +23,7 @@
 - **Specs required** — any non-trivial feature needs a spec in `specs/pending/` before code is written.
 - **300 line limit** — no file may exceed 300 lines. Refactor if exceeded.
 - **Minimal changes** — change only what the task requires.
-- **Tests pass** — run `npm test && npm run build` before considering anything done.
+- **Tests pass** — run `npm test && npm run build` before considering anything done. (649 tests as of 2026-03-03)
 - **Confirm before building** — present plan, wait for approval, then build.
 - **Just do it** — commands like `review`, `check`, `run tests`, `show`, `explain`, `diff`, `status` are executed immediately with zero questions.
 

@@ -78,6 +78,7 @@ retirement/
 │   │   └── adminService.js                 ← adminApi: stats, users, config, subscriptions, tax data, legislation
 │   │
 │   ├── utils/
+│   │   ├── returningUserFlow.js            ← Pure helpers: getSignInRoute, getPickerTarget, formatScenarioMeta
 │   │   ├── analytics.js                    ← Plausible custom event helper (no-ops if window.plausible absent)
 │   │   ├── formatters.js                   ← Currency, percent, UUID, math utilities
 │   │   ├── generateReport.js               ← HTML retirement report (PDF-printable, inputs + projection)
@@ -99,6 +100,8 @@ retirement/
 │   │
 │   └── views/                              ← Page-level view components
 │       ├── WelcomeScreen.jsx               ← Landing page (New Plan / Load Saved Plan)
+│       ├── ReturningHomeView.jsx           ← Returning-user choice screen (View Results / Edit / New Plan)
+│       ├── ScenarioPickerView.jsx          ← Scenario list picker (action: 'results' | 'edit')
 │       ├── WhatIfPanel.jsx                 ← Collapsible parameter panel (inline on md+; bottom drawer portal on mobile)
 │       │
 │       ├── wizard/                         ← 9-step input wizard
@@ -513,3 +516,4 @@ See `docs/learned-rules.md` → Edge Function Deployment for machine-specific de
 | 2026-03-03 | Stripe subscription checkout: stripe-checkout edge function, UpgradePrompt (full + compact variants), SubscriptionBadge, AccountMenu "Manage Subscription", checkout=success banner, billing portal, SubscriptionContext (isPaid/isTrial/trialDaysRemaining), AuthContext, stripeService.js |
 | 2026-03-03 | Admin Maintenance tab: tax_data + legislation_checks DB tables, maintenance edge function (upsert-tax/seed-all/check-legislation), TaxDataContext (DB-driven tax data with bundled-JSON fallback), _injectLiveTaxData live-binding pattern in taxTables.js, TaxDataEditor (JSON editor + smoke test), LegislationPanel (CanLII monitor), MaintenanceSection |
 | 2026-03-03 | AI insights persistence: aiInsights field added to scenario shape, AiInsight.jsx uses savedInsight/onSave props with hash-based staleness badge, insights auto-restore on load and persist via Supabase cloud sync, Gemini badge removed |
+| 2026-03-03 | Returning user flow: sign-in routes returning users to ReturningHomeView (3-card choice screen) instead of wizard; ScenarioPickerView for multi-scenario selection; View Results button removed from wizard sidebar; routing helpers extracted to returningUserFlow.js |

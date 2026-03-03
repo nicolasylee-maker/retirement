@@ -14,6 +14,9 @@ import WhatIfPanel from './views/WhatIfPanel';
 import SaveNudgeScreen from './views/SaveNudgeScreen';
 import { LandingPage } from './views/LandingPage';
 import MyPlansView from './views/MyPlansView';
+import ReturningHomeView from './views/ReturningHomeView';
+import ScenarioPickerView from './views/ScenarioPickerView';
+import { getSignInRoute, getPickerTarget } from './utils/returningUserFlow.js';
 import AdminView from './views/admin/AdminView';
 import AccountMenu from './components/AccountMenu';
 import SubscriptionBadge from './components/SubscriptionBadge';
@@ -123,7 +126,7 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [scenarios, currentScenarioId, view]);
 
-  // After sign-in on landing page, move to wizard
+  // After sign-in on landing page, route based on whether user has existing scenarios
   useEffect(() => {
     if (view === 'landing' && authUser) {
       if (scenarios.length === 0) {
@@ -131,7 +134,7 @@ export default function App() {
         setScenarios([newScenario]);
         setCurrentScenarioId(newScenario.id);
       }
-      setView('wizard');
+      setView(getSignInRoute(scenarios));
     }
   }, [authUser, view]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -228,6 +231,42 @@ export default function App() {
 
   const handleWizardComplete = useCallback(() => setView('dashboard'), []);
 
+  const handleChoiceViewResults = useCallback(() => {
+    const { skip, scenarioId } = getPickerTarget(scenarios);
+    if (skip) {
+      setCurrentScenarioId(scenarioId);
+      setWhatIfOverrides({});
+      setView('dashboard');
+    } else {
+      setPickerAction('results');
+      setView('scenario-picker');
+    }
+  }, [scenarios]);
+
+  const handleChoiceEditPlan = useCallback(() => {
+    const { skip, scenarioId } = getPickerTarget(scenarios);
+    if (skip) {
+      setCurrentScenarioId(scenarioId);
+      setWizardStep(0);
+      setWhatIfOverrides({});
+      setView('wizard');
+    } else {
+      setPickerAction('edit');
+      setView('scenario-picker');
+    }
+  }, [scenarios]);
+
+  const handlePickerSelect = useCallback((id) => {
+    setCurrentScenarioId(id);
+    setWhatIfOverrides({});
+    if (pickerAction === 'edit') {
+      setWizardStep(0);
+      setView('wizard');
+    } else {
+      setView('dashboard');
+    }
+  }, [pickerAction]);
+
   const handleExport = useCallback(() => {
     const payload = { version: 3, scenarios, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -288,6 +327,7 @@ export default function App() {
     ));
   }, [currentScenarioId]);
 
+  const [pickerAction, setPickerAction] = useState('results'); // 'results' | 'edit'
   const [menuOpen, setMenuOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
@@ -396,7 +436,8 @@ export default function App() {
           to keep access.
         </div>
       )}
-      {view !== 'wizard' && view !== 'save-nudge' && view !== 'landing' && view !== 'admin' && (
+      {view !== 'wizard' && view !== 'save-nudge' && view !== 'landing' && view !== 'admin'
+        && view !== 'returning-home' && view !== 'scenario-picker' && (
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div className="px-4 sm:px-6 lg:px-10 py-3">
           {/* Row 1: logo + actions (all screen sizes) */}
@@ -571,6 +612,24 @@ export default function App() {
             </div>
           )}
           {view === 'save-nudge' && <SaveNudgeScreen onSkip={() => setView('dashboard')} />}
+          {view === 'returning-home' && authUser && (
+            <ReturningHomeView
+              userName={authUser.user_metadata?.full_name || authUser.email}
+              onViewResults={handleChoiceViewResults}
+              onEditPlan={handleChoiceEditPlan}
+              onCreateNew={handleStartNew}
+            />
+          )}
+          {view === 'scenario-picker' && (
+            <ScenarioPickerView
+              scenarios={scenarios}
+              action={pickerAction}
+              activeScenarioId={currentScenarioId}
+              onSelect={handlePickerSelect}
+              onCreateNew={handleStartNew}
+              onBack={() => setView('returning-home')}
+            />
+          )}
           {view === 'my-plans' && (
             <MyPlansView
               scenarios={scenarios}

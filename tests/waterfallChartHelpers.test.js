@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildWaterfallData, buildWaterfallInsight } from '../src/views/dashboard/waterfallChartHelpers.js';
+import { buildWaterfallData, buildWaterfallInsight, buildDriversAnnotations } from '../src/views/dashboard/waterfallChartHelpers.js';
 import { projectScenario } from '../src/engines/projectionEngine.js';
 import { calcTotalTax } from '../src/engines/taxEngine.js';
 import { createDefaultScenario } from '../src/constants/defaults.js';
@@ -329,5 +329,119 @@ describe('buildWaterfallInsight', () => {
       expect(typeof insight).toBe('string');
       expect(insight.length).toBeGreaterThan(0);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Persona factories for buildDriversAnnotations tests
+// ---------------------------------------------------------------------------
+
+/** Alex: young worker with mortgage that pays off mid-career (age 34, retire 65, 15yr mortgage). */
+function alex() {
+  return {
+    ...createDefaultScenario('Alex'),
+    currentAge: 34, retirementAge: 65, lifeExpectancy: 90,
+    employmentIncome: 100000,
+    rrspBalance: 50000, tfsaBalance: 30000,
+    nonRegInvestments: 20000, nonRegCostBasis: 15000,
+    cppMonthly: 1000, cppStartAge: 65, oasMonthly: 713, oasStartAge: 65,
+    monthlyExpenses: 4000, realReturn: 0.04, inflationRate: 0.025,
+    cashSavings: 0, otherAssets: 0, expenseReductionAtRetirement: 0.10,
+    mortgageBalance: 300000, mortgageRate: 0.05, mortgageYearsLeft: 15,
+    consumerDebt: 0, otherDebt: 0,
+    rrspMeltdownEnabled: false, pensionType: 'none',
+  };
+}
+
+/** Brenda: worker with mortgage that pays off 1 year before retirement (no split expected). */
+function brenda() {
+  return {
+    ...createDefaultScenario('Brenda'),
+    currentAge: 50, retirementAge: 65, lifeExpectancy: 90,
+    employmentIncome: 90000,
+    rrspBalance: 200000, tfsaBalance: 50000,
+    nonRegInvestments: 30000, nonRegCostBasis: 20000,
+    cppMonthly: 1000, cppStartAge: 65, oasMonthly: 713, oasStartAge: 65,
+    monthlyExpenses: 4000, realReturn: 0.04, inflationRate: 0.025,
+    cashSavings: 0, otherAssets: 0, expenseReductionAtRetirement: 0.10,
+    mortgageBalance: 200000, mortgageRate: 0.05, mortgageYearsLeft: 14,
+    consumerDebt: 0, otherDebt: 0,
+    rrspMeltdownEnabled: false, pensionType: 'none',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// buildDriversAnnotations — phase-aware annotation cards
+// ---------------------------------------------------------------------------
+
+describe('buildDriversAnnotations', () => {
+  // ── Alex: mortgage pays off mid-career → split cards ───────────────────
+  const alexScenario = alex();
+  const alexProj     = projectScenario(alexScenario);
+  const alexWF       = buildWaterfallData(alexScenario, alexProj);
+  const alexCards     = buildDriversAnnotations(alexScenario, alexWF, alexProj);
+
+  it('produces split cards when mortgage payoff detected mid-career', () => {
+    const phases = alexCards.map(c => c.phase);
+    expect(phases).toContain('drivers-pre-mortgage');
+    expect(phases).toContain('drivers-post-mortgage');
+    expect(phases).not.toContain('drivers-working');
+  });
+
+  it('pre-mortgage card shows surplus range and growth', () => {
+    const card = alexCards.find(c => c.phase === 'drivers-pre-mortgage');
+    expect(card).toBeDefined();
+    expect(card.line1).toMatch(/surplus.*\$.*growth/i);
+  });
+
+  it('pre-mortgage card shows debt payment amount', () => {
+    const card = alexCards.find(c => c.phase === 'drivers-pre-mortgage');
+    expect(card).toBeDefined();
+    expect(card.line2).toMatch(/debt.*\$/i);
+  });
+
+  it('post-mortgage card shows "paid off"', () => {
+    const card = alexCards.find(c => c.phase === 'drivers-post-mortgage');
+    expect(card).toBeDefined();
+    expect(card.line1).toMatch(/paid off/i);
+  });
+
+  it('post-mortgage card shows portfolio multiplier', () => {
+    const card = alexCards.find(c => c.phase === 'drivers-post-mortgage');
+    expect(card).toBeDefined();
+    // With ~16 years post-payoff, portfolio should at least double
+    expect(card.line2).toMatch(/doubles|triples|grows/i);
+  });
+
+  it('retirement card is unchanged (still present with coverage %)', () => {
+    const retCard = alexCards.find(c => c.phase === 'drivers-retired');
+    expect(retCard).toBeDefined();
+    expect(retCard.line1).toMatch(/\d+%/);
+  });
+
+  // ── Rajesh: no mortgage → single working card ─────────────────────────
+  it('produces single working card when no mortgage (Rajesh)', () => {
+    const s     = rajesh();
+    const proj  = projectScenario(s);
+    const wf    = buildWaterfallData(s, proj);
+    const cards = buildDriversAnnotations(s, wf, proj);
+
+    const phases = cards.map(c => c.phase);
+    expect(phases).toContain('drivers-working');
+    expect(phases).not.toContain('drivers-pre-mortgage');
+    expect(phases).not.toContain('drivers-post-mortgage');
+  });
+
+  // ── Brenda: mortgage pays off too close to retirement → single card ───
+  it('produces single working card when payoff is < 3 years before retirement', () => {
+    const s     = brenda();
+    const proj  = projectScenario(s);
+    const wf    = buildWaterfallData(s, proj);
+    const cards = buildDriversAnnotations(s, wf, proj);
+
+    const phases = cards.map(c => c.phase);
+    expect(phases).toContain('drivers-working');
+    expect(phases).not.toContain('drivers-pre-mortgage');
+    expect(phases).not.toContain('drivers-post-mortgage');
   });
 });

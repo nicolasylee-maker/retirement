@@ -20,11 +20,12 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
     ;(async () => {
       try {
         const cloudScenarios = await fetchScenarios(user.id)
+        console.log('[cloud-sync] fetched', cloudScenarios.length, 'scenarios on sign-in:', cloudScenarios.map(s => s.id))
         if (!cancelled) {
           onSignIn(cloudScenarios)
         }
-      } catch {
-        // If fetch fails, keep local scenarios (silent — user still works offline)
+      } catch (err) {
+        console.error('[cloud-sync] sign-in fetch failed:', err)
       }
     })()
 

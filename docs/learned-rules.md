@@ -17,6 +17,11 @@
 - Optimal order depends on marginal tax rates and OAS clawback zone
 - TFSA first preserves tax-free growth; RRSP first may reduce clawback
 
+## Cloud Sync / Import
+
+- Imported scenarios must always get a fresh `uid()` — never reuse external IDs. External IDs may already exist in Supabase under a different `user_id`; the upsert will fail due to RLS and show "Save failed".
+- The desktop scenario picker belongs inside the right-side actions `flex` group (beside the ⋮ button), not as a `flex-1` sibling between logo and actions — that placement floats it to the centre on wide screens.
+
 ## Estate Rules (Ontario)
 
 - RRSP/RRIF deemed fully disposed at death (unless spouse rollover)

@@ -136,6 +136,13 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [scenarios, currentScenarioId, view]);
 
+  // Restore What If panel collapse preference for this user
+  useEffect(() => {
+    if (!authUser) return;
+    const stored = localStorage.getItem(`whatif-expanded:${authUser.id}`);
+    if (stored !== null) setWhatIfExpanded(stored === 'true');
+  }, [authUser?.id]);
+
   // On sign-out, clear all state and return to landing page
   useEffect(() => {
     const wasLoggedIn = prevAuthUserRef.current !== null;
@@ -699,7 +706,13 @@ export default function App() {
               {isPaid
                 ? <WhatIfPanel scenario={currentScenario} overrides={whatIfOverrides}
                     onOverrideChange={handleOverrideChange} onReset={handleResetOverrides}
-                    expanded={whatIfExpanded} onToggle={() => setWhatIfExpanded(v => !v)} />
+                    expanded={whatIfExpanded} onToggle={() => {
+                      setWhatIfExpanded(v => {
+                        const next = !v;
+                        if (authUser) localStorage.setItem(`whatif-expanded:${authUser.id}`, String(next));
+                        return next;
+                      });
+                    }} />
                 : <UpgradePrompt variant="compact" featureName="What-If Analysis" onUpgrade={() => setUpgradeModalOpen(true)} />
               }
               <Dashboard scenario={effectiveScenario} projectionData={projectionData}

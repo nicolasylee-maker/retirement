@@ -13,16 +13,20 @@ export function SubscriptionProvider({ children }) {
   const [trialEnd, setTrialEnd] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  const hasLoadedOnce = useRef(false)
+
   async function load(currentUser) {
     if (!currentUser) {
       setOverride(null)
       setStripeStatus(null)
       setTrialEnd(null)
       setIsLoading(false)
+      hasLoadedOnce.current = false
       return
     }
 
-    setIsLoading(true)
+    // Only show loading spinner on first fetch — refreshes update silently
+    if (!hasLoadedOnce.current) setIsLoading(true)
 
     // Check subscription_override first (from users table)
     const { data: userData } = await supabase
@@ -51,6 +55,7 @@ export function SubscriptionProvider({ children }) {
     }
 
     setIsLoading(false)
+    hasLoadedOnce.current = true
   }
 
   const userRef = useRef(user)

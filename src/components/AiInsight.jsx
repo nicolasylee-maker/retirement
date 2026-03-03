@@ -116,7 +116,10 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
   const { isPaid } = useSubscription()
   const dataHash = computeHash(data)
 
-  const isStale = savedInsight != null && savedInsight.hash !== dataHash
+  // Detect auto-generation loading marker from App.jsx
+  const autoGenLoading = savedInsight?._loading === true
+
+  const isStale = !autoGenLoading && savedInsight != null && savedInsight.hash !== dataHash
   const initialText = savedInsight?.text || ''
 
   const [recommendation, setRecommendation] = useState(initialText)
@@ -129,6 +132,7 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
 
   // Sync when savedInsight or data changes (tab switch, WhatIf change, estate slider)
   useEffect(() => {
+    if (savedInsight?._loading) return // auto-gen in-flight, don't reset state
     if (savedInsight == null) {
       setRecommendation('')
       setStale(false)
@@ -186,7 +190,7 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        {!loading && !quotaInfo && (
+        {!(loading || autoGenLoading) && !quotaInfo && (
           <button
             onClick={(e) => { e.stopPropagation(); handleGenerate() }}
             title={recommendation ? 'Refresh insights' : 'Generate insights'}
@@ -199,7 +203,7 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
             </svg>
           </button>
         )}
-        {loading && (
+        {(loading || autoGenLoading) && (
           <div className="p-1.5 flex-shrink-0">
             <svg className="w-4 h-4 text-purple-400 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -211,9 +215,9 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
 
       {!collapsed && (
         <div className="px-5 pb-5 max-h-[calc(100vh-10rem)] overflow-y-auto">
-          {loading && <ShimmerLines />}
+          {(loading || autoGenLoading) && <ShimmerLines />}
 
-          {stale && !loading && (
+          {stale && !(loading || autoGenLoading) && (
             <div className="flex items-center justify-between gap-2 mb-3 px-3 py-2
                             bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
               <div>
@@ -248,7 +252,7 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
               <button onClick={fetchRecommendation} className="ml-2 text-red-700 underline font-medium">Retry</button>
             </div>
           )}
-          {recommendation && !loading && (
+          {recommendation && !(loading || autoGenLoading) && (
             <div className="ai-fade-in">
               {renderText(recommendation)}
               {!stale && savedInsight?.generatedAt && (
@@ -261,7 +265,7 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
               )}
             </div>
           )}
-          {!recommendation && !loading && !quotaInfo && !error && (
+          {!recommendation && !(loading || autoGenLoading) && !quotaInfo && !error && (
             <button
               onClick={handleGenerate}
               className="w-full py-3 text-sm font-medium text-purple-600 bg-purple-50

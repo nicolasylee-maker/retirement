@@ -379,11 +379,28 @@ export default function App() {
       if (compareData) jobs.push({ type: 'compare', data: compareData });
     }
 
+    // Set loading markers so AiInsight shows shimmer immediately
+    const scenarioId = scenario.id;
+    const loadingMarkers = {};
+    jobs.forEach(({ type }) => { loadingMarkers[type] = { _loading: true }; });
+    setScenarios(prev => prev.map(s =>
+      s.id === scenarioId
+        ? { ...s, aiInsights: { ...s.aiInsights, ...loadingMarkers } }
+        : s,
+    ));
+
     jobs.forEach(({ type, data }) => {
       const hash = computeHash(data);
       getAiRecommendation(type, data, true)
         .then(text => handleSaveInsight(type, text, hash))
-        .catch(() => {}); // quota or network errors silently skipped
+        .catch(() => {
+          // Clear loading marker on failure
+          setScenarios(prev => prev.map(s =>
+            s.id === scenarioId && s.aiInsights?.[type]?._loading
+              ? { ...s, aiInsights: { ...s.aiInsights, [type]: null } }
+              : s,
+          ));
+        });
     });
   }, [isPaid, checkoutPending]); // eslint-disable-line react-hooks/exhaustive-deps
 

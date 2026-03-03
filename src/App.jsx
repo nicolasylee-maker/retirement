@@ -16,7 +16,7 @@ import { LandingPage } from './views/LandingPage';
 import MyPlansView from './views/MyPlansView';
 import ReturningHomeView from './views/ReturningHomeView';
 import ScenarioPickerView from './views/ScenarioPickerView';
-import { getSignInRoute, getPickerTarget } from './utils/returningUserFlow.js';
+import { getPickerTarget } from './utils/returningUserFlow.js';
 import AdminView from './views/admin/AdminView';
 import RecommendationsTab from './views/recommendations/RecommendationsTab';
 import { runOptimization } from './engines/optimizerEngine';
@@ -131,26 +131,9 @@ export default function App() {
   const prevAuthUserRef = useRef(authUser);
 
   useEffect(() => {
-    console.log('[debug] scenarios changed:', scenarios.length, 'ids:', scenarios.map(s => s.id.slice(0, 8)), 'view:', view);
-    console.trace('[debug] scenarios stack');
-  }, [scenarios]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
     const data = { scenarios, currentScenarioId, view: view === 'wizard' ? 'dashboard' : view };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [scenarios, currentScenarioId, view]);
-
-  // After sign-in on landing page, route based on whether user has existing scenarios
-  useEffect(() => {
-    if (view === 'landing' && authUser) {
-      if (scenarios.length === 0) {
-        const newScenario = createDefaultScenario('My Plan');
-        setScenarios([newScenario]);
-        setCurrentScenarioId(newScenario.id);
-      }
-      setView(getSignInRoute(scenarios));
-    }
-  }, [authUser, view]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // On sign-out, clear all state and return to landing page
   useEffect(() => {
@@ -206,17 +189,22 @@ export default function App() {
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
   const handleSignIn = useCallback((cloudScenarios) => {
-    console.log('[handleSignIn] received', cloudScenarios.length, 'cloud scenarios');
-    if (cloudScenarios.length === 0) return;
-    setScenarios(cloudScenarios);
-    setCurrentScenarioId(cloudScenarios[0].id);
-    setWhatIfOverrides({});
-    // Only redirect if the user came from the sign-in flow (landing or freshly-created wizard).
-    // If they're already on dashboard (page reload with persisted auth), leave them there.
-    setView(prev => (prev === 'landing' || prev === 'wizard') ? 'returning-home' : prev);
+    if (cloudScenarios.length > 0) {
+      // Returning user — replace state with cloud data
+      setScenarios(cloudScenarios);
+      setCurrentScenarioId(cloudScenarios[0].id);
+      setWhatIfOverrides({});
+      setView(prev => (prev === 'landing' || prev === 'wizard') ? 'returning-home' : prev);
+      return;
+    }
+    // Cloud empty — create default only if no local scenarios exist
+    const fallback = createDefaultScenario('My Plan');
+    setScenarios(prev => prev.length > 0 ? prev : [fallback]);
+    setCurrentScenarioId(prev => prev || fallback.id);
+    setView(prev => prev === 'landing' ? 'wizard' : prev);
   }, []);
 
-  const { saveStatus, checkCanCreate } = useCloudSync({
+  const { saveStatus, syncDone, checkCanCreate } = useCloudSync({
     user: authUser,
     currentScenario,
     onSignIn: handleSignIn,
@@ -230,8 +218,14 @@ export default function App() {
     let name = typeof newName === 'string' ? newName : null;
     if (!name) name = prompt('Rename scenario:', currentScenario?.name || '');
     if (!name?.trim() || name.trim() === currentScenario?.name) return;
-    setScenarios((prev) => prev.map((s) => (s.id === currentScenarioId ? { ...s, name: name.trim() } : s)));
-  }, [currentScenario, currentScenarioId]);
+    const renamed = { ...currentScenario, name: name.trim() };
+    setScenarios((prev) => prev.map((s) => (s.id === currentScenarioId ? renamed : s)));
+    if (authUser) {
+      saveScenario(authUser.id, renamed).catch((err) =>
+        console.error('[rename] cloud save failed:', err)
+      );
+    }
+  }, [currentScenario, currentScenarioId, authUser]);
 
   const handleStartNew = useCallback(async () => {
     const allowed = await checkCanCreate();
@@ -243,7 +237,12 @@ export default function App() {
     localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
     setWhatIfOverrides({});
     setView('wizard');
-  }, [checkCanCreate]);
+    if (authUser) {
+      saveScenario(authUser.id, newScenario).catch((err) =>
+        console.error('[start-new] cloud save failed:', err)
+      );
+    }
+  }, [checkCanCreate, authUser]);
 
   const handleLoadScenario = useCallback(async (jsonData) => {
     let loaded = [];
@@ -266,14 +265,10 @@ export default function App() {
     // Persist all imported scenarios to cloud immediately
     if (authUser) {
       try {
-        console.log('[import-sync] saving', valid.length, 'scenarios for user', authUser.id);
         await Promise.all(valid.map(s => saveScenario(authUser.id, s)));
-        console.log('[import-sync] all scenarios saved successfully');
       } catch (err) {
         console.error('[import-sync] save failed:', err);
       }
-    } else {
-      console.log('[import-sync] skipped cloud save — no authUser');
     }
   }, [authUser]);
 
@@ -355,7 +350,12 @@ export default function App() {
     setScenarios((prev) => [...prev, copy]);
     setCurrentScenarioId(copy.id);
     setWhatIfOverrides({});
-  }, [currentScenario]);
+    if (authUser) {
+      saveScenario(authUser.id, copy).catch((err) =>
+        console.error('[duplicate] cloud save failed:', err)
+      );
+    }
+  }, [currentScenario, authUser]);
 
   const handleDeleteScenario = useCallback((id) => {
     setScenarios((prev) => {
@@ -365,7 +365,9 @@ export default function App() {
       return next;
     });
     if (authUser) {
-      deleteScenarioFromCloud(authUser.id, id).catch(() => {});
+      deleteScenarioFromCloud(authUser.id, id).catch((err) =>
+        console.error('[delete] cloud delete failed:', err)
+      );
     }
   }, [currentScenarioId, authUser]);
 
@@ -639,12 +641,20 @@ export default function App() {
       <main className="flex-1">
         <div className="view-enter" key={view}>
           {view === 'landing' && (
-            <LandingPage onTryAnonymous={() => {
-              const newScenario = createDefaultScenario('My Plan');
-              setScenarios([newScenario]);
-              setCurrentScenarioId(newScenario.id);
-              setView('wizard');
-            }} />
+            authUser
+              ? <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+                  <svg className="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  <p className="text-sm text-gray-500">Loading your plans…</p>
+                </div>
+              : <LandingPage onTryAnonymous={() => {
+                  const newScenario = createDefaultScenario('My Plan');
+                  setScenarios([newScenario]);
+                  setCurrentScenarioId(newScenario.id);
+                  setView('wizard');
+                }} />
           )}
           {view === 'wizard' && currentScenario && (
             <WizardShell scenario={currentScenario} onChange={handleScenarioChange}

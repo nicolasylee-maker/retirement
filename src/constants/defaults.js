@@ -93,7 +93,7 @@ export function createDefaultScenario(name = 'My Scenario') {
     // Step 6: Liabilities
     mortgageBalance: 0,
     mortgageRate: 0.05,
-    mortgageYearsLeft: 0,
+    mortgageYearsLeft: 25,
     consumerDebt: 0,
     consumerDebtRate: 0.08,
     consumerDebtPayoffAge: 70, // Target age to be debt-free

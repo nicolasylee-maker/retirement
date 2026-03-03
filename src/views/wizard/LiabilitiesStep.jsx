@@ -17,7 +17,21 @@ function calcPayoffSummary(balance, rate, payoffAge, currentAge) {
   return { annualPayment, monthlyPayment: annualPayment / 12, totalInterest, totalPaid, years };
 }
 
+export function validateLiabilities(scenario) {
+  const errors = {};
+  if ((scenario.mortgageBalance || 0) > 0 && !(scenario.mortgageYearsLeft > 0)) {
+    errors.mortgageYearsLeft = 'Enter years remaining for your mortgage';
+  }
+  const payoffAge = scenario.consumerDebtPayoffAge || (scenario.currentAge + 10);
+  if ((scenario.consumerDebt || 0) > 0 && payoffAge <= scenario.currentAge) {
+    errors.consumerDebtPayoffAge = 'Must be after your current age';
+  }
+  return errors;
+}
+
 export default function LiabilitiesStep({ scenario, onChange }) {
+  const errors = useMemo(() => validateLiabilities(scenario), [scenario]);
+
   const handleChange = (field) => (value) => {
     onChange({ [field]: value });
   };
@@ -86,6 +100,7 @@ export default function LiabilitiesStep({ scenario, onChange }) {
             min={0}
             max={35}
             helper="Remaining amortization"
+            error={errors.mortgageYearsLeft}
           />
         </div>
         {mortgageSummary && (
@@ -141,6 +156,7 @@ export default function LiabilitiesStep({ scenario, onChange }) {
             min={scenario.currentAge + 1}
             max={scenario.lifeExpectancy}
             helper="Target age to be debt-free"
+            error={errors.consumerDebtPayoffAge}
           />
         </div>
         {consumerSummary && (

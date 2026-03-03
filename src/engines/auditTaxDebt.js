@@ -213,10 +213,13 @@ export function auditDebtTrace(scenario) {
     }
 
     // Fix first column: show starting balance correctly
-    rows[0][1] = $(s.consumerDebt);
-
-    md += mdTable(['Age', 'Balance', 'Annual Payment', 'Interest', 'Principal', 'Remaining'], rows);
-    md += `\n\n**Totals**: ${$(totalPayments)} total payments, ${$(totalInterest)} total interest on ${$(s.consumerDebt)} principal\n\n`;
+    if (rows.length > 0) {
+      rows[0][1] = $(s.consumerDebt);
+      md += mdTable(['Age', 'Balance', 'Annual Payment', 'Interest', 'Principal', 'Remaining'], rows);
+      md += `\n\n**Totals**: ${$(totalPayments)} total payments, ${$(totalInterest)} total interest on ${$(s.consumerDebt)} principal\n\n`;
+    } else {
+      md += `Already paid off or payoff age ≤ current age.\n\n`;
+    }
   }
 
   if (hasMortgage) {
@@ -242,10 +245,13 @@ export function auditDebtTrace(scenario) {
       ]);
     }
 
-    rows[0][1] = $(s.mortgageBalance);
-
-    md += mdTable(['Age', 'Balance', 'Annual Payment', 'Interest', 'Principal', 'Remaining'], rows);
-    md += '\n\n';
+    if (rows.length > 0) {
+      rows[0][1] = $(s.mortgageBalance);
+      md += mdTable(['Age', 'Balance', 'Annual Payment', 'Interest', 'Principal', 'Remaining'], rows);
+      md += '\n\n';
+    } else {
+      md += `Already paid off (0 years remaining).\n\n`;
+    }
   }
 
   return md;

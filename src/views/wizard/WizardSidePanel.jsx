@@ -146,13 +146,13 @@ export default function WizardSidePanel({
             {isLastStep ? 'Finish' : 'Next →'}
           </Button>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={onComplete}
-          className="w-full text-xs text-sunset-600 hover:text-sunset-700 text-center py-1 transition-colors duration-150"
+          className="w-full text-sm"
         >
           View Results
-        </button>
+        </Button>
       </div>
     </aside>
   );

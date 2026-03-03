@@ -7,7 +7,7 @@ import AuthPanel from './AuthPanel'
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
 
 export default function AccountMenu({ onAdmin, open, onOpenChange }) {
-  const { user, isLoading, signOut } = useAuth()
+  const { user, avatarUrl, isLoading, signOut } = useAuth()
   const { isPaid, isTrial } = useSubscription()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [panelOpenInternal, setPanelOpenInternal] = useState(false)
@@ -64,7 +64,6 @@ export default function AccountMenu({ onAdmin, open, onOpenChange }) {
     )
   }
 
-  const avatarUrl = user.user_metadata?.avatar_url
   const email = user.email ?? ''
   const initial = email.charAt(0).toUpperCase()
 

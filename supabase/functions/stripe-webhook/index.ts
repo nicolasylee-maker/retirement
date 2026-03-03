@@ -20,7 +20,7 @@ async function resolveUserId(
     .from('users')
     .select('id')
     .eq('stripe_customer_id', customerId)
-    .single()
+    .maybeSingle()
   return data?.id ?? null
 }
 
@@ -37,8 +37,12 @@ async function upsertSubscription(
       stripe_customer_id: typeof sub.customer === 'string' ? sub.customer : sub.customer.id,
       status: sub.status,
       price_id: price?.id ?? '',
-      current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+      current_period_start: sub.current_period_start
+        ? new Date(sub.current_period_start * 1000).toISOString()
+        : null,
+      current_period_end: sub.current_period_end
+        ? new Date(sub.current_period_end * 1000).toISOString()
+        : null,
       trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
       cancel_at_period_end: sub.cancel_at_period_end,
       updated_at: new Date().toISOString(),

@@ -188,7 +188,7 @@ export default function WizardShell({
       />
 
       {/* Mobile sticky footer — hidden on desktop */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 px-4 py-3">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 px-4 py-3 space-y-2">
         <div className="flex items-center justify-between gap-3">
           <Button
             variant="secondary"
@@ -205,6 +205,9 @@ export default function WizardShell({
             {isLastStep ? 'Finish' : 'Next'}
           </Button>
         </div>
+        <Button variant="secondary" onClick={onComplete} className="w-full min-h-[44px] text-sm">
+          View Results
+        </Button>
       </div>
     </div>
   );

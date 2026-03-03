@@ -307,26 +307,144 @@ export function buildDriversAnnotations(scenario, waterfallData, projectionData)
   const workingProj = projectionData.filter(r => r.age < retAge && r.employmentIncome > 0);
 
   if (workingWF.length > 0 && workingProj.length > 0) {
-    const avgGrowth  = avg(workingWF, '_growthRaw');
-    const drainItems = [
-      { label: 'debt payments', val: avg(workingWF, '_debtPaymentRaw') },
-      { label: 'taxes',         val: avg(workingWF, '_taxDrainRaw') + avg(workingWF, '_meltdownTaxRaw') },
-      { label: 'expense gap',   val: avg(workingWF, '_expenseGapRaw') },
-    ].filter(d => d.val > 100).sort((a, b) => b.val - a.val);
-
-    const ages = `${workingWF[0].age}\u2013${workingWF[workingWF.length - 1].age}`;
-    const card = {
-      phase: 'drivers-working',
-      ages,
-      line1: `Avg investment growth: ${fmtDollar(avgGrowth)}/yr.`,
-      line2: drainItems.length > 0
-        ? `Biggest drag: ${drainItems[0].label} at ${fmtDollar(drainItems[0].val)}/yr.`
-        : 'Salary covers all costs — portfolio growing.',
-    };
-    if (drainItems.length > 1) {
-      card.line3 = `Also: ${drainItems.slice(1).map(d => `${d.label} ${fmtDollar(d.val)}/yr`).join(', ')}.`;
+    // Detect mortgage payoff age from projection data
+    let payoffAge = null;
+    let payoffLabel = null;
+    for (let i = 1; i < workingProj.length; i++) {
+      const prev = workingProj[i - 1];
+      const curr = workingProj[i];
+      if ((prev.mortgageBalance || 0) > 0 && (curr.mortgageBalance || 0) === 0) {
+        payoffAge = curr.age;
+        payoffLabel = 'Mortgage';
+        break;
+      }
     }
-    cards.push(card);
+    // Fallback: detect consumer debt payoff via debtPayments dropping to 0
+    if (!payoffAge) {
+      for (let i = 1; i < workingProj.length; i++) {
+        const prev = workingProj[i - 1];
+        const curr = workingProj[i];
+        if ((prev.debtPayments || 0) > 0 && (curr.debtPayments || 0) === 0) {
+          payoffAge = curr.age;
+          payoffLabel = 'Debt';
+          break;
+        }
+      }
+    }
+
+    const realReturn = scenario.realReturn || 0.04;
+    const growthPct  = `${(realReturn * 100).toFixed(1)}%`;
+
+    // Split into two cards if payoff is ≥3 years before retirement
+    const shouldSplit = payoffAge && payoffAge >= workingWF[0].age + 1 && (retAge - payoffAge) >= 3;
+
+    if (shouldSplit) {
+      const preWF  = workingWF.filter(r => r.age < payoffAge);
+      const postWF = workingWF.filter(r => r.age >= payoffAge);
+      const preProj  = workingProj.filter(r => r.age < payoffAge);
+      const postProj = workingProj.filter(r => r.age >= payoffAge);
+
+      // ── Card A: pre-payoff ────────────────────────────────────────────
+      if (preWF.length > 0) {
+        const preSurpluses = preWF.map(r => r._surplusRaw);
+        const preMin = Math.min(...preSurpluses);
+        const preMax = Math.max(...preSurpluses);
+        const surplusStr = (preMax - preMin) > 1000
+          ? `~${fmtDollar(preMin)}\u2013${fmtDollar(preMax)}/yr`
+          : `~${fmtDollar(preMax)}/yr`;
+
+        const avgDebt = avg(preProj, 'debtPayments');
+
+        const preCard = {
+          phase: 'drivers-pre-mortgage',
+          ages: `${preWF[0].age}\u2013${preWF[preWF.length - 1].age}`,
+          line1: `Salary surplus of ${surplusStr} + ${growthPct} growth.`,
+        };
+        if (avgDebt > 100) {
+          preCard.line2 = `Avg debt payments of ${fmtDollar(avgDebt)}/yr reduce investable surplus.`;
+        }
+        cards.push(preCard);
+      }
+
+      // ── Card B: post-payoff ───────────────────────────────────────────
+      if (postWF.length > 0) {
+        const postSurpluses = postWF.map(r => r._surplusRaw);
+        const postMin = Math.min(...postSurpluses);
+        const postMax = Math.max(...postSurpluses);
+        const surplusStr = (postMax - postMin) > 1000
+          ? `~${fmtDollar(postMin)}\u2013${fmtDollar(postMax)}/yr`
+          : `~${fmtDollar(postMax)}/yr`;
+
+        const postCard = {
+          phase: 'drivers-post-mortgage',
+          ages: `${postWF[0].age}\u2013${postWF[postWF.length - 1].age}`,
+          line1: `${payoffLabel} paid off! Surplus jumps to ${surplusStr}.`,
+        };
+
+        // Portfolio multiplier
+        const portfolioAtPayoff = workingProj.find(r => r.age === payoffAge)?.totalPortfolio || 0;
+        const lastWorkingRow = workingProj[workingProj.length - 1];
+        const portfolioAtRetirement = lastWorkingRow?.totalPortfolio || 0;
+        if (portfolioAtPayoff > 0) {
+          const multiplier = portfolioAtRetirement / portfolioAtPayoff;
+          if (multiplier >= 3.0) {
+            postCard.line2 = `This phase triples your portfolio.`;
+          } else if (multiplier >= 2.0) {
+            postCard.line2 = `This phase doubles your portfolio.`;
+          } else if (multiplier >= 1.2) {
+            postCard.line2 = `This phase grows your portfolio ${multiplier.toFixed(1)}x.`;
+          }
+        }
+        cards.push(postCard);
+      }
+    } else {
+      // Single working card (no split)
+      const surpluses = workingWF.map(r => r._surplusRaw);
+      const minSurplus = Math.min(...surpluses);
+      const maxSurplus = Math.max(...surpluses);
+      const allZero = maxSurplus === 0;
+
+      const drainItems = [
+        { label: 'debt payments', val: avg(workingWF, '_debtPaymentRaw') },
+        { label: 'taxes',         val: avg(workingWF, '_taxDrainRaw') + avg(workingWF, '_meltdownTaxRaw') },
+        { label: 'expense gap',   val: avg(workingWF, '_expenseGapRaw') },
+      ].filter(d => d.val > 100).sort((a, b) => b.val - a.val);
+
+      const ages = `${workingWF[0].age}\u2013${workingWF[workingWF.length - 1].age}`;
+
+      if (allZero) {
+        // Fall back to drain-focused content when no surplus
+        const card = {
+          phase: 'drivers-working',
+          ages,
+          line1: `Avg investment growth: ${fmtDollar(avg(workingWF, '_growthRaw'))}/yr.`,
+          line2: drainItems.length > 0
+            ? `Biggest drag: ${drainItems[0].label} at ${fmtDollar(drainItems[0].val)}/yr.`
+            : 'Salary covers all costs — portfolio growing.',
+        };
+        if (drainItems.length > 1) {
+          card.line3 = `Also: ${drainItems.slice(1).map(d => `${d.label} ${fmtDollar(d.val)}/yr`).join(', ')}.`;
+        }
+        cards.push(card);
+      } else {
+        const surplusStr = (maxSurplus - minSurplus) > 1000
+          ? `~${fmtDollar(minSurplus)}\u2013${fmtDollar(maxSurplus)}/yr`
+          : `~${fmtDollar(maxSurplus)}/yr`;
+
+        const card = {
+          phase: 'drivers-working',
+          ages,
+          line1: `Salary surplus of ${surplusStr} + ${growthPct} growth.`,
+          line2: drainItems.length > 0
+            ? `Biggest drag: ${drainItems[0].label} at ${fmtDollar(drainItems[0].val)}/yr.`
+            : 'Salary covers all costs — portfolio growing.',
+        };
+        if (drainItems.length > 1) {
+          card.line3 = `Also: ${drainItems.slice(1).map(d => `${d.label} ${fmtDollar(d.val)}/yr`).join(', ')}.`;
+        }
+        cards.push(card);
+      }
+    }
   }
 
   // ── Retired phase ─────────────────────────────────────────────────────────

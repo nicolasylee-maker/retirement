@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import Button from '../../components/Button';
+import WizardSidePanel from './WizardSidePanel';
 import { STEP_LABELS, WIZARD_STEPS } from '../../constants/defaults';
 import { trackEvent } from '../../utils/analytics';
 import PersonalInfoStep from './PersonalInfoStep';
@@ -172,8 +173,8 @@ export default function WizardShell({
         </div>
       </div>
 
-      {/* Main content area — offset by sidebar width on desktop */}
-      <div className="flex-1 min-w-0 lg:ml-56">
+      {/* Main content area — offset by left sidebar and right panel on desktop */}
+      <div className="flex-1 min-w-0 lg:ml-56 lg:mr-64">
         {/* Spacer for mobile fixed header */}
         <div className="h-20 lg:hidden" />
 
@@ -185,26 +186,38 @@ export default function WizardShell({
           />
         </div>
 
-        {/* Navigation buttons */}
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-4">
-          <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-            <Button
-              variant="secondary"
-              onClick={handleBack}
-              disabled={isFirstStep}
-              className="min-h-[44px]"
-            >
-              Back
-            </Button>
+        {/* Bottom spacer — clears mobile sticky footer */}
+        <div className="pb-20 lg:pb-4" />
+      </div>
 
-            <span className="text-sm text-gray-400 hidden lg:inline">
-              {currentStep + 1} / {WIZARD_STEPS}
-            </span>
+      {/* Right panel — desktop only (lg+); hosts Back/Next + live step summary */}
+      <WizardSidePanel
+        scenario={scenario}
+        currentStep={currentStep}
+        isLastStep={isLastStep}
+        isFirstStep={isFirstStep}
+        onNext={handleNext}
+        onBack={handleBack}
+        onComplete={onComplete}
+      />
 
-            <Button variant="primary" onClick={handleNext} className="min-h-[44px]">
-              {isLastStep ? 'View Dashboard' : 'Next'}
-            </Button>
-          </div>
+      {/* Mobile sticky footer — hidden on desktop */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            variant="secondary"
+            onClick={handleBack}
+            disabled={isFirstStep}
+            className="min-h-[44px] flex-1"
+          >
+            Back
+          </Button>
+          <span className="text-xs text-gray-400 shrink-0">
+            {currentStep + 1} / {WIZARD_STEPS}
+          </span>
+          <Button variant="primary" onClick={handleNext} className="min-h-[44px] flex-1">
+            {isLastStep ? 'Finish' : 'Next'}
+          </Button>
         </div>
       </div>
     </div>

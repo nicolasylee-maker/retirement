@@ -95,6 +95,7 @@ retirement/
 │       │
 │       ├── wizard/                         ← 9-step input wizard
 │       │   ├── WizardShell.jsx             ← Wizard container, navigation, step management
+│       │   ├── WizardSidePanel.jsx         ← Fixed right panel: live step summary + Back/Next (lg+); mobile sticky footer in WizardShell
 │       │   ├── PersonalInfoStep.jsx        ← Age, retirement age, couple toggle
 │       │   ├── GovBenefitsStep.jsx         ← CPP, OAS, GIS, GAINS configuration
 │       │   ├── PensionsStep.jsx            ← DB/DC pension inputs

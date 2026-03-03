@@ -208,7 +208,7 @@ export default function App() {
     setView(prev => prev === 'landing' ? 'wizard' : prev);
   }, []);
 
-  const { saveStatus, syncDone, checkCanCreate } = useCloudSync({
+  const { saveStatus, syncDone } = useCloudSync({
     user: authUser,
     currentScenario,
     onSignIn: handleSignIn,
@@ -231,9 +231,7 @@ export default function App() {
     }
   }, [currentScenario, currentScenarioId, authUser]);
 
-  const handleStartNew = useCallback(async () => {
-    const allowed = await checkCanCreate();
-    if (!allowed) return;
+  const handleStartNew = useCallback(() => {
     const newScenario = createDefaultScenario('My Plan');
     setScenarios((prev) => [...prev, newScenario]);
     setCurrentScenarioId(newScenario.id);
@@ -246,7 +244,7 @@ export default function App() {
         console.error('[start-new] cloud save failed:', err)
       );
     }
-  }, [checkCanCreate, authUser]);
+  }, [authUser]);
 
   const handleLoadScenario = useCallback(async (jsonData) => {
     let loaded = [];
@@ -349,9 +347,7 @@ export default function App() {
     setWhatIfOverrides({});
   }, []);
 
-  const handleDuplicateScenario = useCallback(async () => {
-    const allowed = await checkCanCreate();
-    if (!allowed) return;
+  const handleDuplicateScenario = useCallback(() => {
     const copy = { ...currentScenario, id: uid(), name: `${currentScenario.name} (copy)`, createdAt: new Date().toISOString() };
     setScenarios((prev) => [...prev, copy]);
     setCurrentScenarioId(copy.id);
@@ -361,7 +357,7 @@ export default function App() {
         console.error('[duplicate] cloud save failed:', err)
       );
     }
-  }, [currentScenario, authUser, checkCanCreate]);
+  }, [currentScenario, authUser]);
 
   const handleDeleteScenario = useCallback((id) => {
     setScenarios((prev) => {
@@ -573,9 +569,9 @@ export default function App() {
                   {authUser && (
                     <>
                       <button onClick={menuAction(() => { setWizardStep(0); setView('wizard'); })} className="menu-item">Edit Plan</button>
-                      <button onClick={menuAction(handleStartNew)} className="menu-item">New Plan</button>
+                      <GatedButton featureName="Multiple Plans" onClick={menuAction(handleStartNew)} className="menu-item w-full text-left">New Plan</GatedButton>
                       <button onClick={menuAction(() => handleRenameScenario())} className="menu-item">Rename Plan</button>
-                      <button onClick={menuAction(handleDuplicateScenario)} className="menu-item">Duplicate Plan</button>
+                      <GatedButton featureName="Multiple Plans" onClick={menuAction(handleDuplicateScenario)} className="menu-item w-full text-left">Duplicate Plan</GatedButton>
                       {currentScenario && (
                         <GatedButton featureName="PDF Export" bypass={isAdmin}
                           onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
@@ -587,7 +583,7 @@ export default function App() {
                       )}
                       <div className="border-t border-gray-100 my-1.5 mx-3" />
                       <button onClick={menuAction(handleExport)} className="menu-item">Export</button>
-                      <button onClick={menuAction(() => importInputRef.current?.click())} className="menu-item">Import</button>
+                      <GatedButton featureName="Multiple Plans" onClick={menuAction(() => importInputRef.current?.click())} className="menu-item w-full text-left">Import</GatedButton>
                       <div className="border-t border-gray-100 my-1.5 mx-3" />
                     </>
                   )}

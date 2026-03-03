@@ -14,13 +14,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, cleanup } from '@testing-library/react'
 
-// ─── SubscriptionContext mock ───────────────────────────────────────────────
-
-let mockIsPaid = false
-vi.mock('../src/contexts/SubscriptionContext', () => ({
-  useSubscription: () => ({ isPaid: mockIsPaid }),
-}))
-
 // ─── Supabase mock ──────────────────────────────────────────────────────────
 
 // Mutable state that controls what the mock returns
@@ -60,7 +53,6 @@ const { useCloudSync } = await import('../src/hooks/useCloudSync')
 beforeEach(() => {
   mockSelectData = []
   mockUpsertError = null
-  mockIsPaid = false
   upsertSpy = vi.fn()
   fetchSpy = vi.fn()
   mockFrom.mockImplementation(() => createQueryBuilder())
@@ -310,94 +302,3 @@ describe('fetch error handling', () => {
   })
 })
 
-describe('duplicate free-tier guard', () => {
-  // Test 10: Duplicate calls checkCanCreate
-  it('handleDuplicateScenario respects checkCanCreate guard', async () => {
-    // Mock query builder that supports both fetch (.order) and count (.eq as terminal) patterns
-    mockFrom.mockImplementation(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockImplementation(() => ({
-        // For fetch chain: .select().eq().order()
-        order: vi.fn(async () => {
-          fetchSpy()
-          return { data: mockSelectData, error: null }
-        }),
-        // For count chain: await .select('id', { count, head }).eq()
-        then: (resolve) => resolve({ count: 1, error: null }),
-      })),
-      upsert: vi.fn((row, opts) => {
-        upsertSpy(row, opts)
-        return Promise.resolve({ error: mockUpsertError })
-      }),
-      delete: vi.fn().mockReturnThis(),
-    }))
-
-    const onSignIn = vi.fn()
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
-
-    mockSelectData = [
-      { id: 'cloud-1', name: 'Cloud Plan', data: { id: 'old', name: 'Cloud Plan' }, updated_at: '2025-01-01' },
-    ]
-
-    const { result } = renderHook(
-      ({ user }) => useCloudSync({ user, currentScenario: { id: 'sc-1', name: 'Test' }, onSignIn }),
-      { initialProps: { user: { id: 'user-1' } } },
-    )
-
-    await vi.waitFor(() => {
-      expect(result.current.syncDone).toBe(true)
-    })
-
-    // checkCanCreate should return false when at limit
-    const allowed = await result.current.checkCanCreate()
-    expect(allowed).toBe(false)
-    expect(alertSpy).toHaveBeenCalledWith('Free plan: 1 saved scenario. Upgrade to save more.')
-
-    alertSpy.mockRestore()
-  })
-
-  // Test 11: Paid users bypass free-tier guard
-  it('checkCanCreate returns true when isPaid is true', async () => {
-    mockIsPaid = true
-
-    // Same count-returning mock as Test 10
-    mockFrom.mockImplementation(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockImplementation(() => ({
-        order: vi.fn(async () => {
-          fetchSpy()
-          return { data: mockSelectData, error: null }
-        }),
-        then: (resolve) => resolve({ count: 5, error: null }),
-      })),
-      upsert: vi.fn((row, opts) => {
-        upsertSpy(row, opts)
-        return Promise.resolve({ error: mockUpsertError })
-      }),
-      delete: vi.fn().mockReturnThis(),
-    }))
-
-    const onSignIn = vi.fn()
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
-
-    mockSelectData = [
-      { id: 'cloud-1', name: 'Cloud Plan', data: { id: 'old', name: 'Cloud Plan' }, updated_at: '2025-01-01' },
-    ]
-
-    const { result } = renderHook(
-      ({ user }) => useCloudSync({ user, currentScenario: { id: 'sc-1', name: 'Test' }, onSignIn }),
-      { initialProps: { user: { id: 'user-1' } } },
-    )
-
-    await vi.waitFor(() => {
-      expect(result.current.syncDone).toBe(true)
-    })
-
-    // Paid user: checkCanCreate should return true even with existing scenarios
-    const allowed = await result.current.checkCanCreate()
-    expect(allowed).toBe(true)
-    expect(alertSpy).not.toHaveBeenCalled()
-
-    alertSpy.mockRestore()
-  })
-})

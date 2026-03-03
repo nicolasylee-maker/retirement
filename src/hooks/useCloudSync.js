@@ -1,16 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchScenarios, saveScenario, getScenarioCount } from '../services/scenarioService'
-import { useSubscription } from '../contexts/SubscriptionContext'
+import { useEffect, useRef, useState } from 'react'
+import { fetchScenarios, saveScenario } from '../services/scenarioService'
 
 // saveStatus: 'idle' | 'saving' | 'saved' | 'error'
 
 export function useCloudSync({ user, currentScenario, onSignIn }) {
-  const { isPaid } = useSubscription()
   const [saveStatus, setSaveStatus] = useState('idle')
   const [syncDone, setSyncDone] = useState(false)
   const prevUserIdRef = useRef(null)
-  const userRef = useRef(user)
-  userRef.current = user
 
   const userId = user?.id ?? null
 
@@ -73,22 +69,5 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
     return () => clearTimeout(timeout)
   }, [saveStatus])
 
-  // Free tier guard: returns true if creation is allowed, false if blocked
-  const checkCanCreate = useCallback(async () => {
-    if (isPaid) return true
-    const uid = userRef.current?.id
-    if (!uid) return true
-    try {
-      const count = await getScenarioCount(uid)
-      if (count >= 1) {
-        alert('Free plan: 1 saved scenario. Upgrade to save more.')
-        return false
-      }
-    } catch {
-      // If count check fails, allow creation — don't block the user
-    }
-    return true
-  }, [isPaid])
-
-  return { saveStatus, syncDone, checkCanCreate }
+  return { saveStatus, syncDone }
 }

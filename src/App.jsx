@@ -118,6 +118,7 @@ export default function App() {
   });
   const [whatIfOverrides, setWhatIfOverrides] = useState({});
   const [whatIfExpanded, setWhatIfExpanded] = useState(true);
+  const [pickerAction, setPickerAction] = useState('results');
   const importInputRef = useRef(null);
   const prevAuthUserRef = useRef(authUser);
 
@@ -327,7 +328,6 @@ export default function App() {
     ));
   }, [currentScenarioId]);
 
-  const [pickerAction, setPickerAction] = useState('results'); // 'results' | 'edit'
   const [menuOpen, setMenuOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);

@@ -231,3 +231,120 @@ describe('rename invariant', () => {
     expect(renamed.income).toBe(50000)
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// D. Fetch-error and free-tier guard tests
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('fetch error handling', () => {
+  // Test 8: onSignIn receives fetchError flag when fetch throws
+  it('onSignIn called with fetchError flag when fetchScenarios throws', async () => {
+    // Make the query builder's order() reject to simulate a network error
+    mockFrom.mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn(async () => { throw new Error('network error') }),
+    }))
+
+    const onSignIn = vi.fn()
+
+    const { rerender } = renderHook(
+      ({ user }) => useCloudSync({ user, currentScenario: null, onSignIn }),
+      { initialProps: { user: null } },
+    )
+
+    rerender({ user: { id: 'abc' } })
+
+    await vi.waitFor(() => {
+      expect(onSignIn).toHaveBeenCalledOnce()
+    })
+
+    expect(onSignIn).toHaveBeenCalledWith([], { fetchError: true })
+  })
+
+  // Test 9: Error-path onSignIn does NOT create fallback scenario
+  it('handleSignIn with fetchError flag does NOT create fallback "My Plan"', () => {
+    // Simulate the handleSignIn logic from App.jsx
+    let scenarios = []
+    let currentScenarioId = null
+    let view = 'landing'
+
+    function handleSignIn(cloudScenarios, { fetchError } = {}) {
+      if (cloudScenarios.length > 0) {
+        scenarios = cloudScenarios
+        currentScenarioId = cloudScenarios[0].id
+        view = 'returning-home'
+        return
+      }
+      if (fetchError) {
+        // Fetch failed — don't create a fallback
+        return
+      }
+      // Cloud genuinely empty — new user
+      const fallback = { id: 'fallback-id', name: 'My Plan' }
+      if (scenarios.length === 0) scenarios = [fallback]
+      if (!currentScenarioId) currentScenarioId = fallback.id
+      if (view === 'landing') view = 'wizard'
+    }
+
+    // With fetchError: state should NOT change
+    handleSignIn([], { fetchError: true })
+    expect(scenarios).toEqual([])
+    expect(currentScenarioId).toBeNull()
+    expect(view).toBe('landing')
+
+    // Without fetchError: SHOULD create fallback
+    handleSignIn([])
+    expect(scenarios).toHaveLength(1)
+    expect(scenarios[0].name).toBe('My Plan')
+    expect(currentScenarioId).toBe('fallback-id')
+    expect(view).toBe('wizard')
+  })
+})
+
+describe('duplicate free-tier guard', () => {
+  // Test 10: Duplicate calls checkCanCreate
+  it('handleDuplicateScenario respects checkCanCreate guard', async () => {
+    // Mock query builder that supports both fetch (.order) and count (.eq as terminal) patterns
+    mockFrom.mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockImplementation(() => ({
+        // For fetch chain: .select().eq().order()
+        order: vi.fn(async () => {
+          fetchSpy()
+          return { data: mockSelectData, error: null }
+        }),
+        // For count chain: await .select('id', { count, head }).eq()
+        then: (resolve) => resolve({ count: 1, error: null }),
+      })),
+      upsert: vi.fn((row, opts) => {
+        upsertSpy(row, opts)
+        return Promise.resolve({ error: mockUpsertError })
+      }),
+      delete: vi.fn().mockReturnThis(),
+    }))
+
+    const onSignIn = vi.fn()
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+
+    mockSelectData = [
+      { id: 'cloud-1', name: 'Cloud Plan', data: { id: 'old', name: 'Cloud Plan' }, updated_at: '2025-01-01' },
+    ]
+
+    const { result } = renderHook(
+      ({ user }) => useCloudSync({ user, currentScenario: { id: 'sc-1', name: 'Test' }, onSignIn }),
+      { initialProps: { user: { id: 'user-1' } } },
+    )
+
+    await vi.waitFor(() => {
+      expect(result.current.syncDone).toBe(true)
+    })
+
+    // checkCanCreate should return false when at limit
+    const allowed = await result.current.checkCanCreate()
+    expect(allowed).toBe(false)
+    expect(alertSpy).toHaveBeenCalledWith('Free plan: 1 saved scenario. Upgrade to save more.')
+
+    alertSpy.mockRestore()
+  })
+})

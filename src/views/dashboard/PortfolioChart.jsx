@@ -10,6 +10,7 @@ import { formatCurrencyShort } from '../../utils/formatters';
 import { projectScenario } from '../../engines/projectionEngine';
 import CustomTooltip from './PortfolioChartTooltip';
 import { buildMilestones, buildPhaseAnnotations } from './portfolioChartHelpers';
+import { responsiveChartHeight } from '../../utils/responsiveChartHeight';
 import {
   buildWaterfallData,
   buildWaterfallInsight,
@@ -151,7 +152,7 @@ function WaterfallLegend({ hasDebt, hasMeltdown, hasSurplus, hasShortfall }) {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function PortfolioChart({ projectionData, scenario, forceView, chartHeight = 360 }) {
+export default function PortfolioChart({ projectionData, scenario, forceView, chartHeight = responsiveChartHeight(window.innerWidth, 220, 360) }) {
   if (!projectionData || projectionData.length === 0) return null;
 
   const [showNoDebt,  setShowNoDebt]  = useState(false);

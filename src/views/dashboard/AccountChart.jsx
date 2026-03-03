@@ -6,6 +6,7 @@ import {
 import { CHART_COLORS, CHART_STYLE, COLORS } from '../../constants/designTokens';
 import { formatCurrencyShort, formatCurrency } from '../../utils/formatters';
 import ChartLegend from '../../components/ChartLegend';
+import { responsiveChartHeight } from '../../utils/responsiveChartHeight';
 
 const ACCOUNTS = [
   { key: 'rrspBalance', label: 'RRSP/RRIF', color: CHART_COLORS.rrsp },
@@ -48,7 +49,7 @@ export default function AccountChart({ projectionData }) {
         Account Balances
       </h3>
       <ChartLegend items={ACCOUNTS.map(({ color, label }) => ({ color, label }))} />
-      <ResponsiveContainer width="100%" height={320}>
+      <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 200, 320)}>
         <AreaChart
           data={projectionData}
           margin={{ top: 10, right: 20, left: 10, bottom: 0 }}

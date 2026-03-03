@@ -29,10 +29,26 @@ const WIZARD_CHECKPOINT_KEY = 'rp-wizard-step';
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
 
 const NAV_TABS = [
-  { key: 'dashboard', label: 'Dashboard' },
-  { key: 'debt', label: 'Debt' },
-  { key: 'compare', label: 'Compare' },
-  { key: 'estate', label: 'Estate' },
+  { key: 'dashboard', label: 'Dashboard', icon: (
+    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+  )},
+  { key: 'debt', label: 'Debt', icon: (
+    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+  )},
+  { key: 'compare', label: 'Compare', icon: (
+    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+    </svg>
+  )},
+  { key: 'estate', label: 'Estate', icon: (
+    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  )},
 ];
 
 const STORAGE_KEY = 'retirement-planner-data';
@@ -301,24 +317,28 @@ export default function App() {
       )}
       {view !== 'wizard' && view !== 'save-nudge' && view !== 'landing' && (
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
-        <div className="px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between gap-3">
-          <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight shrink-0">
-            RetirePlanner.ca
-          </h1>
+        <div className="px-4 sm:px-6 lg:px-10 py-3">
+          {/* Row 1: logo + actions (all screen sizes) */}
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight shrink-0">
+              RetirePlanner.ca
+            </h1>
 
-          <div className="flex items-center gap-2 min-w-0">
+            {/* Desktop: scenario picker + save status inline in row 1 */}
             {authUser && scenarios.length > 0 && (
-              <select value={currentScenarioId || ''} onChange={(e) => handleSwitchScenario(e.target.value)}
-                className="text-sm border border-gray-300 rounded-lg px-2 py-1.5
-                           focus:outline-none focus:ring-2 focus:ring-sunset-400 max-w-[180px]">
-                {scenarios.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              <div className="hidden md:flex items-center gap-2 flex-1 min-w-0 max-w-xs">
+                <select value={currentScenarioId || ''} onChange={(e) => handleSwitchScenario(e.target.value)}
+                  className="text-sm border border-gray-300 rounded-lg px-2 py-1.5
+                             focus:outline-none focus:ring-2 focus:ring-sunset-400 flex-1 min-w-0">
+                  {scenarios.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                {saveStatus === 'saving' && <span className="text-xs text-gray-400 shrink-0">Saving...</span>}
+                {saveStatus === 'saved' && <span className="text-xs text-green-600 shrink-0">Saved</span>}
+                {saveStatus === 'error' && <span className="text-xs text-red-500 shrink-0">Save failed</span>}
+              </div>
             )}
 
-            {authUser && saveStatus === 'saving' && <span className="text-xs text-gray-400 shrink-0">Saving...</span>}
-            {authUser && saveStatus === 'saved' && <span className="text-xs text-green-600 shrink-0">Saved</span>}
-            {authUser && saveStatus === 'error' && <span className="text-xs text-red-500 shrink-0">Save failed</span>}
-
+            <div className="flex items-center gap-1 md:gap-2">
             <div className="relative" ref={menuRef}>
               <button type="button" onClick={() => setMenuOpen(v => !v)}
                 className={`p-1.5 rounded-lg transition-colors ${
@@ -381,18 +401,34 @@ export default function App() {
             <input ref={importInputRef} type="file" accept=".json,application/json"
               onChange={handleImport} className="hidden" aria-label="Import scenario file" />
 
-            <EnvironmentBadge />
-            <SubscriptionBadge />
+            <span className="hidden md:inline-flex"><EnvironmentBadge /></span>
+            <span className="hidden md:inline-flex"><SubscriptionBadge /></span>
             <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
-          </div>
-        </div>
+            </div>{/* end actions */}
+          </div>{/* end row 1 */}
 
-        <nav className="px-4 sm:px-6 lg:px-10 pb-2 flex gap-1">
+          {/* Row 2 (mobile only): scenario picker + save status */}
+          {authUser && scenarios.length > 0 && (
+            <div className="md:hidden mt-2 flex items-center gap-2">
+              <select value={currentScenarioId || ''} onChange={(e) => handleSwitchScenario(e.target.value)}
+                className="text-sm border border-gray-300 rounded-lg px-2 py-1.5
+                           focus:outline-none focus:ring-2 focus:ring-sunset-400 flex-1">
+                {scenarios.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              {saveStatus === 'saving' && <span className="text-xs text-gray-400 shrink-0">Saving...</span>}
+              {saveStatus === 'saved' && <span className="text-xs text-green-600 shrink-0">Saved</span>}
+              {saveStatus === 'error' && <span className="text-xs text-red-500 shrink-0">Save failed</span>}
+            </div>
+          )}
+        </div>{/* end header inner */}
+
+        <nav className="px-4 sm:px-6 lg:px-10 pb-2 flex gap-0.5 sm:gap-1">
           {NAV_TABS.map((tab) => (
             <button key={tab.key} type="button" onClick={() => handleTabClick(tab.key)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-150 ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
                 view === tab.key ? 'bg-sunset-50 text-sunset-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
               }`}>
+              {tab.icon}
               {tab.label}
             </button>
           ))}
@@ -415,7 +451,7 @@ export default function App() {
               onComplete={handleWizardComplete} currentStep={wizardStep} onStepChange={setWizardStep} />
           )}
           {view === 'dashboard' && currentScenario && (
-            <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4">
+            <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4 pb-20 md:pb-4">
               {isPaid
                 ? <WhatIfPanel scenario={currentScenario} overrides={whatIfOverrides}
                     onOverrideChange={handleOverrideChange} onReset={handleResetOverrides}

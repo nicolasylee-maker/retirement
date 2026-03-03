@@ -150,18 +150,22 @@ export default function WizardShell({
             <span className="text-sm font-semibold text-gray-800 truncate">{scenario.name || 'New Plan'}</span>
             <span className="text-xs text-gray-400">{currentStep + 1} / {WIZARD_STEPS}</span>
           </div>
+          {/* Tappable progress segments — h-6 hit area, h-1.5 visual bar */}
           <div className="flex gap-1">
             {STEP_LABELS.map((label, index) => (
               <button
                 key={index}
                 type="button"
                 onClick={() => onStepChange(index)}
-                className={`flex-1 h-1.5 rounded-full transition-colors duration-200 cursor-pointer
-                  ${index < currentStep ? 'bg-sunset-500 hover:bg-sunset-600'
-                    : index === currentStep ? 'bg-sunset-400'
-                    : 'bg-gray-200 hover:bg-gray-300'}`}
+                className="flex-1 flex items-center justify-center h-6 cursor-pointer"
                 title={label}
-              />
+              >
+                <span className={`w-full h-1.5 rounded-full transition-colors duration-200
+                  ${index < currentStep ? 'bg-sunset-500'
+                    : index === currentStep ? 'bg-sunset-400'
+                    : 'bg-gray-200'}`}
+                />
+              </button>
             ))}
           </div>
           <p className="text-xs font-medium text-sunset-600 mt-1.5">{STEP_LABELS[currentStep]}</p>
@@ -188,6 +192,7 @@ export default function WizardShell({
               variant="secondary"
               onClick={handleBack}
               disabled={isFirstStep}
+              className="min-h-[44px]"
             >
               Back
             </Button>
@@ -196,7 +201,7 @@ export default function WizardShell({
               {currentStep + 1} / {WIZARD_STEPS}
             </span>
 
-            <Button variant="primary" onClick={handleNext}>
+            <Button variant="primary" onClick={handleNext} className="min-h-[44px]">
               {isLastStep ? 'View Dashboard' : 'Next'}
             </Button>
           </div>

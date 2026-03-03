@@ -6,6 +6,7 @@ import {
 import { SCENARIO_COLORS, CHART_STYLE, COLORS } from '../../constants/designTokens';
 import { formatCurrencyShort, formatCurrency } from '../../utils/formatters';
 import ChartLegend from '../../components/ChartLegend';
+import { responsiveChartHeight } from '../../utils/responsiveChartHeight';
 
 function buildChartData(projections) {
   const ageMap = new Map();
@@ -63,7 +64,7 @@ export default function CompareChart({ projections, scenarioNames, colors }) {
         Portfolio Comparison
       </h3>
       <ChartLegend items={scenarioNames.map((label, idx) => ({ color: lineColors[idx], label }))} />
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 240, 400)}>
         <LineChart
           data={chartData}
           margin={{ top: 10, right: 20, left: 10, bottom: 0 }}

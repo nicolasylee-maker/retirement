@@ -8,7 +8,6 @@ import { COLORS, CHART_STYLE } from '../../constants/designTokens';
 import ChartLegend from '../../components/ChartLegend';
 import { formatCurrencyShort } from '../../utils/formatters';
 import { projectScenario } from '../../engines/projectionEngine';
-import CustomTooltip from './PortfolioChartTooltip';
 import { buildMilestones, buildPhaseAnnotations } from './portfolioChartHelpers';
 import { responsiveChartHeight } from '../../utils/responsiveChartHeight';
 import {
@@ -25,6 +24,7 @@ import {
 const LABEL_DY = [-14, -28, -42];
 
 function MilestoneLabel({ viewBox, label, color, level }) {
+  if (window.innerWidth < 640) return null;
   const { x, y } = viewBox;
   return (
     <text
@@ -349,9 +349,8 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
               <YAxis
                 tickFormatter={formatCurrencyShort}
                 tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}
-                tickLine={false} axisLine={false} width={60}
+                tickLine={false} axisLine={false} width={window.innerWidth < 640 ? 46 : 60}
               />
-              <Tooltip content={<CustomTooltip />} />
 
               {MilestoneLines}
               <ReferenceLine y={0} stroke={COLORS.gray[500]} strokeDasharray="4 4" />
@@ -418,7 +417,7 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
                 <YAxis
                   tickFormatter={formatCurrencyShort}
                   tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}
-                  tickLine={false} axisLine={false} width={65}
+                  tickLine={false} axisLine={false} width={window.innerWidth < 640 ? 46 : 65}
                 />
                 <Tooltip content={<WaterfallTooltip />} />
 

@@ -110,7 +110,7 @@ export default function IncomeExpenseChart({ projectionData }) {
             tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}
             tickLine={false}
             axisLine={false}
-            width={60}
+            width={window.innerWidth < 640 ? 46 : 60}
           />
           <Tooltip content={<CustomTooltip />} />
 

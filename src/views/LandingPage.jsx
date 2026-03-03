@@ -41,7 +41,7 @@ export function LandingPage({ onTryAnonymous }) {
     <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
 
       {/* ── LEFT 60%: Live Dashboard Demo ─────────────────────── */}
-      <div className="lg:w-3/5 flex flex-col px-8 py-10 lg:px-10 lg:py-10 overflow-y-auto">
+      <div className="order-2 lg:order-1 lg:w-3/5 flex flex-col px-8 py-10 lg:px-10 lg:py-10 overflow-y-auto">
 
         <div className="text-xl font-bold text-orange-500 tracking-tight mb-6">
           RetirePlanner.ca
@@ -61,7 +61,7 @@ export function LandingPage({ onTryAnonymous }) {
           </span>
           <span className="text-xs text-gray-400">·</span>
           <span className="text-xs text-gray-500 font-medium">Sophie Martin · Age 64, Ontario</span>
-          <span className="ml-auto text-xs text-gray-400 italic">Hover chart for details</span>
+          <span className="ml-auto text-xs text-gray-400 italic hidden sm:inline">Hover chart for details</span>
         </div>
 
         {/* ── Summary cards — real engine output ── */}
@@ -74,7 +74,6 @@ export function LandingPage({ onTryAnonymous }) {
           projectionData={DEMO_PROJECTION}
           scenario={DEMO_SCENARIO}
           forceView="balance"
-          chartHeight={260}
         />
 
         <p className="text-xs text-gray-400 mt-4">
@@ -83,7 +82,7 @@ export function LandingPage({ onTryAnonymous }) {
       </div>
 
       {/* ── RIGHT 40%: Sign-in ─────────────────────────────────── */}
-      <div className="lg:w-2/5 flex items-center justify-center px-8 py-12 bg-white border-l border-gray-200">
+      <div className="order-1 lg:order-2 lg:w-2/5 flex items-center justify-center px-8 py-12 bg-white lg:border-l border-b lg:border-b-0 border-gray-200">
         <div className="w-full max-w-sm">
 
           <h2 className="text-3xl font-black text-gray-900 mb-2">Start your free plan</h2>

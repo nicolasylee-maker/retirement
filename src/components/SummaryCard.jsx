@@ -20,7 +20,7 @@ export default function SummaryCard({ label, value, subtitle, color = 'sunset', 
           {label}
           {richHelp ? <RichTooltip {...richHelp} /> : help && <HelpIcon text={help} />}
         </p>
-        <p className="text-2xl font-bold text-gray-900 mt-1 tabular-nums leading-tight">{value}</p>
+        <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1 tabular-nums leading-tight truncate">{value}</p>
         {subtitle && (
           <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
         )}

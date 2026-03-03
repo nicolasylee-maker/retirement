@@ -9,6 +9,56 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function buildPrompt(type: string, context: Record<string, unknown>, config: Record<string, string>): string {
+  const base = config['prompt_base'] ?? ''
+  const templateKey = `prompt_${type}`
+  let template = config[templateKey] ?? ''
+
+  // Pre-build special multi-line strings
+  if (type === 'dashboard') {
+    const pensionLine = context['pensionIncome']
+      ? `- Pension: $${context['pensionIncome']}/yr`
+      : '- No employer pension'
+    template = template.replace('{pensionLine}', pensionLine)
+  }
+
+  if (type === 'compare') {
+    const scenarios = (context['scenarios'] as Array<Record<string, unknown>>) || []
+    const scenarioLines = scenarios
+      .map((s, i) =>
+        `Scenario ${i + 1} "${s['name']}": Net worth $${s['netWorthAtRetirement']}, ` +
+        `Sustainable monthly $${s['sustainableMonthly']}, Tax $${s['annualTax']}, ` +
+        `Portfolio at ${s['lifeExpectancy']}: $${s['portfolioAtEnd']}`
+      )
+      .join('\n')
+    template = template.replace('{scenarioLines}', scenarioLines)
+  }
+
+  if (type === 'estate') {
+    context = {
+      ...context,
+      hasWill: context['hasWill'] ? 'Yes' : 'No',
+      spouseRollover: context['spouseRollover'] ? 'Yes' : 'No',
+    }
+  }
+
+  if (type === 'debt') {
+    context = {
+      ...context,
+      consumerDebt: context['consumerDebt'] ?? 0,
+      consumerRatePct: (((context['consumerRate'] as number) || 0.08) * 100).toFixed(1),
+      mortgageBalance: context['mortgageBalance'] ?? 0,
+      mortgageRatePct: (((context['mortgageRate'] as number) || 0.05) * 100).toFixed(1),
+      monthlyPayments: Math.round((context['monthlyPayments'] as number) || 0),
+    }
+  }
+
+  // Substitute {variableName} placeholders
+  const body = template.replace(/\{(\w+)\}/g, (_, key: string) => String(context[key] ?? ''))
+
+  return `${base}\n\n${body}`
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -43,6 +93,17 @@ Deno.serve(async (req) => {
 
     // Service role client for reading subscription data and writing ai_usage (bypasses RLS)
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
+
+    // Load config from DB
+    const { data: configRows } = await supabaseAdmin
+      .from('admin_config')
+      .select('config_key, config_value')
+    const config: Record<string, string> = Object.fromEntries(
+      (configRows || []).map(r => [r.config_key, r.config_value])
+    )
+    const geminiModel = config['gemini_model'] ?? 'gemini-3-flash-preview'
+    const temperature = parseFloat(config['temperature'] ?? '0.7')
+    const maxOutputTokens = parseInt(config['max_output_tokens'] ?? '4096', 10)
 
     // 2. Check subscription (user must be paid)
     const { data: userData } = await supabaseAdmin
@@ -112,24 +173,25 @@ Deno.serve(async (req) => {
 
     // 5. Parse request body
     const body = await req.json().catch(() => ({}))
-    const { prompt, context } = body
+    const { type, context } = body
 
-    if (!prompt) {
-      return new Response(JSON.stringify({ error: 'Missing prompt' }), {
+    if (!type) {
+      return new Response(JSON.stringify({ error: 'Missing type' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
     // 6. Call Gemini API
+    const prompt = buildPrompt(type, (context as Record<string, unknown>) ?? {}, config)
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+          generationConfig: { temperature, maxOutputTokens },
         }),
       },
     )

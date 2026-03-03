@@ -1,55 +1,67 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import { supabase } from '../../services/supabaseClient'
-import InviteForm from './InviteForm'
-import OverrideList from './OverrideList'
+import OverviewSection from './sections/OverviewSection'
+import UsersSection from './sections/UsersSection'
+import AiConfigSection from './sections/AiConfigSection'
+import SubscriptionsSection from './sections/SubscriptionsSection'
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
 
-export default function AdminView() {
-  const { user, session } = useAuth()
-  const [overrideUsers, setOverrideUsers] = useState([])
-  const [loading, setLoading] = useState(true)
+const NAV = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'users', label: 'Users' },
+  { key: 'ai-config', label: 'AI Config' },
+  { key: 'subscriptions', label: 'Subscriptions' },
+]
 
-  const isAdmin = user?.email === ADMIN_EMAIL
+export default function AdminView({ onClose }) {
+  const { user } = useAuth()
+  const [activeSection, setActiveSection] = useState('overview')
 
-  const fetchOverrideUsers = useCallback(async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, email, subscription_override, created_at')
-      .not('subscription_override', 'is', null)
-      .order('created_at', { ascending: false })
-
-    if (!error && data) {
-      setOverrideUsers(data)
-    }
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    if (isAdmin) fetchOverrideUsers()
-  }, [isAdmin, fetchOverrideUsers])
-
-  if (!isAdmin) return null
-
-  const handleRevoked = (userId) => {
-    setOverrideUsers((prev) => prev.filter((u) => u.id !== userId))
-  }
+  if (user?.email !== ADMIN_EMAIL) return null
 
   return (
-    <div className="px-4 sm:px-6 lg:px-10 py-8 max-w-3xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Admin</h1>
-
-      <InviteForm session={session} onInvited={fetchOverrideUsers} />
-
-      {loading ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <p className="text-sm text-gray-500">Loading override users…</p>
+    <div className="fixed inset-0 z-50 flex bg-gray-50">
+      {/* Sidebar */}
+      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col shrink-0">
+        <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
+          <span className="font-bold text-gray-900 text-sm">Admin</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Close admin"
+          >
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-      ) : (
-        <OverrideList users={overrideUsers} session={session} onRevoked={handleRevoked} />
-      )}
+        <nav className="flex-1 p-2 space-y-0.5">
+          {NAV.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setActiveSection(item.key)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                activeSection === item.key
+                  ? 'bg-purple-50 text-purple-700 font-medium'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 overflow-y-auto px-6 lg:px-10 py-8">
+        {activeSection === 'overview' && <OverviewSection />}
+        {activeSection === 'users' && <UsersSection />}
+        {activeSection === 'ai-config' && <AiConfigSection />}
+        {activeSection === 'subscriptions' && <SubscriptionsSection />}
+      </main>
     </div>
   )
 }

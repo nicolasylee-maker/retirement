@@ -312,7 +312,7 @@ export default function App() {
           to keep access.
         </div>
       )}
-      {view !== 'wizard' && view !== 'save-nudge' && view !== 'landing' && (
+      {view !== 'wizard' && view !== 'save-nudge' && view !== 'landing' && view !== 'admin' && (
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div className="px-4 sm:px-6 lg:px-10 py-3">
           {/* Row 1: logo + actions (all screen sizes) */}
@@ -490,7 +490,7 @@ export default function App() {
               onStartNew={handleStartNew}
             />
           )}
-          {view === 'admin' && isAdmin && <AdminView />}
+          {view === 'admin' && isAdmin && <AdminView onClose={() => setView('dashboard')} />}
         </div>
       </main>
 

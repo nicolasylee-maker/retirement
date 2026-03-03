@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const QUOTA_PER_MONTH = 30
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
+const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') ?? ''
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,7 +61,8 @@ Deno.serve(async (req) => {
 
     const isPaid = userData?.subscription_override != null ||
       subData?.status === 'active' ||
-      subData?.status === 'trialing'
+      subData?.status === 'trialing' ||
+      (!!ADMIN_EMAIL && user.email === ADMIN_EMAIL)
 
     if (!isPaid) {
       return new Response(JSON.stringify({ error: 'subscription_required' }), {

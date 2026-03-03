@@ -65,7 +65,7 @@ export function LandingPage({ onTryAnonymous }) {
 
         {/* ── Summary cards — real engine output ── */}
         <div className="mb-4">
-          <SummaryCards projectionData={DEMO_PROJECTION} scenario={DEMO_SCENARIO} />
+          <SummaryCards projectionData={DEMO_PROJECTION} scenario={DEMO_SCENARIO} pulseSafeSpend />
         </div>
 
         {/* ── Portfolio chart — interactive, balance view only ── */}

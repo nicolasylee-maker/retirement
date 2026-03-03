@@ -9,7 +9,7 @@ const accentColors = {
   danger: 'bg-red-500',
 };
 
-export default function SummaryCard({ label, value, subtitle, color = 'sunset', help, richHelp }) {
+export default function SummaryCard({ label, value, subtitle, color = 'sunset', help, richHelp, pulse = false }) {
   const accent = accentColors[color] || accentColors.sunset;
 
   return (
@@ -18,7 +18,7 @@ export default function SummaryCard({ label, value, subtitle, color = 'sunset', 
       <div className="px-4 py-3 flex flex-col flex-1">
         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide flex items-center gap-0.5 whitespace-nowrap">
           {label}
-          {richHelp ? <span className="hidden sm:inline-flex items-center"><RichTooltip {...richHelp} /></span> : help && <HelpIcon text={help} />}
+          {richHelp ? <span className="hidden sm:inline-flex items-center"><RichTooltip {...richHelp} pulse={pulse} /></span> : help && <HelpIcon text={help} />}
         </p>
         <p className="text-base sm:text-xl lg:text-2xl font-bold text-gray-900 mt-1 tabular-nums leading-tight truncate">{value}</p>
         {subtitle && (

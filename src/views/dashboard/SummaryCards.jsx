@@ -3,7 +3,7 @@ import SummaryCard from '../../components/SummaryCard';
 import { calcSustainableWithdrawal } from '../../engines/withdrawalCalc';
 import { formatCurrency } from '../../utils/formatters';
 
-export default function SummaryCards({ projectionData, scenario }) {
+export default function SummaryCards({ projectionData, scenario, pulseSafeSpend = false }) {
   const retirementRow = useMemo(
     () => projectionData.find(r => r.age === scenario.retirementAge),
     [projectionData, scenario],
@@ -274,6 +274,7 @@ export default function SummaryCards({ projectionData, scenario }) {
         subtitle="Monthly to age 95"
         richHelp={safeSpendHelp}
         color="sunset"
+        pulse={pulseSafeSpend}
       />
     </div>
   );

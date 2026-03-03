@@ -60,6 +60,13 @@
 - `runTaxSmokeTest` (exported from `TaxDataEditor.jsx`) runs an inline bracket calculation — it does NOT call `_injectLiveTaxData`. This keeps the smoke test side-effect-free and safely callable from tests without touching global state.
 - "Seed from bundled JSON" posts the currently-bundled data to the edge function. It is idempotent (upsert on `province, tax_year`). Always run seed before expecting the Maintenance editor to show real data from the DB.
 
+## Optimizer Engine / Test Scenarios
+
+- **CPP deferral lifts lifetime income, not just depletion age**: At a long life expectancy (85+), CPP deferred to 70 earns a 42% bonus for many years, so its *lifetime income* often beats all alternatives even when the portfolio is thin. The "recommend earlier CPP" test needs a *short* life expectancy (LE ≈ 74) so the deferral bonus doesn't compensate for the missing collection years. At LE=74, CPP@64 collects for 10 years vs CPP@70 for only 4 — earlier wins.
+- **RRSP meltdown needs low baseline expenses to have marginal effect**: If the person is already drawing RRSP heavily for living expenses (e.g. $54K/yr when monthly expenses are $4500), the meltdown amounts ($10–30K/yr) are *less* than the natural draws and have zero marginal impact. Use low expenses (≤$30K/yr) so natural RRSP draws are small and the meltdown represents a genuine additional withdrawal that shifts tax timing.
+- **Optimizer scores are per-scenario, independent per dimension**: Each dimension is tested in isolation against the baseline — interactions between dimensions (e.g. "defer CPP and also do meltdown") are not jointly optimised. Applying a recommendation updates the scenario, then re-running re-scores all dimensions against the new baseline.
+- **Skip logic prevents noise**: meltdown + withdrawalOrder skip when `rrspBalance + rrifBalance === 0`; expenses skip when `base.depletion === null`; spouse dims skip when `!isCouple`. Tests should assert these dimensions are *absent* from both `recommendations` and `alreadyOptimal` (not just not recommended).
+
 ## Estate Rules (Ontario)
 
 - RRSP/RRIF deemed fully disposed at death (unless spouse rollover)

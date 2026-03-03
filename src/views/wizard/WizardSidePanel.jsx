@@ -96,6 +96,7 @@ export default function WizardSidePanel({
   onNext,
   onBack,
   onComplete,
+  nextDisabled,
 }) {
   const stepConfig = STEP_SUMMARY[currentStep] ?? STEP_SUMMARY[0];
 
@@ -141,6 +142,7 @@ export default function WizardSidePanel({
           <Button
             variant="primary"
             onClick={onNext}
+            disabled={nextDisabled}
             className="flex-[2] text-sm"
           >
             {isLastStep ? 'Finish' : 'Next →'}
@@ -149,6 +151,7 @@ export default function WizardSidePanel({
         <Button
           variant="secondary"
           onClick={onComplete}
+          disabled={nextDisabled}
           className="w-full text-sm"
         >
           View Results

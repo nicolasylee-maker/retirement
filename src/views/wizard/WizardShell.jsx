@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import Button from '../../components/Button';
 import WizardSidePanel from './WizardSidePanel';
 import { STEP_LABELS, WIZARD_STEPS } from '../../constants/defaults';
@@ -8,7 +8,7 @@ import GovBenefitsStep from './GovBenefitsStep';
 import PensionsStep from './PensionsStep';
 import SavingsStep from './SavingsStep';
 import OtherAssetsStep from './OtherAssetsStep';
-import LiabilitiesStep from './LiabilitiesStep';
+import LiabilitiesStep, { validateLiabilities } from './LiabilitiesStep';
 import ExpensesStep from './ExpensesStep';
 import WithdrawalStep from './WithdrawalStep';
 import EstateStep from './EstateStep';
@@ -37,6 +37,12 @@ export default function WizardShell({
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === WIZARD_STEPS - 1;
   const StepComponent = STEP_COMPONENTS[currentStep];
+
+  const stepErrors = useMemo(() => {
+    if (currentStep === 5) return validateLiabilities(scenario);
+    return null;
+  }, [currentStep, scenario]);
+  const hasStepErrors = stepErrors && Object.keys(stepErrors).length > 0;
 
   // Persist step to localStorage so the user resumes where they left off
   useEffect(() => {
@@ -185,6 +191,7 @@ export default function WizardShell({
         onNext={handleNext}
         onBack={handleBack}
         onComplete={onComplete}
+        nextDisabled={hasStepErrors}
       />
 
       {/* Mobile sticky footer — hidden on desktop */}
@@ -201,11 +208,11 @@ export default function WizardShell({
           <span className="text-xs text-gray-400 shrink-0">
             {currentStep + 1} / {WIZARD_STEPS}
           </span>
-          <Button variant="primary" onClick={handleNext} className="min-h-[44px] flex-1">
+          <Button variant="primary" onClick={handleNext} disabled={hasStepErrors} className="min-h-[44px] flex-1">
             {isLastStep ? 'Finish' : 'Next'}
           </Button>
         </div>
-        <Button variant="secondary" onClick={onComplete} className="w-full min-h-[44px] text-sm">
+        <Button variant="secondary" onClick={onComplete} disabled={hasStepErrors} className="w-full min-h-[44px] text-sm">
           View Results
         </Button>
       </div>

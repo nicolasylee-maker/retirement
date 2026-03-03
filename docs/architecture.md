@@ -73,7 +73,8 @@ retirement/
 │   │   ├── analytics.js                    ← Plausible custom event helper (no-ops if window.plausible absent)
 │   │   ├── formatters.js                   ← Currency, percent, UUID, math utilities
 │   │   ├── generateReport.js               ← HTML retirement report (PDF-printable, inputs + projection)
-│   │   └── downloadAudit.js                ← Audit report assembler + Markdown download trigger
+│   │   ├── downloadAudit.js                ← Audit report assembler + Markdown download trigger
+│   │   └── responsiveChartHeight.js        ← Pure fn: returns mobileH when windowWidth<640, else desktopH
 │   │
 │   ├── components/                         ← Reusable UI components
 │   │   ├── AiInsight.jsx                   ← AI recommendation card (Gemini integration)
@@ -90,7 +91,7 @@ retirement/
 │   │
 │   └── views/                              ← Page-level view components
 │       ├── WelcomeScreen.jsx               ← Landing page (New Plan / Load Saved Plan)
-│       ├── WhatIfPanel.jsx                 ← Collapsible parameter override panel
+│       ├── WhatIfPanel.jsx                 ← Collapsible parameter panel (inline on md+; bottom drawer portal on mobile)
 │       │
 │       ├── wizard/                         ← 9-step input wizard
 │       │   ├── WizardShell.jsx             ← Wizard container, navigation, step management

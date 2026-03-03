@@ -11,6 +11,18 @@ function stripCommas(s) {
   return s.replace(/,/g, '');
 }
 
+// After formatting a number, find the cursor index in the formatted string
+// such that rawPos non-comma characters have been passed.
+function findCursorInFormatted(formatted, rawPos) {
+  if (rawPos === 0) return 0;
+  let rawCount = 0;
+  for (let i = 0; i < formatted.length; i++) {
+    if (formatted[i] !== ',') rawCount++;
+    if (rawCount === rawPos) return i + 1;
+  }
+  return formatted.length;
+}
+
 export default function FormField({
   label,
   name,
@@ -36,24 +48,36 @@ export default function FormField({
   const handleChange = useCallback((e) => {
     if (!onChange) return;
     if (isNum) {
-      const raw = stripCommas(e.target.value);
+      const proposedValue = e.target.value;
+      const cursorPos = e.target.selectionStart;
+      const raw = stripCommas(proposedValue);
       if (raw === '' || raw === '-') {
-        if (editing) setEditVal(e.target.value);
+        setEditVal(raw);
         onChange(raw === '' ? '' : raw);
         return;
       }
       if (!/^-?\d*\.?\d*$/.test(raw)) return;
-      if (editing) setEditVal(raw);
+      const formatted = addCommas(raw);
+      setEditVal(formatted);
       onChange(Number(raw));
+      // Restore cursor: count raw chars before cursor in proposed value, then find that
+      // position in the reformatted string (accounting for added/removed commas).
+      const rawCursorPos = proposedValue.slice(0, cursorPos).replace(/,/g, '').length;
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          const newPos = findCursorInFormatted(formatted, rawCursorPos);
+          inputRef.current.setSelectionRange(newPos, newPos);
+        }
+      });
     } else {
       onChange(e.target.value);
     }
-  }, [onChange, isNum, editing]);
+  }, [onChange, isNum]);
 
   const handleFocus = useCallback(() => {
     if (isNum) {
       setEditing(true);
-      setEditVal(value == null || value === '' ? '' : String(value));
+      setEditVal(value == null || value === '' ? '' : addCommas(String(value)));
     }
   }, [isNum, value]);
 

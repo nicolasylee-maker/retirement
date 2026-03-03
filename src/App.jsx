@@ -26,7 +26,7 @@ import { EnvironmentBadge } from './components/EnvironmentBadge';
 import { useSubscription } from './contexts/SubscriptionContext';
 import { useAuth } from './contexts/AuthContext';
 import { useCloudSync } from './hooks/useCloudSync';
-import { deleteScenario as deleteScenarioFromCloud } from './services/scenarioService';
+import { deleteScenario as deleteScenarioFromCloud, saveScenario } from './services/scenarioService';
 import { getAiRecommendation } from './services/geminiService';
 import { computeHash } from './components/AiInsight';
 import { buildDashboardAiData, buildDebtAiData, buildCompareAiData, buildEstateAiData } from './utils/buildAiData';
@@ -228,7 +228,7 @@ export default function App() {
     setView('wizard');
   }, [checkCanCreate]);
 
-  const handleLoadScenario = useCallback((jsonData) => {
+  const handleLoadScenario = useCallback(async (jsonData) => {
     let loaded = [];
     if (jsonData?.version === 3 && Array.isArray(jsonData.scenarios)) {
       loaded = jsonData.scenarios;
@@ -245,7 +245,16 @@ export default function App() {
     setCurrentScenarioId(valid[0].id);
     setWhatIfOverrides({});
     setView('dashboard');
-  }, []);
+
+    // Persist all imported scenarios to cloud immediately
+    if (authUser) {
+      try {
+        await Promise.all(valid.map(s => saveScenario(authUser.id, s)));
+      } catch {
+        // Auto-save will eventually catch the current one
+      }
+    }
+  }, [authUser]);
 
   const handleWizardComplete = useCallback(() => setView('dashboard'), []);
 

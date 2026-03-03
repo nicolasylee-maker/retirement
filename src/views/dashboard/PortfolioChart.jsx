@@ -331,7 +331,7 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
           }}
         >
           <ResponsiveContainer width="100%" height={chartHeight}>
-            <ComposedChart data={mergedData} margin={{ top: 46, right: 20, left: 10, bottom: 0 }}>
+            <ComposedChart data={mergedData} margin={{ top: 46, right: 20, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor={COLORS.sunset.main} stopOpacity={0.3} />
@@ -407,7 +407,7 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
         >
           {waterfallData && (
             <ResponsiveContainer width="100%" height={chartHeight}>
-              <BarChart data={waterfallData} margin={{ top: 46, right: 20, left: 10, bottom: 0 }}>
+              <BarChart data={waterfallData} margin={{ top: 46, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_STYLE.gridColor} vertical={false} />
                 <XAxis
                   dataKey="age"

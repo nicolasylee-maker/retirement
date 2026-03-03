@@ -67,7 +67,7 @@ export default function CompareChart({ projections, scenarioNames, colors }) {
       <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 240, 400)}>
         <LineChart
           data={chartData}
-          margin={{ top: 10, right: 20, left: 10, bottom: 0 }}
+          margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
         >
           <CartesianGrid
             strokeDasharray="3 3"

@@ -92,7 +92,7 @@ export default function IncomeExpenseChart({ projectionData }) {
       <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 200, 320)}>
         <ComposedChart
           data={projectionData}
-          margin={{ top: 5, right: 20, left: 10, bottom: 0 }}
+          margin={{ top: 5, right: 20, left: 0, bottom: 0 }}
         >
           <CartesianGrid
             strokeDasharray="3 3"

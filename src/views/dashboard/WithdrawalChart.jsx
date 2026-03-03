@@ -66,7 +66,7 @@ export default function WithdrawalChart({ projectionData, scenario }) {
       <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 180, 280)}>
         <BarChart
           data={data}
-          margin={{ top: 5, right: 20, left: 10, bottom: 0 }}
+          margin={{ top: 5, right: 20, left: 0, bottom: 0 }}
         >
           <CartesianGrid
             strokeDasharray="3 3"

@@ -110,7 +110,7 @@ function BeforeAfter({ before, after }) {
 
 export default function RecommendationCard({ rec, isPaid, isFirst, onApply, applied, onViewDashboard }) {
   const [confirming, setConfirming] = useState(false)
-  const blurred = !isPaid && !isFirst
+  const blurred = !isPaid
 
   const handleApplyClick = () => {
     if (applied) return

@@ -221,6 +221,10 @@ export default function RecommendationsTab({ result, isPaid, onScenarioChange, o
 
           <SummaryBanner result={result} />
 
+          {!isPaid && orderedRecs.length > 0 && (
+            <UpgradeCta lockedRecs={orderedRecs} onUpgrade={onUpgrade} />
+          )}
+
           {sections.map(({ cat, items }) => (
             <div key={cat} className="space-y-4">
               {/* Section header */}
@@ -234,19 +238,15 @@ export default function RecommendationsTab({ result, isPaid, onScenarioChange, o
                 const globalIdx = globalIdxMap.get(rec.id)
                 const isFirst = globalIdx === 0
                 return (
-                  <React.Fragment key={rec.id}>
-                    <RecommendationCard
-                      rec={rec}
-                      isPaid={isPaid}
-                      isFirst={isFirst}
-                      onApply={() => handleApply(rec)}
-                      applied={appliedIds.has(rec.id)}
-                      onViewDashboard={onViewDashboard}
-                    />
-                    {isFirst && !isPaid && orderedRecs.length > 1 && (
-                      <UpgradeCta lockedRecs={orderedRecs.slice(1)} onUpgrade={onUpgrade} />
-                    )}
-                  </React.Fragment>
+                  <RecommendationCard
+                    key={rec.id}
+                    rec={rec}
+                    isPaid={isPaid}
+                    isFirst={isFirst}
+                    onApply={() => handleApply(rec)}
+                    applied={appliedIds.has(rec.id)}
+                    onViewDashboard={onViewDashboard}
+                  />
                 )
               })}
             </div>

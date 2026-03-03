@@ -31,7 +31,7 @@ const FEATURES = [
   'AI-powered retirement insights',
 ]
 
-export default function UpgradePrompt({ variant = 'full', featureName, modal = false }) {
+export default function UpgradePrompt({ variant = 'full', featureName, modal = false, onUpgrade }) {
   const { isLoading } = useSubscription()
   const { user } = useAuth()
   const [billingPlan, setBillingPlan] = useState('yearly')
@@ -83,14 +83,14 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
           </div>
           <button
             type="button"
-            onClick={handleCheckout}
-            disabled={checkoutLoading}
+            onClick={onUpgrade ?? handleCheckout}
+            disabled={!onUpgrade && checkoutLoading}
             className="flex-shrink-0 px-3 py-1.5 text-sm font-semibold text-white rounded-lg
                        bg-gradient-to-r from-purple-600 to-indigo-600
                        hover:from-purple-700 hover:to-indigo-700
                        disabled:opacity-50 transition-all whitespace-nowrap"
           >
-            {checkoutLoading ? 'Loading...' : 'Start trial'}
+            {(!onUpgrade && checkoutLoading) ? 'Loading...' : 'Start trial'}
           </button>
           {checkoutError && <p className="text-xs text-red-600">{checkoutError}</p>}
         </div>

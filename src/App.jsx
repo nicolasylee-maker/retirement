@@ -480,7 +480,7 @@ export default function App() {
                 ? <WhatIfPanel scenario={currentScenario} overrides={whatIfOverrides}
                     onOverrideChange={handleOverrideChange} onReset={handleResetOverrides}
                     expanded={whatIfExpanded} onToggle={() => setWhatIfExpanded(v => !v)} />
-                : <UpgradePrompt variant="compact" featureName="What-If Analysis" />
+                : <UpgradePrompt variant="compact" featureName="What-If Analysis" onUpgrade={() => setUpgradeModalOpen(true)} />
               }
               <Dashboard scenario={effectiveScenario} projectionData={projectionData}
                 onScenarioChange={handleScenarioChange} isPaid={isPaid} />

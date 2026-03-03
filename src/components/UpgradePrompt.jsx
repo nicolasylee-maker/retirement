@@ -42,6 +42,7 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
   if (isLoading) return null
 
   async function handleCheckout() {
+    if (!user) { setAuthOpen(true); return }
     setCheckoutLoading(true)
     setCheckoutError('')
     const priceId = billingPlan === 'yearly' ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID
@@ -53,26 +54,48 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
     }
   }
 
-  if (variant === 'compact') {
-    return (
-      <div className="card-base p-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-gray-500 min-w-0">
-          <LockIcon className="w-4 h-4 flex-shrink-0 text-purple-400" />
-          <span className="text-sm font-medium truncate">Upgrade to unlock {featureName}</span>
-        </div>
+  const authModal = authOpen && (
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/40"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) setAuthOpen(false) }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl relative">
         <button
           type="button"
-          onClick={handleCheckout}
-          disabled={checkoutLoading}
-          className="flex-shrink-0 px-3 py-1.5 text-sm font-semibold text-white rounded-lg
-                     bg-gradient-to-r from-purple-600 to-indigo-600
-                     hover:from-purple-700 hover:to-indigo-700
-                     disabled:opacity-50 transition-all whitespace-nowrap"
+          onClick={() => setAuthOpen(false)}
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl leading-none"
+          aria-label="Close"
         >
-          {checkoutLoading ? 'Loading...' : 'Start trial'}
+          &times;
         </button>
-        {checkoutError && <p className="text-xs text-red-600">{checkoutError}</p>}
+        <AuthPanel onClose={() => setAuthOpen(false)} />
       </div>
+    </div>
+  )
+
+  if (variant === 'compact') {
+    return (
+      <>
+        <div className="card-base p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-gray-500 min-w-0">
+            <LockIcon className="w-4 h-4 flex-shrink-0 text-purple-400" />
+            <span className="text-sm font-medium truncate">Upgrade to unlock {featureName}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleCheckout}
+            disabled={checkoutLoading}
+            className="flex-shrink-0 px-3 py-1.5 text-sm font-semibold text-white rounded-lg
+                       bg-gradient-to-r from-purple-600 to-indigo-600
+                       hover:from-purple-700 hover:to-indigo-700
+                       disabled:opacity-50 transition-all whitespace-nowrap"
+          >
+            {checkoutLoading ? 'Loading...' : 'Start trial'}
+          </button>
+          {checkoutError && <p className="text-xs text-red-600">{checkoutError}</p>}
+        </div>
+        {authModal}
+      </>
     )
   }
 
@@ -158,25 +181,6 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
           Already subscribed? Sign in
         </button>
       )}
-    </div>
-  )
-
-  const authModal = authOpen && (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) setAuthOpen(false) }}
-    >
-      <div className="bg-white rounded-2xl shadow-2xl relative">
-        <button
-          type="button"
-          onClick={() => setAuthOpen(false)}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl leading-none"
-          aria-label="Close"
-        >
-          &times;
-        </button>
-        <AuthPanel onClose={() => setAuthOpen(false)} />
-      </div>
     </div>
   )
 

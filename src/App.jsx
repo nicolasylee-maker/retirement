@@ -280,7 +280,17 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const GATED_TABS = new Set(['compare', 'estate']);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'success') {
+      setCheckoutSuccess(true);
+      history.replaceState(null, '', window.location.pathname);
+      setTimeout(() => setCheckoutSuccess(false), 5000);
+    }
+  }, []);
 
   const handleTabClick = useCallback((tabKey) => {
     if (!isPaid && GATED_TABS.has(tabKey)) {
@@ -302,11 +312,22 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {checkoutSuccess && (
+        <div className="bg-green-600 text-white text-center py-2 text-sm font-medium">
+          Your trial is active! Welcome to RetirePlanner Pro.
+        </div>
+      )}
       {isPastDue && (
         <div className="bg-red-600 text-white text-center py-2 text-sm">
           Your payment failed.{' '}
-          <button type="button" onClick={openBillingPortal}
-            className="underline font-semibold hover:text-red-100 transition-colors">
+          <button
+            type="button"
+            onClick={async () => {
+              try { await openBillingPortal(); }
+              catch { alert('Could not open billing portal. Please try again.'); }
+            }}
+            className="underline font-semibold hover:text-red-100 transition-colors"
+          >
             Update your card
           </button>{' '}
           to keep access.

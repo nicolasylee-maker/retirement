@@ -67,7 +67,9 @@ retirement/
 │   │   └── auditAnalysis.js                ← Audit sections 6–10: estate, withdrawal, RRIF, gaps, KPIs
 │   │
 │   ├── services/
-│   │   └── geminiService.js                ← Google Gemini AI integration (optional insights)
+│   │   ├── supabaseClient.js               ← Supabase client singleton (auth + DB)
+│   │   ├── geminiService.js                ← Sends {type, context} to gemini-proxy edge fn; in-memory cache
+│   │   └── adminService.js                 ← adminApi: stats, users, config, subscriptions
 │   │
 │   ├── utils/
 │   │   ├── analytics.js                    ← Plausible custom event helper (no-ops if window.plausible absent)
@@ -119,10 +121,23 @@ retirement/
 │       │   ├── CompareChart.jsx            ← Multi-line portfolio comparison chart
 │       │   └── CompareTable.jsx            ← Year-by-year comparison table
 │       │
-│       └── estate/                         ← Estate planning view
-│           ├── EstateView.jsx              ← Death age slider, will toggle
-│           ├── EstateSummaryCards.jsx       ← Estate KPI cards
-│           └── EstateBreakdown.jsx         ← Tax breakdown + distribution to heirs
+│       ├── estate/                         ← Estate planning view
+│       │   ├── EstateView.jsx              ← Death age slider, will toggle
+│       │   ├── EstateSummaryCards.jsx      ← Estate KPI cards
+│       │   └── EstateBreakdown.jsx         ← Tax breakdown + distribution to heirs
+│       │
+│       └── admin/                          ← Full-screen admin overlay (fixed inset-0 z-50)
+│           ├── AdminView.jsx               ← Sidebar nav + section switcher
+│           ├── sections/
+│           │   ├── OverviewSection.jsx     ← Stat cards + 30-day signup chart
+│           │   ├── UsersSection.jsx        ← User table, search, override select, invite
+│           │   ├── AiConfigSection.jsx     ← Live model/temp/token/prompt editing
+│           │   └── SubscriptionsSection.jsx← Stripe subscription table + status badges
+│           └── components/
+│               ├── StatCard.jsx            ← Reusable stat display card
+│               ├── SignupChart.jsx         ← Recharts BarChart (signups by day)
+│               ├── UserScenariosPanel.jsx  ← Slide-out right panel for user's scenarios
+│               └── InviteModal.jsx         ← Invite user modal (wraps send-invite edge fn)
 │
 ├── tests/                                  ← Vitest test files (277 tests, 8 files)
 │   ├── taxEngine.test.js                   ← Federal/Ontario tax, surtax, OAS clawback, RRIF mins (51)
@@ -317,7 +332,9 @@ tests/yourModuleEngine.test.js    ← Unit tests for engine functions
 | `src/engines/estateEngine.js` | Estate tax, probate, distribution |
 | `src/engines/withdrawalCalc.js` | Sustainable withdrawal (binary search) |
 | `src/engines/incomeHelpers.js` | Pure income helper functions (CPP, OAS, GIS, GAINS, capital gains) |
-| `src/services/geminiService.js` | Optional AI insights via Gemini API |
+| `src/services/supabaseClient.js` | Supabase client singleton |
+| `src/services/geminiService.js` | Sends `{type, context}` to gemini-proxy; in-memory cache |
+| `src/services/adminService.js` | `adminApi` — all admin edge function calls |
 | `src/utils/analytics.js` | Plausible custom event helper — trackEvent(name, props) |
 | `src/utils/formatters.js` | Currency/percent formatting, UUID generation |
 | `docs/architecture.md` | This file |
@@ -460,8 +477,9 @@ npm run build
 # S3: aws s3 sync dist/ s3://your-bucket --delete
 ```
 
-No server-side code, no environment variables required.
-Gemini API key is user-provided at runtime (stored in localStorage).
+Frontend auto-deploys to Vercel on push to `main`.
+Supabase edge functions deploy separately: `supabase functions deploy <fn> --use-api --no-verify-jwt`
+See `docs/learned-rules.md` → Edge Function Deployment for machine-specific deploy notes.
 
 ## Version History
 
@@ -473,3 +491,4 @@ Gemini API key is user-provided at runtime (stored in localStorage).
 | 2026-03-02 | effectiveScenario propagated to Dashboard, report, and audit; surplus formula fixed in PDF; couple fields added to report and audit; auditProjection.js split into auditInputSnapshot.js, auditProjection.js, auditTaxDebt.js |
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
 | 2026-03-02 | Analytics & error monitoring: Plausible script tag, trackEvent helper, wizard funnel events, Sentry init + ErrorBoundary |
+| 2026-03-03 | Full admin dashboard: sidebar overlay (Overview/Users/AI Config/Subscriptions), admin_config DB table, admin-users + admin-config-update edge functions, gemini-proxy reads prompts from DB server-side, geminiService simplified to send {type, context} |

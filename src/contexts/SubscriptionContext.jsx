@@ -41,7 +41,7 @@ export function SubscriptionProvider({ children }) {
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       setStripeStatus(subData?.status || null)
       setTrialEnd(subData?.trial_end ? new Date(subData.trial_end) : null)

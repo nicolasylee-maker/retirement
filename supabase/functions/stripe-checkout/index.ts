@@ -47,7 +47,7 @@ serve(async (req) => {
     // Parse request body for priceId, successUrl, cancelUrl
     const body = await req.json().catch(() => ({}))
     const priceId = body.priceId
-      || Deno.env.get('STRIPE_MONTHLY_PRICE_ID')
+      || Deno.env.get('STRIPE_PRICE_MONTHLY')
       || ''
     const successUrl = body.successUrl || Deno.env.get('APP_URL') || 'http://localhost:5173'
     const cancelUrl = body.cancelUrl || Deno.env.get('APP_URL') || 'http://localhost:5173'

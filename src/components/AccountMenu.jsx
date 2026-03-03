@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useSubscription } from '../contexts/SubscriptionContext'
+import { openBillingPortal } from '../services/stripeService'
 import AuthPanel from './AuthPanel'
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
 
 export default function AccountMenu({ onAdmin, open, onOpenChange }) {
   const { user, isLoading, signOut } = useAuth()
+  const { isPaid, isTrial } = useSubscription()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [panelOpenInternal, setPanelOpenInternal] = useState(false)
   const dropdownRef = useRef(null)
@@ -96,6 +99,19 @@ export default function AccountMenu({ onAdmin, open, onOpenChange }) {
               className="w-full text-left px-4 py-2 text-sm text-purple-700 hover:bg-purple-50 transition-colors"
             >
               Admin
+            </button>
+          )}
+          {(isPaid || isTrial) && (
+            <button
+              type="button"
+              onClick={async () => {
+                setDropdownOpen(false);
+                try { await openBillingPortal(); }
+                catch { alert('Could not open billing portal. Please try again.'); }
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Manage Subscription
             </button>
           )}
           <button

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { createDefaultScenario } from './constants/defaults';
 import { projectScenario } from './engines/projectionEngine';
 import { openPrintReport } from './utils/openPrintReport';
@@ -248,6 +249,16 @@ export default function App() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const GATED_TABS = new Set(['compare', 'estate']);
+
+  const handleTabClick = useCallback((tabKey) => {
+    if (!isPaid && GATED_TABS.has(tabKey)) {
+      setUpgradeModalOpen(true);
+      return;
+    }
+    setView(tabKey);
+  }, [isPaid]); // eslint-disable-line react-hooks/exhaustive-deps
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -361,7 +372,7 @@ export default function App() {
 
         <nav className="px-4 sm:px-6 lg:px-10 pb-2 flex gap-1">
           {NAV_TABS.map((tab) => (
-            <button key={tab.key} type="button" onClick={() => setView(tab.key)}
+            <button key={tab.key} type="button" onClick={() => handleTabClick(tab.key)}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-150 ${
                 view === tab.key ? 'bg-sunset-50 text-sunset-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
               }`}>
@@ -433,6 +444,26 @@ export default function App() {
           {view === 'admin' && isAdmin && <AdminView />}
         </div>
       </main>
+
+      {upgradeModalOpen && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setUpgradeModalOpen(false); }}
+        >
+          <div className="relative mx-4">
+            <button
+              type="button"
+              onClick={() => setUpgradeModalOpen(false)}
+              className="absolute top-3 right-3 z-10 text-gray-400 hover:text-gray-600 text-xl leading-none"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+            <UpgradePrompt variant="full" modal />
+          </div>
+        </div>,
+        document.body
+      )}
 
       <footer className="py-4 text-center border-t border-gray-100">
         <p className="text-xs text-gray-400">

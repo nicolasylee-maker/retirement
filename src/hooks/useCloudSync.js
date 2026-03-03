@@ -5,6 +5,7 @@ import { fetchScenarios, saveScenario, getScenarioCount } from '../services/scen
 
 export function useCloudSync({ user, currentScenario, onSignIn }) {
   const [saveStatus, setSaveStatus] = useState('idle')
+  const [syncDone, setSyncDone] = useState(false)
   const prevUserRef = useRef(null)
 
   // On sign-in: load cloud scenarios and replace in-memory state
@@ -12,20 +13,28 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
     const prevUser = prevUserRef.current
     prevUserRef.current = user
 
-    if (!user) return
+    if (!user) {
+      setSyncDone(false)
+      return
+    }
     // Only trigger on transition from null → non-null
     if (prevUser?.id === user.id) return
 
+    setSyncDone(false)
     let cancelled = false
     ;(async () => {
       try {
         const cloudScenarios = await fetchScenarios(user.id)
-        console.log('[cloud-sync] fetched', cloudScenarios.length, 'scenarios on sign-in:', cloudScenarios.map(s => s.id))
         if (!cancelled) {
           onSignIn(cloudScenarios)
+          setSyncDone(true)
         }
       } catch (err) {
         console.error('[cloud-sync] sign-in fetch failed:', err)
+        if (!cancelled) {
+          onSignIn([])
+          setSyncDone(true)
+        }
       }
     })()
 
@@ -34,7 +43,7 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
 
   // Auto-save debounce: save current scenario 1s after it changes
   useEffect(() => {
-    if (!user || !currentScenario) return
+    if (!user || !currentScenario || !syncDone) return
 
     setSaveStatus('saving')
     const timeout = setTimeout(async () => {
@@ -49,7 +58,7 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
     return () => {
       clearTimeout(timeout)
     }
-  }, [user, currentScenario])
+  }, [user, currentScenario, syncDone])
 
   // Fade 'saved' back to 'idle' after 2s
   useEffect(() => {
@@ -73,5 +82,5 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
     return true
   }, [user])
 
-  return { saveStatus, checkCanCreate }
+  return { saveStatus, syncDone, checkCanCreate }
 }

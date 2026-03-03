@@ -61,6 +61,7 @@ retirement/
 │   │   ├── taxEngine.js                    ← Federal + Ontario tax, OAS clawback, RRIF minimums
 │   │   ├── estateEngine.js                 ← Estate tax, probate, distribution analysis
 │   │   ├── withdrawalCalc.js               ← Sustainable withdrawal binary search
+│   │   ├── optimizerEngine.js              ← Plan optimizer: tests 8 dimensions (CPP/OAS, withdrawal order, meltdown, debt, expenses)
 │   │   ├── auditInputSnapshot.js           ← Audit section 1: full input snapshot table
 │   │   ├── auditProjection.js              ← Audit sections 2–3: projection table + CPP/OAS verification
 │   │   ├── auditTaxDebt.js                 ← Audit sections 4–5: tax worked example + debt trace
@@ -136,6 +137,10 @@ retirement/
 │       │   ├── EstateSummaryCards.jsx      ← Estate KPI cards
 │       │   └── EstateBreakdown.jsx         ← Tax breakdown + distribution to heirs
 │       │
+│       ├── recommendations/                ← Optimize My Plan view
+│       │   ├── RecommendationsTab.jsx      ← Summary banner, ranked cards, upgrade CTA, already-optimal list
+│       │   └── RecommendationCard.jsx      ← Single recommendation: badge, impact pills, before/after, Apply button
+│       │
 │       └── admin/                          ← Full-screen admin overlay (fixed inset-0 z-50)
 │           ├── AdminView.jsx               ← Sidebar nav + section switcher
 │           ├── sections/
@@ -157,7 +162,7 @@ retirement/
 │               ├── TaxDataEditor.jsx       ← Province JSON editor; exports parseTaxJson, runTaxSmokeTest
 │               └── LegislationPanel.jsx    ← CanLII status table + Run Check button
 │
-├── tests/                                  ← Vitest test files (320 tests, 10 files)
+├── tests/                                  ← Vitest test files (374 tests, 14 files)
 │   ├── taxEngine.test.js                   ← Federal/Ontario tax, surtax, OAS clawback, RRIF mins (51)
 │   ├── projectionEngine.test.js            ← Year-by-year projections with persona scenarios (45)
 │   ├── estateEngine.test.js                ← Death tax, probate, intestacy distribution (32)
@@ -168,6 +173,10 @@ retirement/
 │   ├── waterfallChartHelpers.test.js       ← Waterfall chart helpers (26)
 │   ├── taxTablesInject.test.js             ← _injectLiveTaxData live-binding correctness + reset (20)
 │   ├── taxDataHelpers.test.js              ← buildTaxDataFromRows, parseTaxJson, runTaxSmokeTest (23)
+│   ├── aiInsightsPersistence.test.js       ← AI insight caching, hash staleness, cloud sync (16)
+│   ├── returningUserFlow.test.js           ← Sign-in routing, picker target, formatScenarioMeta (15)
+│   ├── mobilePolish.test.js                ← Mobile-specific UI helpers (6)
+│   ├── optimizerEngine.test.js             ← All 8 optimization dimensions, ranking, idempotency, couple, perf (17)
 │   └── golden/                             ← Committed JSON snapshots (regenerate: npm run generate:golden)
 │       ├── generate.test.js                ← Generator (excluded from npm test, run via generate:golden)
 │       ├── generate.config.js              ← Vitest config for generator only
@@ -352,6 +361,7 @@ tests/yourModuleEngine.test.js    ← Unit tests for engine functions
 | `src/engines/taxEngine.js` | Tax calculation (federal, Ontario, clawbacks, credits) |
 | `src/engines/estateEngine.js` | Estate tax, probate, distribution |
 | `src/engines/withdrawalCalc.js` | Sustainable withdrawal (binary search) |
+| `src/engines/optimizerEngine.js` | `runOptimization(scenario)` — tests 8 dimensions, returns ranked recommendations |
 | `src/engines/incomeHelpers.js` | Pure income helper functions (CPP, OAS, GIS, GAINS, capital gains) |
 | `src/services/supabaseClient.js` | Supabase client singleton |
 | `src/services/geminiService.js` | Sends `{type, context}` to gemini-proxy; in-memory cache |
@@ -371,7 +381,7 @@ npm install
 # Run development server (http://localhost:5173)
 npm run dev
 
-# Run tests (277 tests)
+# Run tests (374 tests)
 npm test
 
 # Run tests in watch mode
@@ -428,6 +438,10 @@ const currentScenario = useMemo(() =>
 const projectionData = useMemo(() =>
   projectScenario(currentScenario, whatIfOverrides), [currentScenario, whatIfOverrides]
 )
+const optimizationResult = useMemo(
+  () => (currentScenario && view === 'recommendations' ? runOptimization(currentScenario) : null),
+  [currentScenario, view],  // lazy: only runs when Optimize tab is active
+)
 ```
 
 ## Testing Infrastructure
@@ -442,11 +456,17 @@ tests/
   goldenFileTests.test.js       ← Per-province regression snapshots — 4 assertions × 9 provinces (36)
   portfolioChartHelpers.test.js ← Chart milestone helpers (20)
   waterfallChartHelpers.test.js ← Waterfall chart tax helpers (26)
+  taxTablesInject.test.js       ← _injectLiveTaxData live-binding correctness + reset (20)
+  taxDataHelpers.test.js        ← buildTaxDataFromRows, parseTaxJson, runTaxSmokeTest (23)
+  aiInsightsPersistence.test.js ← AI insight caching, hash staleness, cloud sync (16)
+  returningUserFlow.test.js     ← Sign-in routing, picker target, formatScenarioMeta (15)
+  mobilePolish.test.js          ← Mobile-specific UI helpers (6)
+  optimizerEngine.test.js       ← All 8 optimization dimensions, ranking, idempotency, couple, perf (17)
   golden/                       ← Committed JSON snapshots; regenerate with: npm run generate:golden
 ```
 
 - **Framework**: Vitest (Vite-native, Jest-compatible API)
-- **Run**: `npm test` (277 tests) or `npx vitest run`
+- **Run**: `npm test` (374 tests) or `npx vitest run`
 - **Watch**: `npm run test:watch` or `npx vitest`
 - Unit tests for all engine functions (tax, projection, estate, withdrawal)
 - Province-aware tests in `multiProvinceEngine.test.js` for all 9 provinces
@@ -517,3 +537,4 @@ See `docs/learned-rules.md` → Edge Function Deployment for machine-specific de
 | 2026-03-03 | Admin Maintenance tab: tax_data + legislation_checks DB tables, maintenance edge function (upsert-tax/seed-all/check-legislation), TaxDataContext (DB-driven tax data with bundled-JSON fallback), _injectLiveTaxData live-binding pattern in taxTables.js, TaxDataEditor (JSON editor + smoke test), LegislationPanel (CanLII monitor), MaintenanceSection |
 | 2026-03-03 | AI insights persistence: aiInsights field added to scenario shape, AiInsight.jsx uses savedInsight/onSave props with hash-based staleness badge, insights auto-restore on load and persist via Supabase cloud sync, Gemini badge removed |
 | 2026-03-03 | Returning user flow: sign-in routes returning users to ReturningHomeView (3-card choice screen) instead of wizard; ScenarioPickerView for multi-scenario selection; View Results button removed from wizard sidebar; routing helpers extracted to returningUserFlow.js |
+| 2026-03-03 | Optimize My Plan tab: optimizerEngine.js (pure, 8 dimensions: CPP/OAS timing × primary+spouse, withdrawal order, RRSP meltdown, debt payoff, expense reduction); RecommendationCard + RecommendationsTab; lazy useMemo (only runs when tab is active); free users see card 1, paid users see all; Apply merges rec.changes into scenario |

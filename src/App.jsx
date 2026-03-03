@@ -18,6 +18,8 @@ import ReturningHomeView from './views/ReturningHomeView';
 import ScenarioPickerView from './views/ScenarioPickerView';
 import { getPickerTarget } from './utils/returningUserFlow.js';
 import AdminView from './views/admin/AdminView';
+import RecommendationsTab from './views/recommendations/RecommendationsTab';
+import { runOptimization } from './engines/optimizerEngine';
 import AccountMenu from './components/AccountMenu';
 import SubscriptionBadge from './components/SubscriptionBadge';
 import UpgradePrompt from './components/UpgradePrompt';
@@ -43,6 +45,11 @@ const NAV_TABS = [
   { key: 'debt', label: 'Debt', icon: (
     <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+  )},
+  { key: 'recommendations', label: 'Optimize', icon: (
+    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
     </svg>
   )},
   { key: 'compare', label: 'Compare', icon: (
@@ -174,6 +181,10 @@ export default function App() {
   const effectiveScenario = useMemo(
     () => (currentScenario ? { ...currentScenario, ...whatIfOverrides } : null),
     [currentScenario, whatIfOverrides],
+  );
+  const optimizationResult = useMemo(
+    () => (currentScenario && view === 'recommendations' ? runOptimization(currentScenario) : null),
+    [currentScenario, view],
   );
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
@@ -366,12 +377,20 @@ export default function App() {
   const handleResetOverrides = useCallback(() => setWhatIfOverrides({}), []);
 
   const handleSaveInsight = useCallback((type, text, hash) => {
+    const generatedAt = new Date().toISOString();
+    const newInsight = { text, hash, generatedAt };
     setScenarios((prev) => prev.map((s) =>
       s.id === currentScenarioId
-        ? { ...s, aiInsights: { ...s.aiInsights, [type]: { text, hash, generatedAt: new Date().toISOString() } } }
+        ? { ...s, aiInsights: { ...s.aiInsights, [type]: newInsight } }
         : s,
     ));
-  }, [currentScenarioId]);
+    // Save immediately (bypass the 1s debounce) so insights survive tab close or a fast refresh.
+    // The debounced auto-save in useCloudSync still fires as a retry on top of this.
+    if (authUser && currentScenario?.id === currentScenarioId) {
+      const updated = { ...currentScenario, aiInsights: { ...currentScenario.aiInsights, [type]: newInsight } };
+      saveScenario(authUser.id, updated).catch(() => {});
+    }
+  }, [currentScenarioId, authUser, currentScenario]);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
@@ -679,6 +698,16 @@ export default function App() {
                     aiInsights={currentScenario.aiInsights} onSaveInsight={handleSaveInsight} />
                 : <UpgradePrompt variant="full" featureName="Estate Planning" />
               }
+            </div>
+          )}
+          {view === 'recommendations' && currentScenario && (
+            <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4">
+              <RecommendationsTab
+                result={optimizationResult}
+                isPaid={isPaid}
+                onScenarioChange={handleScenarioChange}
+                onUpgrade={() => setUpgradeModalOpen(true)}
+              />
             </div>
           )}
           {view === 'save-nudge' && <SaveNudgeScreen onSkip={() => setView('dashboard')} />}

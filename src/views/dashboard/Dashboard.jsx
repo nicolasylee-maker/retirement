@@ -28,6 +28,8 @@ export default function Dashboard({
   scenario,
   projectionData,
   onScenarioChange,
+  aiInsights,
+  onSaveInsight,
 }) {
   if (!scenario || !projectionData || projectionData.length === 0) {
     return (
@@ -69,7 +71,9 @@ export default function Dashboard({
 
       {/* AI Insights — mobile (above content) */}
       <div className="xl:hidden">
-        <AiInsight type="dashboard" data={aiData} scenarioKey={scenario.id} />
+        <AiInsight type="dashboard" data={aiData}
+          savedInsight={aiInsights?.dashboard}
+          onSave={(text, hash) => onSaveInsight?.('dashboard', text, hash)} />
       </div>
 
       {/* Two-column layout: content left, AI sticky right on desktop */}
@@ -164,7 +168,9 @@ export default function Dashboard({
 
         {/* AI Insights — desktop sticky sidebar */}
         <div className="hidden xl:block w-96 flex-shrink-0 sticky top-24">
-          <AiInsight type="dashboard" data={aiData} scenarioKey={scenario.id} />
+          <AiInsight type="dashboard" data={aiData}
+            savedInsight={aiInsights?.dashboard}
+            onSave={(text, hash) => onSaveInsight?.('dashboard', text, hash)} />
           {/* Section jump links */}
           <div className="mt-3 card-base p-3">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">

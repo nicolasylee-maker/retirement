@@ -9,7 +9,7 @@ import CompareTable from './CompareTable';
 
 const MAX_COMPARE = 3;
 
-export default function CompareView({ scenarios, onNavigate }) {
+export default function CompareView({ scenarios, onNavigate, aiInsights, onSaveInsight }) {
   const [selectedIds, setSelectedIds] = useState(() => {
     const initial = scenarios.slice(0, Math.min(2, scenarios.length)).map(s => s.id);
     return initial;
@@ -80,7 +80,9 @@ export default function CompareView({ scenarios, onNavigate }) {
       {/* AI Insights — mobile */}
       {aiData && (
         <div className="xl:hidden">
-          <AiInsight type="compare" data={aiData} scenarioKey={selectedIds.join('-')} />
+          <AiInsight type="compare" data={aiData}
+            savedInsight={aiInsights?.compare}
+            onSave={(text, hash) => onSaveInsight?.('compare', text, hash)} />
         </div>
       )}
 
@@ -153,7 +155,9 @@ export default function CompareView({ scenarios, onNavigate }) {
         {/* AI Insights — desktop sticky sidebar */}
         {aiData && (
           <div className="hidden xl:block w-96 flex-shrink-0 sticky top-24">
-            <AiInsight type="compare" data={aiData} scenarioKey={selectedIds.join('-')} />
+            <AiInsight type="compare" data={aiData}
+              savedInsight={aiInsights?.compare}
+              onSave={(text, hash) => onSaveInsight?.('compare', text, hash)} />
           </div>
         )}
       </div>

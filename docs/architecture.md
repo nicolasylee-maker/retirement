@@ -287,6 +287,7 @@ The scenario object is the central data model. Full shape defined in `src/consta
 | Withdrawal | `withdrawalOrder` (array), `rrspMeltdownEnabled`, `rrspMeltdownTargetAge` |
 | Couple Support | `isCouple`, `spouseAge`, `spouseRetirementAge`, `spouseEmploymentIncome`, `spouseCppMonthly`, `spouseOasMonthly`, `spousePensionType`, `spouseRrspBalance`, `spouseTfsaBalance` |
 | Estate | `hasWill`, `primaryBeneficiary`, `numberOfChildren`, `estimatedCostBasis` |
+| AI Cache | `aiInsights` — `{ dashboard?, debt?, compare?, estate? }` each `{ text, hash }` |
 
 ## Projection Output Shape
 
@@ -511,3 +512,4 @@ See `docs/learned-rules.md` → Edge Function Deployment for machine-specific de
 | 2026-03-03 | Full admin dashboard: sidebar overlay (Overview/Users/AI Config/Subscriptions), admin_config DB table, admin-users + admin-config-update edge functions, gemini-proxy reads prompts from DB server-side, geminiService simplified to send {type, context} |
 | 2026-03-03 | Stripe subscription checkout: stripe-checkout edge function, UpgradePrompt (full + compact variants), SubscriptionBadge, AccountMenu "Manage Subscription", checkout=success banner, billing portal, SubscriptionContext (isPaid/isTrial/trialDaysRemaining), AuthContext, stripeService.js |
 | 2026-03-03 | Admin Maintenance tab: tax_data + legislation_checks DB tables, maintenance edge function (upsert-tax/seed-all/check-legislation), TaxDataContext (DB-driven tax data with bundled-JSON fallback), _injectLiveTaxData live-binding pattern in taxTables.js, TaxDataEditor (JSON editor + smoke test), LegislationPanel (CanLII monitor), MaintenanceSection |
+| 2026-03-03 | AI insights persistence: aiInsights field added to scenario shape, AiInsight.jsx uses savedInsight/onSave props with hash-based staleness badge, insights auto-restore on load and persist via Supabase cloud sync, Gemini badge removed |

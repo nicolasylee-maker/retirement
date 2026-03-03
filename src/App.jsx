@@ -277,6 +277,14 @@ export default function App() {
   }, []);
   const handleResetOverrides = useCallback(() => setWhatIfOverrides({}), []);
 
+  const handleSaveInsight = useCallback((type, text, hash) => {
+    setScenarios((prev) => prev.map((s) =>
+      s.id === currentScenarioId
+        ? { ...s, aiInsights: { ...s.aiInsights, [type]: { text, hash } } }
+        : s,
+    ));
+  }, [currentScenarioId]);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
@@ -501,18 +509,21 @@ export default function App() {
                 : <UpgradePrompt variant="compact" featureName="What-If Analysis" onUpgrade={() => setUpgradeModalOpen(true)} />
               }
               <Dashboard scenario={effectiveScenario} projectionData={projectionData}
-                onScenarioChange={handleScenarioChange} isPaid={isPaid} />
+                onScenarioChange={handleScenarioChange} isPaid={isPaid}
+                aiInsights={effectiveScenario.aiInsights} onSaveInsight={handleSaveInsight} />
             </div>
           )}
           {view === 'debt' && currentScenario && (
             <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4">
-              <DebtView scenario={currentScenario} projectionData={projectionData} onNavigate={(v) => setView(v)} />
+              <DebtView scenario={currentScenario} projectionData={projectionData} onNavigate={(v) => setView(v)}
+                aiInsights={currentScenario.aiInsights} onSaveInsight={handleSaveInsight} />
             </div>
           )}
           {view === 'compare' && (
             <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4">
               {isPaid
-                ? <CompareView scenarios={scenarios} onNavigate={(v) => setView(v)} />
+                ? <CompareView scenarios={scenarios} onNavigate={(v) => setView(v)}
+                    aiInsights={currentScenario?.aiInsights} onSaveInsight={handleSaveInsight} />
                 : <UpgradePrompt variant="full" featureName="Compare" />
               }
             </div>
@@ -523,7 +534,8 @@ export default function App() {
                 ? <EstateView scenario={currentScenario} projectionData={projectionData}
                     onNavigate={(v) => setView(v)}
                     lifeExpectancyOverride={whatIfOverrides.lifeExpectancy}
-                    onLifeExpectancyChange={(v) => handleOverrideChange('lifeExpectancy', v)} />
+                    onLifeExpectancyChange={(v) => handleOverrideChange('lifeExpectancy', v)}
+                    aiInsights={currentScenario.aiInsights} onSaveInsight={handleSaveInsight} />
                 : <UpgradePrompt variant="full" featureName="Estate Planning" />
               }
             </div>

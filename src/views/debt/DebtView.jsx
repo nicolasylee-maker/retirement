@@ -11,7 +11,7 @@ import { CHART_STYLE } from '../../constants/designTokens';
 import ChartLegend from '../../components/ChartLegend';
 import { calcDebtSchedule } from '../../utils/debtCalc';
 
-export default function DebtView({ scenario, projectionData, onNavigate }) {
+export default function DebtView({ scenario, projectionData, onNavigate, aiInsights, onSaveInsight }) {
   const consumerPayoffAge = scenario.consumerDebtPayoffAge || (scenario.currentAge + 10);
   const mortgagePayoffAge = scenario.currentAge + (scenario.mortgageYearsLeft || 0);
 
@@ -253,7 +253,9 @@ export default function DebtView({ scenario, projectionData, onNavigate }) {
       {/* AI Insight sidebar */}
       <div className="xl:w-96 shrink-0">
         <div className="xl:sticky xl:top-16">
-          <AiInsight type="debt" data={aiData} scenarioKey={scenario.id} />
+          <AiInsight type="debt" data={aiData}
+            savedInsight={aiInsights?.debt}
+            onSave={(text, hash) => onSaveInsight?.('debt', text, hash)} />
         </div>
       </div>
     </div>

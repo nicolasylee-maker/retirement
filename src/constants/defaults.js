@@ -120,6 +120,10 @@ export function createDefaultScenario(name = 'My Scenario') {
     numberOfChildren: 0,
     estimatedCostBasis: 0,
     includeRealEstateInEstate: true,
+
+    // AI insights cache — persisted per view type
+    // Shape: { dashboard?: {text, hash}, debt?: {text, hash}, compare?: {text, hash}, estate?: {text, hash} }
+    aiInsights: {},
   };
 }
 

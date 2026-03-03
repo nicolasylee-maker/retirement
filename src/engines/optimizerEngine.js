@@ -4,7 +4,13 @@ import { projectScenario } from './projectionEngine.js'
 
 function findDepletionAge(rows) { return rows.find(r => r.totalPortfolio <= 0)?.age ?? null }
 function sumAfterTaxIncome(rows) { return rows.reduce((s, r) => s + r.afterTaxIncome, 0) }
-function scoreRows(rows) { return { depletion: findDepletionAge(rows), income: sumAfterTaxIncome(rows) } }
+function scoreRows(rows) {
+  return {
+    depletion: findDepletionAge(rows),
+    income: sumAfterTaxIncome(rows),
+    tax: rows.reduce((s, r) => s + (r.totalTax || 0), 0),
+  }
+}
 
 function isBetter(cand, base) {
   if (base.depletion !== null && cand.depletion === null) return true
@@ -20,7 +26,7 @@ function calcImpact(base, best, lifeExpectancy) {
   return {
     depletionYearsGained: base.depletion !== null ? Math.max(0, (best.depletion ?? lifeExpectancy) - base.depletion) : 0,
     lifetimeIncomeGained: Math.round(best.income - base.income),
-    lifetimeTaxSaved: 0,
+    lifetimeTaxSaved: Math.round(Math.max(0, base.tax - best.tax)),
     oasClawbackAvoided: 0,
   }
 }
@@ -47,7 +53,7 @@ function testCppTiming(s, base, isSpouse) {
   const d = bestAge > cur
   return {
     rec: {
-      id: `${dim}-${bestAge}`, dimension: dim,
+      id: `${dim}-${bestAge}`, dimension: dim, category: isSpouse ? 'couple' : 'plan',
       title: `${prefix}${d ? 'Defer' : 'Start'} CPP at ${bestAge} (currently ${cur})`,
       description: d ? `${prefix}Deferring CPP to ${bestAge} permanently increases the benefit and reduces portfolio drawdowns during bridge years.` : `${prefix}Starting CPP earlier at ${bestAge} provides income sooner, reducing strain on a thin portfolio.`,
       reasoning: d ? 'The portfolio can bridge the income gap, making the permanent benefit increase worthwhile.' : 'The portfolio is thin — earlier CPP income reduces depletion risk.',
@@ -76,7 +82,7 @@ function testOasTiming(s, base, isSpouse) {
   const d = bestAge > cur
   return {
     rec: {
-      id: `${dim}-${bestAge}`, dimension: dim,
+      id: `${dim}-${bestAge}`, dimension: dim, category: isSpouse ? 'couple' : 'tax',
       title: `${prefix}${d ? 'Defer' : 'Take'} OAS at ${bestAge} (currently ${cur})`,
       description: d ? `${prefix}Deferring OAS to ${bestAge} increases the benefit by ${Math.round((bestAge - 65) * 7.2)}% and avoids clawback when income is high.` : `${prefix}Taking OAS earlier at ${bestAge} provides additional household income.`,
       reasoning: d ? 'Income from pension or registered withdrawals may push income above the OAS clawback threshold at 65 — deferring avoids this.' : 'Income is low enough that earlier OAS adds cash flow with minimal clawback impact.',
@@ -109,7 +115,7 @@ function testWithdrawalOrder(s, base) {
   const bestLabel = bestOrder.slice(0, 3).join(' → ')
   return {
     rec: {
-      id: `withdrawal-${bestOrder.slice(0, 3).join('-')}`, dimension: 'withdrawalOrder',
+      id: `withdrawal-${bestOrder.slice(0, 3).join('-')}`, dimension: 'withdrawalOrder', category: 'tax',
       title: `Switch to ${bestLabel} withdrawal order`,
       description: 'Drawing from accounts in the optimal order minimizes lifetime taxes by deferring tax-advantaged growth as long as possible.',
       reasoning: 'TFSA withdrawals are tax-free — keeping them last lets the balance compound longer. Non-reg gains are taxed more favourably than RRSP income.',
@@ -150,7 +156,7 @@ function testMeltdown(s, base) {
   const fmtK = v => `$${Math.round(v / 1000)}K`
   return {
     rec: {
-      id: `meltdown-${enabling ? 'enable' : 'adjust'}`, dimension: 'meltdown',
+      id: `meltdown-${enabling ? 'enable' : 'adjust'}`, dimension: 'meltdown', category: 'tax',
       title: enabling ? `Enable RRSP meltdown: ${fmtK(amount)}/yr until ${endAge}` : `Adjust meltdown to ${fmtK(amount)}/yr`,
       description: enabling ? `Withdrawing ${fmtK(amount)}/yr from your RRSP before age 72 smooths your tax burden and reduces forced RRIF minimums.` : 'Fine-tuning your meltdown amount better fits the available tax room in these years.',
       reasoning: 'Withdrawing from RRSP in lower-income years locks in a lower tax rate and shrinks future mandatory RRIF minimums.',
@@ -177,7 +183,7 @@ function testDebt(s, base) {
   const impact = calcImpact(base, best, s.lifeExpectancy)
   return {
     rec: {
-      id: `debt-${bestAge}`, dimension: 'debt',
+      id: `debt-${bestAge}`, dimension: 'debt', category: 'plan',
       title: `Pay off debt by ${bestAge} (currently ${curPayoff})`,
       description: `Eliminating ${Math.round((s.consumerDebtRate || 0.08) * 100)}% consumer debt by age ${bestAge} frees cash flow and reduces total interest paid.`,
       reasoning: 'High-rate debt costs more than most investment returns. Paying it off sooner is often the highest guaranteed return available.',
@@ -203,7 +209,7 @@ function testExpenses(s, base) {
   const monthly = Math.round((s.monthlyExpenses || 0) * bestAdd)
   return {
     rec: {
-      id: `expenses-${Math.round(bestAdd * 100)}pct`, dimension: 'expenses',
+      id: `expenses-${Math.round(bestAdd * 100)}pct`, dimension: 'expenses', category: 'plan',
       title: `Reduce spending by $${monthly.toLocaleString()}/mo`,
       description: `A ${Math.round(bestAdd * 100)}% spending reduction ($${monthly.toLocaleString()}/mo) ${best.depletion ? `extends your plan to age ${best.depletion}` : 'covers you through your target age'}.`,
       reasoning: 'Your portfolio is on track to run out before your target age. Reducing expenses is the most direct lever to close the gap.',
@@ -217,10 +223,10 @@ function testExpenses(s, base) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-const DIMENSION_LABELS = {
-  cpp: 'CPP timing', oas: 'OAS timing', withdrawalOrder: 'Withdrawal order',
-  meltdown: 'RRSP meltdown', debt: 'Debt payoff timing', expenses: 'Expense level',
-  spouseCpp: 'Spouse CPP timing', spouseOas: 'Spouse OAS timing',
+export const DIMENSION_LABELS = {
+  cpp: 'CPP Timing', oas: 'OAS Timing', withdrawalOrder: 'Withdrawal Order',
+  meltdown: 'RRSP Meltdown', debt: 'Debt Payoff', expenses: 'Expense Level',
+  spouseCpp: 'Spouse CPP Timing', spouseOas: 'Spouse OAS Timing',
 }
 
 export function runOptimization(scenario) {
@@ -257,6 +263,11 @@ export function runOptimization(scenario) {
   return {
     recommendations, alreadyOptimal, runCount,
     baselineDepletion: base.depletion,
-    bestPossibleDepletion: recommendations.length > 0 ? recommendations[0].after.depletionAge : base.depletion,
+    baselineLifetimeIncome: Math.round(base.income),
+    lifeExpectancy: s.lifeExpectancy,
+    currentAge: s.currentAge,
+    bestPossibleDepletion: recommendations.length > 0
+      ? Math.max(...recommendations.map(r => r.after.depletionAge ?? s.lifeExpectancy))
+      : base.depletion,
   }
 }

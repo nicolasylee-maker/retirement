@@ -10,57 +10,111 @@ function SparklesIcon() {
   )
 }
 
+function fmtK(n) {
+  if (Math.abs(n) >= 1000000) return `$${(Math.abs(n) / 1000000).toFixed(1)}M`
+  return `$${Math.round(Math.abs(n) / 1000)}K`
+}
+
+const DIMENSION_LABELS = {
+  cpp: 'CPP Timing', oas: 'OAS Timing', withdrawalOrder: 'Withdrawal Order',
+  meltdown: 'RRSP Meltdown', debt: 'Debt Payoff', expenses: 'Expense Level',
+  spouseCpp: 'Spouse CPP', spouseOas: 'Spouse OAS',
+}
+
+const OPTIMAL_REASONS = {
+  cpp: 'Your current CPP start age maximizes lifetime benefits given your portfolio and life expectancy.',
+  oas: 'Your OAS timing is optimal — deferring further would not improve after-tax income.',
+  withdrawalOrder: 'Drawing accounts in your current order minimizes lifetime tax for your income profile.',
+  meltdown: 'Your RRSP drawdown strategy already balances tax smoothing and long-term growth.',
+  debt: 'Your current debt payoff timeline is already the most beneficial.',
+  expenses: 'Your spending level is sustainable — no reduction is needed.',
+  spouseCpp: 'Your spouse\'s CPP start age is already optimal.',
+  spouseOas: 'Your spouse\'s OAS timing is already optimal.',
+}
+
+const CATEGORY_CONFIG = {
+  plan:   { label: 'Extend Your Plan',  borderClass: 'border-l-green-400',  textClass: 'text-green-700' },
+  tax:    { label: 'Tax Optimization',  borderClass: 'border-l-amber-400',  textClass: 'text-amber-700' },
+  couple: { label: 'Couple Planning',   borderClass: 'border-l-indigo-400', textClass: 'text-indigo-700' },
+}
+
+const CATEGORY_ORDER = ['plan', 'tax', 'couple']
+
 function SummaryBanner({ result }) {
-  const { runCount, baselineDepletion, bestPossibleDepletion } = result
+  const { runCount, baselineDepletion, bestPossibleDepletion, lifeExpectancy, currentAge, recommendations } = result
   const neverDepletes = baselineDepletion === null
 
   if (neverDepletes) {
+    const totalIncomeGained = recommendations.reduce((s, r) => s + r.impact.lifetimeIncomeGained, 0)
     return (
       <div className="bg-green-50 border border-green-200 rounded-xl p-5">
-        <p className="text-sm font-semibold text-green-800 mb-1">Your money outlasts you in the baseline scenario.</p>
-        <p className="text-sm text-green-700">Recommendations focus on maximizing after-tax income and estate value.</p>
-        <p className="text-xs text-green-500 mt-2">We tested {runCount} variations of your plan.</p>
+        <p className="text-sm font-semibold text-green-800 mb-1">
+          ✓ Your plan outlasts you to age {lifeExpectancy}
+        </p>
+        <p className="text-sm text-green-700 mb-2">
+          Recommendations focus on maximizing after-tax income
+        </p>
+        {recommendations.length > 0 && totalIncomeGained > 0 && (
+          <p className="text-sm text-green-800">
+            We found <strong>{recommendations.length}</strong> optimization{recommendations.length > 1 ? 's' : ''} adding up to{' '}
+            <strong>+{fmtK(totalIncomeGained)}</strong> in lifetime after-tax income
+          </p>
+        )}
+        <p className="text-xs text-green-500 mt-2">We tested {runCount} variations of your plan</p>
       </div>
     )
   }
 
-  const yearsGained = bestPossibleDepletion !== null && baselineDepletion !== null
+  const yearsShort = lifeExpectancy != null && baselineDepletion != null
+    ? lifeExpectancy - baselineDepletion
+    : null
+  const yearsGained = bestPossibleDepletion != null && baselineDepletion != null
     ? bestPossibleDepletion - baselineDepletion
     : null
-
+  const bestIncomeGained = recommendations[0]?.impact?.lifetimeIncomeGained ?? 0
   const pct = yearsGained && baselineDepletion
-    ? Math.min(100, Math.round((yearsGained / (baselineDepletion - 60)) * 100))
+    ? Math.min(100, Math.round((yearsGained / (baselineDepletion - currentAge)) * 100))
     : 0
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-      <p className="text-xs text-gray-400 mb-3">We tested {runCount} variations of your plan</p>
-      <div className="flex items-center justify-between text-sm mb-2">
-        <span className="text-gray-600">Current plan runs out at <strong className="text-gray-900">age {baselineDepletion}</strong></span>
-        {bestPossibleDepletion && yearsGained > 0 && (
-          <span className="text-green-700 font-semibold">+{yearsGained} yrs possible</span>
-        )}
-      </div>
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+      <p className="text-sm font-semibold text-amber-900 mb-1">
+        ⚠ Your money runs out{yearsShort > 0 ? ` ${yearsShort} years` : ''} before age {lifeExpectancy}
+      </p>
+      <p className="text-xs text-amber-700 mb-3">
+        Current plan depletes at age <strong>{baselineDepletion}</strong> · Life expectancy {lifeExpectancy}
+      </p>
       {yearsGained > 0 && (
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-indigo-400 to-green-400 rounded-full transition-all"
-            style={{ width: `${Math.max(5, pct)}%` }}
-          />
-        </div>
+        <>
+          <p className="text-xs text-amber-800 mb-2">
+            Best possible with these changes: age <strong>{bestPossibleDepletion}</strong>
+          </p>
+          <div className="h-2 bg-amber-100 rounded-full overflow-hidden mb-2">
+            <div
+              className="h-full bg-gradient-to-r from-amber-400 to-green-400 rounded-full transition-all"
+              style={{ width: `${Math.max(5, pct)}%` }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-4 text-xs">
+            <span className="text-green-700 font-semibold">+{yearsGained} yrs possible</span>
+            {bestIncomeGained > 0 && (
+              <span className="text-green-700 font-semibold">+{fmtK(bestIncomeGained)} lifetime income possible</span>
+            )}
+          </div>
+        </>
       )}
-      {bestPossibleDepletion && yearsGained > 0 && (
-        <p className="text-xs text-gray-400 mt-2">Best possible: runs out at age {bestPossibleDepletion}</p>
-      )}
+      <p className="text-xs text-amber-500 mt-2">We tested {runCount} variations of your plan</p>
     </div>
   )
 }
 
-function UpgradeCta({ count, onUpgrade }) {
+function UpgradeCta({ lockedRecs, onUpgrade }) {
+  const count = lockedRecs.length
+  const names = lockedRecs.map(r => DIMENSION_LABELS[r.dimension] || r.dimension).join(' · ')
   return (
     <div className="border border-indigo-200 bg-indigo-50 rounded-xl p-5 text-center">
       <p className="text-sm font-semibold text-indigo-900 mb-1">
-        🔒 {count} more recommendation{count > 1 ? 's' : ''} found
+        🔒 {names} ({count} more)
       </p>
       <p className="text-xs text-indigo-700 mb-4">
         Unlock all recommendations, scenario comparison, estate planning, and detailed reporting.
@@ -81,13 +135,18 @@ function AlreadyOptimalSection({ items }) {
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Things you're already doing right</p>
-      <ul className="space-y-1.5">
+      <ul className="space-y-3">
         {items.map(item => (
-          <li key={item.dimension} className="flex items-center gap-2 text-sm text-gray-600">
-            <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            {item.label} is already optimal
+          <li key={item.dimension}>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              {item.label} is already optimal
+            </div>
+            {OPTIMAL_REASONS[item.dimension] && (
+              <p className="ml-6 text-xs text-gray-400 mt-0.5">{OPTIMAL_REASONS[item.dimension]}</p>
+            )}
           </li>
         ))}
       </ul>
@@ -95,7 +154,7 @@ function AlreadyOptimalSection({ items }) {
   )
 }
 
-export default function RecommendationsTab({ result, isPaid, onScenarioChange, onUpgrade }) {
+export default function RecommendationsTab({ result, isPaid, onScenarioChange, onUpgrade, onViewDashboard }) {
   const [appliedIds, setAppliedIds] = useState(new Set())
 
   if (!result) {
@@ -124,6 +183,17 @@ export default function RecommendationsTab({ result, isPaid, onScenarioChange, o
     )
   }
 
+  // Sort by category (plan → tax → couple), preserving impact order within each group
+  const orderedRecs = CATEGORY_ORDER.flatMap(cat =>
+    recommendations.filter(r => (r.category || 'plan') === cat)
+  )
+  const globalIdxMap = new Map(orderedRecs.map((rec, i) => [rec.id, i]))
+
+  // Build sections: only include categories that have recs
+  const sections = CATEGORY_ORDER
+    .map(cat => ({ cat, items: recommendations.filter(r => (r.category || 'plan') === cat) }))
+    .filter(({ items }) => items.length > 0)
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-gray-700">
@@ -133,21 +203,35 @@ export default function RecommendationsTab({ result, isPaid, onScenarioChange, o
 
       <SummaryBanner result={result} />
 
-      {/* Recommendation cards */}
-      {recommendations.map((rec, i) => (
-        <React.Fragment key={rec.id}>
-          <RecommendationCard
-            rec={rec}
-            isPaid={isPaid}
-            isFirst={i === 0}
-            onApply={() => handleApply(rec)}
-            applied={appliedIds.has(rec.id)}
-          />
-          {/* Upgrade CTA after card 1 for free users */}
-          {i === 0 && !isPaid && recommendations.length > 1 && (
-            <UpgradeCta count={recommendations.length - 1} onUpgrade={onUpgrade} />
-          )}
-        </React.Fragment>
+      {sections.map(({ cat, items }) => (
+        <div key={cat} className="space-y-4">
+          {/* Section header */}
+          <div className={`border-l-4 pl-3 ${CATEGORY_CONFIG[cat].borderClass}`}>
+            <h3 className={`text-xs font-semibold uppercase tracking-wide ${CATEGORY_CONFIG[cat].textClass}`}>
+              {CATEGORY_CONFIG[cat].label}
+            </h3>
+          </div>
+
+          {items.map((rec) => {
+            const globalIdx = globalIdxMap.get(rec.id)
+            const isFirst = globalIdx === 0
+            return (
+              <React.Fragment key={rec.id}>
+                <RecommendationCard
+                  rec={rec}
+                  isPaid={isPaid}
+                  isFirst={isFirst}
+                  onApply={() => handleApply(rec)}
+                  applied={appliedIds.has(rec.id)}
+                  onViewDashboard={onViewDashboard}
+                />
+                {isFirst && !isPaid && orderedRecs.length > 1 && (
+                  <UpgradeCta lockedRecs={orderedRecs.slice(1)} onUpgrade={onUpgrade} />
+                )}
+              </React.Fragment>
+            )
+          })}
+        </div>
       ))}
 
       <AlreadyOptimalSection items={alreadyOptimal} />

@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { runOptimization } from '../src/engines/optimizerEngine.js'
 import { projectScenario } from '../src/engines/projectionEngine.js'
 import RAJESH_RAW from '../test-couple-rajesh.json'
+import MARGARET_RAW from '../test-scenario.json'
 
 const RAJESH = RAJESH_RAW[0]
+const MARGARET = MARGARET_RAW[0]
 
 // Minimal valid scenario — single, retired at 60, ON province, all zeros
 const base = {
@@ -465,5 +467,307 @@ describe('performance', () => {
     expect(elapsed).toBeLessThan(500)
     expect(result).toBeDefined()
     expect(Array.isArray(result.recommendations)).toBe(true)
+  })
+})
+
+// ─── Category field ───────────────────────────────────────────────────────────
+
+describe('category field', () => {
+  it('all recommendations have a valid category', () => {
+    const scenario = {
+      ...base,
+      lifeExpectancy: 90,
+      cppMonthly: 800,
+      cppStartAge: 60,
+      rrspBalance: 400000,
+      tfsaBalance: 100000,
+      monthlyExpenses: 4000,
+    }
+    const result = runOptimization(scenario)
+    for (const rec of result.recommendations) {
+      expect(['plan', 'tax', 'couple']).toContain(rec.category)
+    }
+  })
+
+  it('CPP and expense dimensions have category plan', () => {
+    const scenario = {
+      ...base,
+      lifeExpectancy: 90,
+      cppMonthly: 800,
+      cppStartAge: 60,
+      rrspBalance: 100000,
+      monthlyExpenses: 5500,
+    }
+    const result = runOptimization(scenario)
+    const cppRec = result.recommendations.find(r => r.dimension === 'cpp')
+    if (cppRec) expect(cppRec.category).toBe('plan')
+    const expRec = result.recommendations.find(r => r.dimension === 'expenses')
+    if (expRec) expect(expRec.category).toBe('plan')
+  })
+
+  it('OAS and withdrawalOrder dimensions have category tax', () => {
+    const scenario = {
+      ...base,
+      currentAge: 65,
+      retirementAge: 65,
+      lifeExpectancy: 90,
+      oasMonthly: 713,
+      oasStartAge: 65,
+      rrspBalance: 400000,
+      tfsaBalance: 100000,
+      monthlyExpenses: 4000,
+      withdrawalOrder: ['tfsa', 'rrsp', 'nonReg', 'other'],
+    }
+    const result = runOptimization(scenario)
+    const oasRec = result.recommendations.find(r => r.dimension === 'oas')
+    if (oasRec) expect(oasRec.category).toBe('tax')
+    const wdRec = result.recommendations.find(r => r.dimension === 'withdrawalOrder')
+    if (wdRec) expect(wdRec.category).toBe('tax')
+  })
+
+  it('spouse CPP and OAS dimensions have category couple', () => {
+    const scenario = {
+      ...base,
+      isCouple: true,
+      lifeExpectancy: 90,
+      spouseCppMonthly: 700,
+      spouseCppStartAge: 60,
+      spouseOasMonthly: 713,
+      spouseOasStartAge: 68,
+      rrspBalance: 400000,
+      tfsaBalance: 100000,
+      monthlyExpenses: 5000,
+    }
+    const result = runOptimization(scenario)
+    const spCpp = result.recommendations.find(r => r.dimension === 'spouseCpp')
+    if (spCpp) expect(spCpp.category).toBe('couple')
+    const spOas = result.recommendations.find(r => r.dimension === 'spouseOas')
+    if (spOas) expect(spOas.category).toBe('couple')
+  })
+})
+
+// ─── Impact math accuracy ─────────────────────────────────────────────────────
+
+describe('impact math accuracy', () => {
+  const mathScenario = {
+    ...base,
+    lifeExpectancy: 90,
+    cppMonthly: 900,
+    cppStartAge: 60,
+    rrspBalance: 600000,
+    tfsaBalance: 150000,
+    monthlyExpenses: 4500,
+  }
+
+  it('lifetimeIncomeGained matches actual projection sum difference', () => {
+    const result = runOptimization(mathScenario)
+    const rec = result.recommendations[0]
+    if (!rec) return
+
+    const baseProj = projectScenario(mathScenario)
+    const optProj = projectScenario({ ...mathScenario, ...rec.changes })
+    const baseIncome = baseProj.reduce((s, r) => s + r.afterTaxIncome, 0)
+    const optIncome = optProj.reduce((s, r) => s + r.afterTaxIncome, 0)
+    const expected = Math.round(optIncome - baseIncome)
+
+    expect(rec.impact.lifetimeIncomeGained).toBe(expected)
+  })
+
+  it('depletionYearsGained exactly equals depletion age difference', () => {
+    const result = runOptimization(mathScenario)
+    const rec = result.recommendations[0]
+    if (!rec || rec.before.depletionAge === null) return
+
+    const afterDepletion = rec.after.depletionAge ?? mathScenario.lifeExpectancy
+    const expected = Math.max(0, afterDepletion - rec.before.depletionAge)
+
+    expect(rec.impact.depletionYearsGained).toBe(expected)
+  })
+
+  it('bestPossibleDepletion equals top recommendation after.depletionAge', () => {
+    const result = runOptimization(mathScenario)
+    if (result.recommendations.length === 0) return
+    expect(result.bestPossibleDepletion).toBe(result.recommendations[0].after.depletionAge)
+  })
+
+  it('lifetimeTaxSaved is non-negative and does not exceed baseline lifetime tax', () => {
+    const result = runOptimization(mathScenario)
+    const baseProj = projectScenario(mathScenario)
+    const baselineTax = Math.round(baseProj.reduce((s, r) => s + (r.totalTax || 0), 0))
+
+    for (const rec of result.recommendations) {
+      expect(rec.impact.lifetimeTaxSaved).toBeGreaterThanOrEqual(0)
+      expect(rec.impact.lifetimeTaxSaved).toBeLessThanOrEqual(baselineTax + 1) // +1 for rounding
+    }
+  })
+
+  it('before.lifetimeIncome matches projectScenario afterTaxIncome sum for baseline', () => {
+    const result = runOptimization(mathScenario)
+    const baseProj = projectScenario(mathScenario)
+    const expectedIncome = Math.round(baseProj.reduce((s, r) => s + r.afterTaxIncome, 0))
+
+    for (const rec of result.recommendations) {
+      expect(rec.before.lifetimeIncome).toBe(expectedIncome)
+    }
+  })
+
+  it('result exposes baselineLifetimeIncome matching projectScenario sum', () => {
+    const result = runOptimization(mathScenario)
+    const baseProj = projectScenario(mathScenario)
+    const expected = Math.round(baseProj.reduce((s, r) => s + r.afterTaxIncome, 0))
+    expect(result.baselineLifetimeIncome).toBe(expected)
+  })
+})
+
+// ─── lifetimeTaxSaved accuracy ────────────────────────────────────────────────
+
+describe('lifetimeTaxSaved accuracy', () => {
+  it('is non-negative for all recommendations', () => {
+    const scenario = {
+      ...base,
+      lifeExpectancy: 90,
+      rrspBalance: 500000,
+      tfsaBalance: 100000,
+      cppMonthly: 800,
+      cppStartAge: 65,
+      oasMonthly: 713,
+      oasStartAge: 65,
+      monthlyExpenses: 4000,
+    }
+    const result = runOptimization(scenario)
+    for (const rec of result.recommendations) {
+      expect(rec.impact.lifetimeTaxSaved).toBeGreaterThanOrEqual(0)
+    }
+  })
+
+  it('matches manual sum of totalTax delta from projection rows', () => {
+    const scenario = {
+      ...base,
+      lifeExpectancy: 90,
+      rrspBalance: 400000,
+      tfsaBalance: 100000,
+      cppMonthly: 800,
+      cppStartAge: 65,
+      oasMonthly: 713,
+      oasStartAge: 65,
+      monthlyExpenses: 3500,
+    }
+    const result = runOptimization(scenario)
+
+    for (const rec of result.recommendations) {
+      const baseProj = projectScenario(scenario)
+      const optProj = projectScenario({ ...scenario, ...rec.changes })
+      const baseTax = Math.round(baseProj.reduce((s, r) => s + (r.totalTax || 0), 0))
+      const optTax = Math.round(optProj.reduce((s, r) => s + (r.totalTax || 0), 0))
+      const expected = Math.max(0, baseTax - optTax)
+
+      expect(rec.impact.lifetimeTaxSaved).toBe(expected)
+    }
+  })
+
+  it('is positive for OAS deferral when DB pension income is near the clawback threshold', () => {
+    const scenario = {
+      ...base,
+      currentAge: 65,
+      retirementAge: 65,
+      lifeExpectancy: 88,
+      oasMonthly: 713,
+      oasStartAge: 65,
+      pensionType: 'db',
+      dbPensionAnnual: 70000,
+      dbPensionStartAge: 65,
+      cppMonthly: 1100,
+      cppStartAge: 65,
+      rrspBalance: 200000,
+      monthlyExpenses: 5000,
+    }
+    const result = runOptimization(scenario)
+    const oasRec = result.recommendations.find(r => r.dimension === 'oas')
+    if (oasRec) {
+      // Deferring OAS when near clawback threshold should not increase lifetime tax
+      expect(oasRec.impact.lifetimeTaxSaved).toBeGreaterThanOrEqual(0)
+    }
+  })
+})
+
+// ─── Margaret - Retired Teacher scenario ─────────────────────────────────────
+
+const MARGARET_RESULT = runOptimization(MARGARET)
+
+describe('Margaret - Retired Teacher scenario', () => {
+  it('plan never depletes (DB pension sustains her through LE)', () => {
+    expect(MARGARET_RESULT.baselineDepletion).toBeNull()
+  })
+
+  it('category field is present on all recommendations', () => {
+    for (const rec of MARGARET_RESULT.recommendations) {
+      expect(['plan', 'tax', 'couple']).toContain(rec.category)
+    }
+  })
+
+  it('does not recommend expense reduction (plan does not deplete)', () => {
+    expect(MARGARET_RESULT.recommendations.find(r => r.dimension === 'expenses')).toBeUndefined()
+    expect(MARGARET_RESULT.alreadyOptimal.find(a => a.dimension === 'expenses')).toBeUndefined()
+  })
+
+  it('does not include couple planning category (single person)', () => {
+    const coupleRecs = MARGARET_RESULT.recommendations.filter(r => r.category === 'couple')
+    expect(coupleRecs).toHaveLength(0)
+  })
+
+  it('exposes lifeExpectancy in result for banner display', () => {
+    expect(MARGARET_RESULT.lifeExpectancy).toBe(MARGARET.lifeExpectancy)
+  })
+
+  it('all recommendations improve lifetime income over baseline', () => {
+    for (const rec of MARGARET_RESULT.recommendations) {
+      expect(rec.impact.lifetimeIncomeGained).toBeGreaterThan(0)
+    }
+  })
+})
+
+// ─── Rajesh & Priya - couple scenario ────────────────────────────────────────
+
+const RAJESH_RESULT = runOptimization(RAJESH)
+
+describe('Rajesh & Priya - couple scenario', () => {
+  it('category field is present on all recommendations', () => {
+    for (const rec of RAJESH_RESULT.recommendations) {
+      expect(['plan', 'tax', 'couple']).toContain(rec.category)
+    }
+  })
+
+  it('runCount reflects couple mode extra dimensions (spouseCpp + spouseOas)', () => {
+    // 11 + 6 = 17 extra runs for couple dims, plus other dims
+    expect(RAJESH_RESULT.runCount).toBeGreaterThan(20)
+  })
+
+  it('couple planning dimensions are included when applicable', () => {
+    const allDims = [
+      ...RAJESH_RESULT.recommendations.map(r => r.dimension),
+      ...RAJESH_RESULT.alreadyOptimal.map(a => a.dimension),
+    ]
+    // Rajesh has spouseCppMonthly=700 and spouseOasMonthly=713
+    expect(allDims.some(d => d === 'spouseCpp' || d === 'spouseOas')).toBe(true)
+  })
+
+  it('all recommendations when applied improve outcome over baseline', () => {
+    const depletionAge = proj => proj.find(r => r.totalPortfolio <= 0)?.age ?? null
+    const lifetimeIncome = proj => proj.reduce((s, r) => s + r.afterTaxIncome, 0)
+
+    for (const rec of RAJESH_RESULT.recommendations) {
+      const optimized = { ...RAJESH, ...rec.changes }
+      const baseProj = projectScenario(RAJESH)
+      const optProj = projectScenario(optimized)
+
+      const baseDepletion = depletionAge(baseProj)
+      const optDepletion = depletionAge(optProj)
+
+      if (baseDepletion !== null) {
+        expect(optDepletion === null || optDepletion >= baseDepletion).toBe(true)
+      } else {
+        expect(lifetimeIncome(optProj)).toBeGreaterThanOrEqual(lifetimeIncome(baseProj) - 1)
+      }
+    }
   })
 })

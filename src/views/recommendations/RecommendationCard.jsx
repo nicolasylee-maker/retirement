@@ -6,6 +6,11 @@ const BADGE_STYLES = {
   blue:  'bg-blue-100 text-blue-700',
 }
 
+function fmtIncome(n) {
+  if (Math.abs(n) >= 1000000) return `$${(Math.abs(n) / 1000000).toFixed(1)}M`
+  return `$${Math.round(Math.abs(n) / 1000)}K`
+}
+
 function fmt(n) {
   return Math.abs(n) >= 1000
     ? `$${(Math.abs(n) / 1000).toFixed(0)}K`
@@ -21,32 +26,90 @@ function ImpactPill({ value, label, color }) {
   )
 }
 
+const CHANGE_LABELS = {
+  cppStartAge: 'CPP start age',
+  oasStartAge: 'OAS start age',
+  spouseCppStartAge: 'Spouse CPP start age',
+  spouseOasStartAge: 'Spouse OAS start age',
+  withdrawalOrder: 'Withdrawal order',
+  rrspMeltdownEnabled: 'RRSP meltdown',
+  rrspMeltdownAnnual: 'Meltdown amount',
+  rrspMeltdownTargetAge: 'Meltdown end age',
+  consumerDebtPayoffAge: 'Debt-free age',
+  expenseReductionAtRetirement: 'Spending reduction',
+}
+
+function formatChanges(changes) {
+  if (changes.rrspMeltdownEnabled !== undefined) {
+    if (changes.rrspMeltdownEnabled) {
+      const amt = changes.rrspMeltdownAnnual
+      const endAge = changes.rrspMeltdownTargetAge
+      return amt && endAge ? `RRSP meltdown → $${Math.round(amt / 1000)}K/yr until ${endAge}` : 'RRSP meltdown → Enabled'
+    }
+    return 'RRSP meltdown → Disabled'
+  }
+  if (changes.withdrawalOrder) {
+    return `Withdrawal order → ${changes.withdrawalOrder.slice(0, 3).join(' → ')}`
+  }
+  if (changes.expenseReductionAtRetirement !== undefined) {
+    return `Spending reduction → ${Math.round(changes.expenseReductionAtRetirement * 100)}%`
+  }
+  const entry = Object.entries(changes).find(([k]) => CHANGE_LABELS[k])
+  if (!entry) return null
+  const [key, val] = entry
+  let displayVal = String(val)
+  if (key === 'rrspMeltdownAnnual') displayVal = `$${Math.round(val / 1000)}K/yr`
+  else if (key === 'rrspMeltdownTargetAge') displayVal = `until ${val}`
+  return `${CHANGE_LABELS[key]} → ${displayVal}`
+}
+
+function ChangesLine({ changes }) {
+  const text = formatChanges(changes)
+  if (!text) return null
+  return (
+    <p className="text-xs text-gray-400 mb-2">
+      What changes: <span className="font-medium text-gray-500">{text}</span>
+    </p>
+  )
+}
+
 function BeforeAfter({ before, after }) {
+  const neitherDepletes = before.depletionAge === null && after.depletionAge === null
+  const incomeGained = (after.lifetimeIncome || 0) - (before.lifetimeIncome || 0)
+
   return (
     <div className="flex gap-2 text-xs mt-3">
       <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
         <p className="text-gray-400 font-medium mb-0.5">Before</p>
         <p className="text-gray-700 font-semibold">{before.label}</p>
-        {before.depletionAge && (
+        {before.depletionAge !== null && before.depletionAge && (
           <p className="text-gray-500 mt-0.5">Depletes at {before.depletionAge}</p>
+        )}
+        {before.lifetimeIncome > 0 && (
+          <p className="text-gray-400 mt-0.5">{fmtIncome(before.lifetimeIncome)} lifetime</p>
         )}
       </div>
       <div className="flex items-center text-gray-300 self-center">→</div>
       <div className="flex-1 bg-green-50 rounded-lg px-3 py-2">
         <p className="text-green-500 font-medium mb-0.5">After</p>
         <p className="text-gray-700 font-semibold">{after.label}</p>
-        {after.depletionAge && (
+        {after.depletionAge !== null && after.depletionAge && (
           <p className="text-green-600 mt-0.5">Depletes at {after.depletionAge}</p>
         )}
-        {after.depletionAge === null && before.depletionAge && (
+        {after.depletionAge === null && before.depletionAge !== null && (
           <p className="text-green-600 mt-0.5">Outlasts you ✓</p>
+        )}
+        {after.lifetimeIncome > 0 && (
+          <p className="text-green-600 mt-0.5">
+            {fmtIncome(after.lifetimeIncome)} lifetime{incomeGained > 0 ? ` ↑${fmtIncome(incomeGained)}` : ''}
+          </p>
         )}
       </div>
     </div>
   )
 }
 
-export default function RecommendationCard({ rec, isPaid, isFirst, onApply, applied }) {
+export default function RecommendationCard({ rec, isPaid, isFirst, onApply, applied, onViewDashboard }) {
   const [confirming, setConfirming] = useState(false)
   const blurred = !isPaid && !isFirst
 
@@ -82,7 +145,18 @@ export default function RecommendationCard({ rec, isPaid, isFirst, onApply, appl
           {rec.impact.lifetimeIncomeGained > 0 && (
             <ImpactPill value={rec.impact.lifetimeIncomeGained} label="lifetime income" color="bg-amber-100 text-amber-800" />
           )}
+          {rec.impact.lifetimeTaxSaved > 0 && (
+            <ImpactPill value={rec.impact.lifetimeTaxSaved} label="tax saved" color="bg-violet-100 text-violet-800" />
+          )}
         </div>
+
+        {/* reasoning callout */}
+        <div className="border-l-2 border-amber-300 pl-3 text-xs text-gray-600 mb-3">
+          {rec.reasoning}
+        </div>
+
+        {/* what changes */}
+        <ChangesLine changes={rec.changes} />
 
         {/* description */}
         <p className="text-sm text-gray-600 leading-relaxed mb-1">{rec.description}</p>
@@ -90,17 +164,24 @@ export default function RecommendationCard({ rec, isPaid, isFirst, onApply, appl
         {/* before / after */}
         <BeforeAfter before={rec.before} after={rec.after} />
 
-        {/* reasoning */}
-        <p className="mt-3 text-xs text-gray-400 italic">{rec.reasoning}</p>
-
         {/* apply button */}
         <div className="mt-4">
           {applied ? (
-            <div className="flex items-center gap-2 text-sm font-medium text-green-600">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              Applied
+            <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center gap-1.5 font-medium text-green-600">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Applied
+              </div>
+              {onViewDashboard && (
+                <button
+                  onClick={onViewDashboard}
+                  className="text-sm text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"
+                >
+                  View updated dashboard →
+                </button>
+              )}
             </div>
           ) : confirming ? (
             <div className="flex items-center gap-2">

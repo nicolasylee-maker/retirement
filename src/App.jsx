@@ -84,7 +84,7 @@ function loadSaved() {
 }
 
 export default function App() {
-  const { isPaid, isPastDue } = useSubscription();
+  const { isPaid, isPastDue, refresh: refreshSubscription } = useSubscription();
   const { user: authUser } = useAuth();
 
   const [scenarios, setScenarios] = useState(() => {
@@ -289,8 +289,15 @@ export default function App() {
       setCheckoutSuccess(true);
       history.replaceState(null, '', window.location.pathname);
       setTimeout(() => setCheckoutSuccess(false), 5000);
+      // Webhook may not have fired yet — poll a few times to catch it
+      refreshSubscription();
+      const t1 = setTimeout(refreshSubscription, 2000);
+      const t2 = setTimeout(refreshSubscription, 4000);
+      const t3 = setTimeout(refreshSubscription, 7000);
+      const t4 = setTimeout(refreshSubscription, 11000);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
     }
-  }, []);
+  }, []); // eslint-disable-line
 
   const handleTabClick = useCallback((tabKey) => {
     if (!isPaid && GATED_TABS.has(tabKey)) {

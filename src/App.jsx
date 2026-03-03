@@ -124,6 +124,11 @@ export default function App() {
   const prevAuthUserRef = useRef(authUser);
 
   useEffect(() => {
+    console.log('[debug] scenarios changed:', scenarios.length, 'ids:', scenarios.map(s => s.id.slice(0, 8)), 'view:', view);
+    console.trace('[debug] scenarios stack');
+  }, [scenarios]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     const data = { scenarios, currentScenarioId, view: view === 'wizard' ? 'dashboard' : view };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [scenarios, currentScenarioId, view]);
@@ -190,6 +195,7 @@ export default function App() {
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
   const handleSignIn = useCallback((cloudScenarios) => {
+    console.log('[handleSignIn] received', cloudScenarios.length, 'cloud scenarios');
     if (cloudScenarios.length === 0) return;
     setScenarios(cloudScenarios);
     setCurrentScenarioId(cloudScenarios[0].id);

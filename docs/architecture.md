@@ -312,7 +312,7 @@ Each year in the projection array contains:
 | Income | `cppIncome`, `oasIncome`, `gisIncome`, `gainsIncome`, `pensionIncome` |
 | Withdrawals | `rrspWithdrawal`, `tfsaWithdrawal`, `nonRegWithdrawal`, `otherWithdrawal` |
 | Tax | `totalTaxableIncome`, `totalTax`, `afterTaxIncome` |
-| Couple Income | `spouseCppIncome`, `spouseOasIncome`, `spouseEmploymentIncome`, `spousePensionIncome`, `spouseRrspWithdrawal`, `spouseRrspBalance`, `spouseTfsaBalance` |
+| Couple Income | `spouseCppIncome`, `spouseOasIncome`, `spouseEmploymentIncome`, `spousePensionIncome`, `spouseRrspWithdrawal`, `spouseRrspBalance`, `spouseTfsaBalance`, `spouseTfsaWithdrawal` |
 | Cashflow | `expenses`, `debtPayments`, `surplus`, `netWorth` |
 
 ## Adding a New Module
@@ -538,3 +538,4 @@ See `docs/learned-rules.md` → Edge Function Deployment for machine-specific de
 | 2026-03-03 | AI insights persistence: aiInsights field added to scenario shape, AiInsight.jsx uses savedInsight/onSave props with hash-based staleness badge, insights auto-restore on load and persist via Supabase cloud sync, Gemini badge removed |
 | 2026-03-03 | Returning user flow: sign-in routes returning users to ReturningHomeView (3-card choice screen) instead of wizard; ScenarioPickerView for multi-scenario selection; View Results button removed from wizard sidebar; routing helpers extracted to returningUserFlow.js |
 | 2026-03-03 | Optimize My Plan tab: optimizerEngine.js (pure, 8 dimensions: CPP/OAS timing × primary+spouse, withdrawal order, RRSP meltdown, debt payoff, expense reduction); RecommendationCard + RecommendationsTab; lazy useMemo (only runs when tab is active); free users see card 1, paid users see all; Apply merges rec.changes into scenario |
+| 2026-03-03 | Fix spouse TFSA withdrawal bug in projectionEngine.js: spouseTfsa was included in totalPortfolio but never drawn; added spouseTfsaWithdrawal variable, draws from spouse TFSA after primary in withdrawal loop, adds spouseTfsaWithdrawal to grossIncome and projection output |

@@ -171,12 +171,14 @@ export function projectScenario(scenario, overrides = {}) {
     const shortfall = Math.max(0, totalNeed - totalKnownIncome);
 
     let tfsaWithdrawal = 0;
+    let spouseTfsaWithdrawal = 0;
     let nonRegWithdrawal = 0;
     let otherWithdrawal = 0;
 
     const withdrawalOrder = s.withdrawalOrder || ['tfsa', 'nonReg', 'rrsp', 'other'];
     let rrspAvail = Math.max(0, rrsp - rrspWithdrawal);
     let tfsaAvail = tfsa;
+    let spouseTfsaAvail = s.isCouple ? spouseTfsa : 0;
     let nonRegAvail = nonReg;
     let otherAvail = other;
 
@@ -198,6 +200,12 @@ export function projectScenario(scenario, overrides = {}) {
             tfsaWithdrawal += draw;
             tfsaAvail -= draw;
             remaining -= draw;
+            if (s.isCouple && remaining > 0) {
+              const spouseDraw = Math.min(remaining, spouseTfsaAvail);
+              spouseTfsaWithdrawal += spouseDraw;
+              spouseTfsaAvail -= spouseDraw;
+              remaining -= spouseDraw;
+            }
             break;
           }
           case 'nonReg': {
@@ -249,13 +257,14 @@ export function projectScenario(scenario, overrides = {}) {
       }
       grossIncome = employmentIncome + nonTaxedIncome + cppIncome + oasIncome + gisIncome + gainsIncome
         + pensionIncome + rrspWithdrawal + tfsaWithdrawal + nonRegWithdrawal + otherWithdrawal
-        + spouseEmploymentIncome + spouseCppIncome + spouseOasIncome + spousePensionIncome + spouseRrspWithdrawal;
+        + spouseEmploymentIncome + spouseCppIncome + spouseOasIncome + spousePensionIncome + spouseRrspWithdrawal
+        + spouseTfsaWithdrawal;
       afterTaxIncome = grossIncome - totalTax;
       surplus = afterTaxIncome - expenses - debtPayments;
 
       if (surplus >= -50) break;
       remaining = -surplus;
-      if (rrspAvail <= 0 && tfsaAvail <= 0 && nonRegAvail <= 0 && otherAvail <= 0) break;
+      if (rrspAvail <= 0 && tfsaAvail <= 0 && (!s.isCouple || spouseTfsaAvail <= 0) && nonRegAvail <= 0 && otherAvail <= 0) break;
     }
 
     // Update balances after convergence
@@ -269,6 +278,7 @@ export function projectScenario(scenario, overrides = {}) {
     other = Math.max(0, other - otherWithdrawal);
     if (s.isCouple) {
       spouseRrsp = Math.max(0, spouseRrsp - spouseRrspWithdrawal);
+      spouseTfsa = Math.max(0, spouseTfsa - spouseTfsaWithdrawal);
     }
 
     // Accrue annual TFSA contribution room
@@ -339,6 +349,7 @@ export function projectScenario(scenario, overrides = {}) {
       spousePensionIncome: s.isCouple ? Math.round(spousePensionIncome) : undefined,
       spouseRrspWithdrawal: s.isCouple ? Math.round(spouseRrspWithdrawal) : undefined,
       spouseRrspBalance: s.isCouple ? Math.round(spouseRrsp) : undefined,
+      spouseTfsaWithdrawal: s.isCouple ? Math.round(spouseTfsaWithdrawal) : undefined,
       spouseTfsaBalance: s.isCouple ? Math.round(spouseTfsa) : undefined,
     });
   }

@@ -94,7 +94,7 @@ export default function GovBenefitsStep({ scenario, onChange }) {
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <FormField
-            label="Monthly CPP"
+            label="Monthly CPP (at age 65)"
             name="cppMonthly"
             type="number"
             value={scenario.cppMonthly}
@@ -103,7 +103,7 @@ export default function GovBenefitsStep({ scenario, onChange }) {
             suffix="/mo"
             min={0}
             max={2000}
-            helper="Your estimated monthly payment — check My Service Canada online for your personal estimate"
+            helper="The amount shown on your Service Canada statement at age 65. If you're already receiving CPP, enter what your statement said your age-65 amount would be. Check My Service Canada Account online if unsure."
           />
           <FormField
             label="CPP Start Age"
@@ -128,7 +128,7 @@ export default function GovBenefitsStep({ scenario, onChange }) {
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <FormField
-            label="Monthly OAS"
+            label="Monthly OAS (at age 65)"
             name="oasMonthly"
             type="number"
             value={scenario.oasMonthly}
@@ -137,7 +137,7 @@ export default function GovBenefitsStep({ scenario, onChange }) {
             suffix="/mo"
             min={0}
             max={1000}
-            helper="The full amount if you've lived in Canada 40+ years. Current maximum is about $713/mo."
+            helper="Your estimated monthly OAS at age 65 based on years of Canadian residency. Check My Service Canada Account for your personal estimate. The maximum changes quarterly with inflation."
           />
           <FormField
             label="OAS Start Age"
@@ -221,7 +221,7 @@ export default function GovBenefitsStep({ scenario, onChange }) {
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <FormField
-              label="Spouse Monthly CPP"
+              label="Spouse Monthly CPP (at age 65)"
               name="spouseCppMonthly"
               type="number"
               value={scenario.spouseCppMonthly}
@@ -230,7 +230,7 @@ export default function GovBenefitsStep({ scenario, onChange }) {
               suffix="/mo"
               min={0}
               max={2000}
-              helper="From their My Service Canada statement"
+              helper="The amount shown on their Service Canada statement at age 65. Check My Service Canada Account if unsure."
             />
             <FormField
               label="Spouse CPP Start Age"
@@ -243,7 +243,7 @@ export default function GovBenefitsStep({ scenario, onChange }) {
               helper="Same rules apply — 60 to 70, with 65 as standard"
             />
             <FormField
-              label="Spouse Monthly OAS"
+              label="Spouse Monthly OAS (at age 65)"
               name="spouseOasMonthly"
               type="number"
               value={scenario.spouseOasMonthly}
@@ -252,7 +252,7 @@ export default function GovBenefitsStep({ scenario, onChange }) {
               suffix="/mo"
               min={0}
               max={1000}
-              helper="Based on their years of Canadian residency"
+              helper="Their estimated monthly OAS at age 65 based on years of Canadian residency. Check My Service Canada Account for their personal estimate. The maximum changes quarterly with inflation."
             />
             <FormField
               label="Spouse OAS Start Age"

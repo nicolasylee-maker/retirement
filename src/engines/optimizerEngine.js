@@ -22,22 +22,34 @@ function isBetter(cand, base) {
   return false
 }
 
-function calcImpact(base, best, lifeExpectancy) {
+function calcImpact(base, best, lifeExpectancy, benefitStartAge) {
+  const lifetimeIncomeGained = Math.round(best.income - base.income)
+  const months = Math.max(1, (lifeExpectancy - benefitStartAge) * 12)
   return {
     depletionYearsGained: base.depletion !== null ? Math.max(0, (best.depletion ?? lifeExpectancy) - base.depletion) : 0,
-    lifetimeIncomeGained: Math.round(best.income - base.income),
+    lifetimeIncomeGained,
     lifetimeTaxSaved: Math.round(Math.max(0, base.tax - best.tax)),
     oasClawbackAvoided: 0,
+    monthlyImpact: lifetimeIncomeGained > 0 ? Math.round(lifetimeIncomeGained / months) : 0,
   }
 }
 
-function mkBefore(label, base) { return { label, depletionAge: base.depletion, lifetimeIncome: Math.round(base.income) } }
-function mkAfter(label, best) { return { label, depletionAge: best.depletion, lifetimeIncome: Math.round(best.income) } }
+function mkBefore(label, base, le, ra) {
+  const months = Math.max(1, (le - (ra || 60)) * 12)
+  return { label, depletionAge: base.depletion, lifetimeIncome: Math.round(base.income),
+           monthlyAvgIncome: Math.round(base.income / months) }
+}
+function mkAfter(label, best, le, ra) {
+  const months = Math.max(1, (le - (ra || 60)) * 12)
+  return { label, depletionAge: best.depletion, lifetimeIncome: Math.round(best.income),
+           monthlyAvgIncome: Math.round(best.income / months) }
+}
 
 // ─── CPP timing (primary + spouse) ───────────────────────────────────────────
 
 function testCppTiming(s, base, isSpouse) {
   const ageKey = isSpouse ? 'spouseCppStartAge' : 'cppStartAge'
+  const monthlyKey = isSpouse ? 'spouseCppMonthly' : 'cppMonthly'
   const dim = isSpouse ? 'spouseCpp' : 'cpp'
   const cur = s[ageKey] || 65
   let best = null, bestAge = null, runs = 0
@@ -48,17 +60,27 @@ function testCppTiming(s, base, isSpouse) {
     if (!best || isBetter(r, best)) { best = r; bestAge = age }
   }
   if (!best || !isBetter(best, base)) return { rec: null, runs }
-  const impact = calcImpact(base, best, s.lifeExpectancy)
-  const prefix = isSpouse ? 'Have your spouse ' : ''
+  const impact = calcImpact(base, best, s.lifeExpectancy, bestAge)
   const d = bestAge > cur
+  const cppAdjust = (age) => Math.round((s[monthlyKey] || 0) * (1 + (age - 65) * 0.072))
+  const curMonthly = cppAdjust(cur)
+  const newMonthly = cppAdjust(bestAge)
+  const diff = newMonthly - curMonthly
+  const ra = s.retirementAge || s.currentAge
   return {
     rec: {
       id: `${dim}-${bestAge}`, dimension: dim, category: isSpouse ? 'couple' : 'plan',
-      title: `${prefix}${d ? 'Defer' : 'Start'} CPP at ${bestAge} (currently ${cur})`,
-      description: d ? `${prefix}Deferring CPP to ${bestAge} permanently increases the benefit and reduces portfolio drawdowns during bridge years.` : `${prefix}Starting CPP earlier at ${bestAge} provides income sooner, reducing strain on a thin portfolio.`,
-      reasoning: d ? 'The portfolio can bridge the income gap, making the permanent benefit increase worthwhile.' : 'The portfolio is thin — earlier CPP income reduces depletion risk.',
-      badge: impact.depletionYearsGained > 2 ? 'Biggest Impact' : 'Extends Plan', badgeColor: 'green', impact,
-      before: mkBefore(`CPP at ${cur}`, base), after: mkAfter(`CPP at ${bestAge}`, best), changes: { [ageKey]: bestAge },
+      title: d ? `Wait until ${bestAge} to start CPP` : `Start CPP earlier at ${bestAge}`,
+      description: d
+        ? `Your monthly CPP goes from $${curMonthly} to $${newMonthly}. That's $${diff}/mo more for the rest of your life.`
+        : `Starting CPP at ${bestAge} gives you $${newMonthly}/mo sooner and reduces pressure on your savings.`,
+      reasoning: d
+        ? 'You have enough savings to cover expenses while you wait. The bigger monthly cheque is worth the wait.'
+        : 'Your portfolio is thin — earlier CPP income reduces depletion risk.',
+      badge: 'Bigger Cheques', badgeColor: 'green', impact,
+      before: mkBefore(`CPP at ${cur}`, base, s.lifeExpectancy, ra),
+      after: mkAfter(`CPP at ${bestAge}`, best, s.lifeExpectancy, ra),
+      changes: { [ageKey]: bestAge },
     }, runs,
   }
 }
@@ -67,6 +89,7 @@ function testCppTiming(s, base, isSpouse) {
 
 function testOasTiming(s, base, isSpouse) {
   const ageKey = isSpouse ? 'spouseOasStartAge' : 'oasStartAge'
+  const monthlyKey = isSpouse ? 'spouseOasMonthly' : 'oasMonthly'
   const dim = isSpouse ? 'spouseOas' : 'oas'
   const cur = s[ageKey] || 65
   let best = null, bestAge = null, runs = 0
@@ -77,17 +100,26 @@ function testOasTiming(s, base, isSpouse) {
     if (!best || isBetter(r, best)) { best = r; bestAge = age }
   }
   if (!best || !isBetter(best, base)) return { rec: null, runs }
-  const impact = calcImpact(base, best, s.lifeExpectancy)
-  const prefix = isSpouse ? 'Have your spouse ' : ''
+  const impact = calcImpact(base, best, s.lifeExpectancy, bestAge)
   const d = bestAge > cur
+  const oasAdjust = (age) => Math.round((s[monthlyKey] || 0) * (1 + Math.max(0, age - 65) * 0.072))
+  const curOas = oasAdjust(cur)
+  const newOas = oasAdjust(bestAge)
+  const ra = s.retirementAge || s.currentAge
   return {
     rec: {
       id: `${dim}-${bestAge}`, dimension: dim, category: isSpouse ? 'couple' : 'tax',
-      title: `${prefix}${d ? 'Defer' : 'Take'} OAS at ${bestAge} (currently ${cur})`,
-      description: d ? `${prefix}Deferring OAS to ${bestAge} increases the benefit by ${Math.round((bestAge - 65) * 7.2)}% and avoids clawback when income is high.` : `${prefix}Taking OAS earlier at ${bestAge} provides additional household income.`,
-      reasoning: d ? 'Income from pension or registered withdrawals may push income above the OAS clawback threshold at 65 — deferring avoids this.' : 'Income is low enough that earlier OAS adds cash flow with minimal clawback impact.',
-      badge: 'Tax Saver', badgeColor: 'amber', impact,
-      before: mkBefore(`OAS at ${cur}`, base), after: mkAfter(`OAS at ${bestAge}`, best), changes: { [ageKey]: bestAge },
+      title: d ? `Wait until ${bestAge} to start OAS` : `Take OAS earlier at ${bestAge}`,
+      description: d
+        ? `Your monthly OAS goes from $${curOas} to $${newOas}. Plus, waiting means the government won't claw any of it back.`
+        : `Taking OAS earlier at ${bestAge} provides additional household income.`,
+      reasoning: d
+        ? "Right now your income is high enough that the government would take back some of your OAS. Waiting until your income drops means you keep all of it."
+        : 'Income is low enough that earlier OAS adds cash flow with minimal clawback impact.',
+      badge: 'Keep More Money', badgeColor: 'amber', impact,
+      before: mkBefore(`OAS at ${cur}`, base, s.lifeExpectancy, ra),
+      after: mkAfter(`OAS at ${bestAge}`, best, s.lifeExpectancy, ra),
+      changes: { [ageKey]: bestAge },
     }, runs,
   }
 }
@@ -100,6 +132,8 @@ const WITHDRAWAL_PERMS = [
   ['nonReg', 'rrsp', 'tfsa', 'other'], ['nonReg', 'tfsa', 'rrsp', 'other'],
 ]
 
+const ACCOUNT_LABELS = { rrsp: 'RRSP', tfsa: 'TFSA', nonReg: 'non-registered', other: 'other accounts' }
+
 function testWithdrawalOrder(s, base) {
   const curKey = (s.withdrawalOrder || []).slice(0, 3).join(',')
   let best = null, bestOrder = null, runs = 0
@@ -110,17 +144,20 @@ function testWithdrawalOrder(s, base) {
     if (!best || isBetter(r, best)) { best = r; bestOrder = order }
   }
   if (!best || !isBetter(best, base)) return { rec: null, runs }
-  const impact = calcImpact(base, best, s.lifeExpectancy)
+  const impact = calcImpact(base, best, s.lifeExpectancy, s.retirementAge || s.currentAge)
   const curLabel = (s.withdrawalOrder || []).slice(0, 3).join(' → ')
   const bestLabel = bestOrder.slice(0, 3).join(' → ')
+  const ra = s.retirementAge || s.currentAge
   return {
     rec: {
       id: `withdrawal-${bestOrder.slice(0, 3).join('-')}`, dimension: 'withdrawalOrder', category: 'tax',
-      title: `Switch to ${bestLabel} withdrawal order`,
-      description: 'Drawing from accounts in the optimal order minimizes lifetime taxes by deferring tax-advantaged growth as long as possible.',
-      reasoning: 'TFSA withdrawals are tax-free — keeping them last lets the balance compound longer. Non-reg gains are taxed more favourably than RRSP income.',
-      badge: 'Tax Saver', badgeColor: 'amber', impact,
-      before: mkBefore(curLabel, base), after: mkAfter(bestLabel, best), changes: { withdrawalOrder: bestOrder },
+      title: `Draw from ${ACCOUNT_LABELS[bestOrder[0]] || bestOrder[0]} first, save ${ACCOUNT_LABELS[bestOrder[2]] || bestOrder[2]} for last`,
+      description: `This order means less tax overall. Your ${ACCOUNT_LABELS[bestOrder[2]] || bestOrder[2]} keeps growing tax-free while you spend from ${ACCOUNT_LABELS[bestOrder[0]] || bestOrder[0]}.`,
+      reasoning: 'Money in your TFSA grows tax-free forever. The longer you leave it alone, the more it\'s worth.',
+      badge: 'Pay Less Tax', badgeColor: 'amber', impact,
+      before: mkBefore(curLabel, base, s.lifeExpectancy, ra),
+      after: mkAfter(bestLabel, best, s.lifeExpectancy, ra),
+      changes: { withdrawalOrder: bestOrder },
     }, runs,
   }
 }
@@ -149,20 +186,25 @@ function testMeltdown(s, base) {
     if (!best || isBetter(r, best)) { best = r; bestChanges = changes }
   }
   if (!best || !isBetter(best, base)) return { rec: null, runs }
-  const impact = calcImpact(base, best, s.lifeExpectancy)
+  const impact = calcImpact(base, best, s.lifeExpectancy, s.retirementAge || s.currentAge)
   const enabling = !s.rrspMeltdownEnabled && bestChanges.rrspMeltdownEnabled
   const amount = bestChanges.rrspMeltdownAnnual ?? s.rrspMeltdownAnnual ?? 0
   const endAge = bestChanges.rrspMeltdownTargetAge ?? s.rrspMeltdownTargetAge ?? 71
   const fmtK = v => `$${Math.round(v / 1000)}K`
+  const ra = s.retirementAge || s.currentAge
   return {
     rec: {
       id: `meltdown-${enabling ? 'enable' : 'adjust'}`, dimension: 'meltdown', category: 'tax',
-      title: enabling ? `Enable RRSP meltdown: ${fmtK(amount)}/yr until ${endAge}` : `Adjust meltdown to ${fmtK(amount)}/yr`,
-      description: enabling ? `Withdrawing ${fmtK(amount)}/yr from your RRSP before age 72 smooths your tax burden and reduces forced RRIF minimums.` : 'Fine-tuning your meltdown amount better fits the available tax room in these years.',
-      reasoning: 'Withdrawing from RRSP in lower-income years locks in a lower tax rate and shrinks future mandatory RRIF minimums.',
-      badge: 'Tax Saver', badgeColor: 'amber', impact,
-      before: mkBefore(s.rrspMeltdownEnabled ? `${fmtK(s.rrspMeltdownAnnual ?? 0)}/yr meltdown` : 'No meltdown', base),
-      after: mkAfter(bestChanges.rrspMeltdownEnabled === false ? 'No meltdown' : `${fmtK(amount)}/yr until ${endAge}`, best),
+      title: enabling
+        ? `Gradually move ${fmtK(amount)}/yr from your RRSP`
+        : `Shift ${fmtK(amount)}/yr from your RRSP until ${endAge}`,
+      description: enabling
+        ? "Moving money out of your RRSP while your income is low means you pay less tax on it. If you wait until 71, the government forces you to withdraw at higher tax rates."
+        : "Fine-tuning how much you move each year better fits the tax room available in these years.",
+      reasoning: 'Withdrawing from your RRSP in lower-income years locks in a lower tax rate and reduces future mandatory withdrawals.',
+      badge: 'Pay Less Tax', badgeColor: 'amber', impact,
+      before: mkBefore(s.rrspMeltdownEnabled ? `${fmtK(s.rrspMeltdownAnnual ?? 0)}/yr transfer` : 'No RRSP transfer', base, s.lifeExpectancy, ra),
+      after: mkAfter(bestChanges.rrspMeltdownEnabled === false ? 'No RRSP transfer' : `${fmtK(amount)}/yr until ${endAge}`, best, s.lifeExpectancy, ra),
       changes: bestChanges,
     }, runs,
   }
@@ -180,15 +222,18 @@ function testDebt(s, base) {
     if (!best || isBetter(r, best)) { best = r; bestAge = age }
   }
   if (!best || !isBetter(best, base)) return { rec: null, runs }
-  const impact = calcImpact(base, best, s.lifeExpectancy)
+  const impact = calcImpact(base, best, s.lifeExpectancy, bestAge)
+  const diff = curPayoff - bestAge
+  const ra = s.retirementAge || s.currentAge
   return {
     rec: {
       id: `debt-${bestAge}`, dimension: 'debt', category: 'plan',
-      title: `Pay off debt by ${bestAge} (currently ${curPayoff})`,
-      description: `Eliminating ${Math.round((s.consumerDebtRate || 0.08) * 100)}% consumer debt by age ${bestAge} frees cash flow and reduces total interest paid.`,
+      title: `Pay off your debt by age ${bestAge}`,
+      description: `Paying it off ${diff} year${diff !== 1 ? 's' : ''} sooner saves you roughly $${Math.round(impact.lifetimeIncomeGained / 1000)}K in interest and frees up cash flow.`,
       reasoning: 'High-rate debt costs more than most investment returns. Paying it off sooner is often the highest guaranteed return available.',
-      badge: 'Quick Win', badgeColor: 'blue', impact,
-      before: mkBefore(`Debt-free at ${curPayoff}`, base), after: mkAfter(`Debt-free at ${bestAge}`, best),
+      badge: 'Save Money', badgeColor: 'blue', impact,
+      before: mkBefore(`Debt-free at ${curPayoff}`, base, s.lifeExpectancy, ra),
+      after: mkAfter(`Debt-free at ${bestAge}`, best, s.lifeExpectancy, ra),
       changes: { consumerDebtPayoffAge: bestAge },
     }, runs,
   }
@@ -205,17 +250,21 @@ function testExpenses(s, base) {
     if (!best || isBetter(r, best)) { best = r; bestAdd = add }
   }
   if (!best || !isBetter(best, base)) return { rec: null, runs }
-  const impact = calcImpact(base, best, s.lifeExpectancy)
+  const impact = calcImpact(base, best, s.lifeExpectancy, s.retirementAge || s.currentAge)
   const monthly = Math.round((s.monthlyExpenses || 0) * bestAdd)
+  const yearsGained = (best.depletion ?? s.lifeExpectancy) - base.depletion
+  const ra = s.retirementAge || s.currentAge
   return {
     rec: {
       id: `expenses-${Math.round(bestAdd * 100)}pct`, dimension: 'expenses', category: 'plan',
-      title: `Reduce spending by $${monthly.toLocaleString()}/mo`,
-      description: `A ${Math.round(bestAdd * 100)}% spending reduction ($${monthly.toLocaleString()}/mo) ${best.depletion ? `extends your plan to age ${best.depletion}` : 'covers you through your target age'}.`,
+      title: best.depletion
+        ? `Spending $${monthly.toLocaleString()}/mo less makes your money last to age ${best.depletion}`
+        : `Spending $${monthly.toLocaleString()}/mo less means your money outlasts you`,
+      description: `Cutting from $${(s.monthlyExpenses||0).toLocaleString()}/mo to $${((s.monthlyExpenses||0)-monthly).toLocaleString()}/mo means your savings last ${yearsGained} more year${yearsGained !== 1 ? 's' : ''}.`,
       reasoning: 'Your portfolio is on track to run out before your target age. Reducing expenses is the most direct lever to close the gap.',
-      badge: 'Extends Plan', badgeColor: 'green', impact,
-      before: mkBefore(`$${(s.monthlyExpenses || 0).toLocaleString()}/mo`, base),
-      after: mkAfter(`$${((s.monthlyExpenses || 0) - monthly).toLocaleString()}/mo`, best),
+      badge: 'More Years', badgeColor: 'green', impact,
+      before: mkBefore(`$${(s.monthlyExpenses || 0).toLocaleString()}/mo`, base, s.lifeExpectancy, ra),
+      after: mkAfter(`$${((s.monthlyExpenses || 0) - monthly).toLocaleString()}/mo`, best, s.lifeExpectancy, ra),
       changes: { expenseReductionAtRetirement: curRed + bestAdd },
     }, runs,
   }
@@ -225,7 +274,7 @@ function testExpenses(s, base) {
 
 export const DIMENSION_LABELS = {
   cpp: 'CPP Timing', oas: 'OAS Timing', withdrawalOrder: 'Withdrawal Order',
-  meltdown: 'RRSP Meltdown', debt: 'Debt Payoff', expenses: 'Expense Level',
+  meltdown: 'Gradual RRSP Transfer', debt: 'Debt Payoff', expenses: 'Expense Level',
   spouseCpp: 'Spouse CPP Timing', spouseOas: 'Spouse OAS Timing',
 }
 

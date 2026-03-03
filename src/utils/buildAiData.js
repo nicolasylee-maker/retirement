@@ -101,3 +101,24 @@ export function buildEstateAiData(scenario, projectionData, ageAtDeath) {
     spouseRollover: scenario.primaryBeneficiary === 'spouse',
   };
 }
+
+export function buildOptimizeAiData(optimizationResult, scenario) {
+  const { recommendations, alreadyOptimal, baselineDepletion, lifeExpectancy, currentAge } = optimizationResult
+  const totalMonthlyGain = recommendations.reduce((s, r) => s + (r.impact.monthlyImpact || 0), 0)
+  return {
+    planDepletes: baselineDepletion !== null,
+    depletionAge: baselineDepletion,
+    lifeExpectancy,
+    currentAge,
+    monthlyExpenses: scenario?.monthlyExpenses || 0,
+    recommendationCount: recommendations.length,
+    totalMonthlyGain,
+    recommendations: recommendations.map(r => ({
+      dimension: r.dimension,
+      title: r.title,
+      monthlyImpact: r.impact.monthlyImpact || 0,
+      reasoning: r.reasoning,
+    })),
+    alreadyOptimal: alreadyOptimal.map(o => o.label),
+  }
+}

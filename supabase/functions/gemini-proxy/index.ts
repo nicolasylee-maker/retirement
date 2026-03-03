@@ -53,6 +53,27 @@ function buildPrompt(type: string, context: Record<string, unknown>, config: Rec
     }
   }
 
+  if (type === 'optimize') {
+    const recs = (context['recommendations'] as Array<Record<string, unknown>>) || []
+    const recommendationLines = recs.length
+      ? recs.map((r, i) =>
+          `${i + 1}. ${r['title']} — +$${r['monthlyImpact']}/mo`
+        ).join('\n')
+      : 'None found — plan is already well-optimized.'
+    template = template.replace('{recommendationLines}', recommendationLines)
+
+    const optimal = (context['alreadyOptimal'] as string[]) || []
+    const alreadyOptimalLines = optimal.length ? optimal.join(', ') : 'None'
+    template = template.replace('{alreadyOptimalLines}', alreadyOptimalLines)
+
+    context = {
+      ...context,
+      planStatus: context['planDepletes']
+        ? `depletes at age ${context['depletionAge']}`
+        : `outlasts life expectancy (age ${context['lifeExpectancy']})`,
+    }
+  }
+
   // Substitute {variableName} placeholders
   const body = template.replace(/\{(\w+)\}/g, (_, key: string) => String(context[key] ?? ''))
 

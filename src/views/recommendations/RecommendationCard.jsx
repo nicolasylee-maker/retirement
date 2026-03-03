@@ -32,9 +32,9 @@ const CHANGE_LABELS = {
   spouseCppStartAge: 'Spouse CPP start age',
   spouseOasStartAge: 'Spouse OAS start age',
   withdrawalOrder: 'Withdrawal order',
-  rrspMeltdownEnabled: 'RRSP meltdown',
-  rrspMeltdownAnnual: 'Meltdown amount',
-  rrspMeltdownTargetAge: 'Meltdown end age',
+  rrspMeltdownEnabled: 'Gradual RRSP transfer',
+  rrspMeltdownAnnual: 'Transfer amount',
+  rrspMeltdownTargetAge: 'Transfer end age',
   consumerDebtPayoffAge: 'Debt-free age',
   expenseReductionAtRetirement: 'Spending reduction',
 }
@@ -44,9 +44,9 @@ function formatChanges(changes) {
     if (changes.rrspMeltdownEnabled) {
       const amt = changes.rrspMeltdownAnnual
       const endAge = changes.rrspMeltdownTargetAge
-      return amt && endAge ? `RRSP meltdown → $${Math.round(amt / 1000)}K/yr until ${endAge}` : 'RRSP meltdown → Enabled'
+      return amt && endAge ? `Gradual RRSP transfer → $${Math.round(amt / 1000)}K/yr until ${endAge}` : 'Gradual RRSP transfer → Enabled'
     }
-    return 'RRSP meltdown → Disabled'
+    return 'Gradual RRSP transfer → Disabled'
   }
   if (changes.withdrawalOrder) {
     return `Withdrawal order → ${changes.withdrawalOrder.slice(0, 3).join(' → ')}`
@@ -74,8 +74,7 @@ function ChangesLine({ changes }) {
 }
 
 function BeforeAfter({ before, after }) {
-  const neitherDepletes = before.depletionAge === null && after.depletionAge === null
-  const incomeGained = (after.lifetimeIncome || 0) - (before.lifetimeIncome || 0)
+  const monthlyDelta = (after.monthlyAvgIncome || 0) - (before.monthlyAvgIncome || 0)
 
   return (
     <div className="flex gap-2 text-xs mt-3">
@@ -83,10 +82,10 @@ function BeforeAfter({ before, after }) {
         <p className="text-gray-400 font-medium mb-0.5">Before</p>
         <p className="text-gray-700 font-semibold">{before.label}</p>
         {before.depletionAge !== null && before.depletionAge && (
-          <p className="text-gray-500 mt-0.5">Depletes at {before.depletionAge}</p>
+          <p className="text-gray-500 mt-0.5">Money runs out at {before.depletionAge}</p>
         )}
-        {before.lifetimeIncome > 0 && (
-          <p className="text-gray-400 mt-0.5">{fmtIncome(before.lifetimeIncome)} lifetime</p>
+        {before.monthlyAvgIncome > 0 && (
+          <p className="text-gray-400 mt-0.5">${before.monthlyAvgIncome.toLocaleString()}/mo avg</p>
         )}
       </div>
       <div className="flex items-center text-gray-300 self-center">→</div>
@@ -94,14 +93,14 @@ function BeforeAfter({ before, after }) {
         <p className="text-green-500 font-medium mb-0.5">After</p>
         <p className="text-gray-700 font-semibold">{after.label}</p>
         {after.depletionAge !== null && after.depletionAge && (
-          <p className="text-green-600 mt-0.5">Depletes at {after.depletionAge}</p>
+          <p className="text-green-600 mt-0.5">Money lasts to age {after.depletionAge}</p>
         )}
         {after.depletionAge === null && before.depletionAge !== null && (
-          <p className="text-green-600 mt-0.5">Outlasts you ✓</p>
+          <p className="text-green-600 mt-0.5">Money lasts your whole life ✓</p>
         )}
-        {after.lifetimeIncome > 0 && (
+        {after.monthlyAvgIncome > 0 && (
           <p className="text-green-600 mt-0.5">
-            {fmtIncome(after.lifetimeIncome)} lifetime{incomeGained > 0 ? ` ↑${fmtIncome(incomeGained)}` : ''}
+            ${after.monthlyAvgIncome.toLocaleString()}/mo avg{monthlyDelta > 0 ? ` ↑$${monthlyDelta.toLocaleString()}/mo` : ''}
           </p>
         )}
       </div>
@@ -147,6 +146,11 @@ export default function RecommendationCard({ rec, isPaid, isFirst, onApply, appl
           )}
           {rec.impact.lifetimeTaxSaved > 0 && (
             <ImpactPill value={rec.impact.lifetimeTaxSaved} label="tax saved" color="bg-violet-100 text-violet-800" />
+          )}
+          {rec.impact.monthlyImpact > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-purple-100 text-purple-800">
+              +${rec.impact.monthlyImpact.toLocaleString()}/mo
+            </span>
           )}
         </div>
 

@@ -1,4 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
+import AiInsight from '../../components/AiInsight'
+import { buildOptimizeAiData } from '../../utils/buildAiData'
 import RecommendationCard from './RecommendationCard'
 
 function SparklesIcon() {
@@ -17,7 +19,7 @@ function fmtK(n) {
 
 const DIMENSION_LABELS = {
   cpp: 'CPP Timing', oas: 'OAS Timing', withdrawalOrder: 'Withdrawal Order',
-  meltdown: 'RRSP Meltdown', debt: 'Debt Payoff', expenses: 'Expense Level',
+  meltdown: 'Gradual RRSP Transfer', debt: 'Debt Payoff', expenses: 'Expense Level',
   spouseCpp: 'Spouse CPP', spouseOas: 'Spouse OAS',
 }
 
@@ -154,8 +156,12 @@ function AlreadyOptimalSection({ items }) {
   )
 }
 
-export default function RecommendationsTab({ result, isPaid, onScenarioChange, onUpgrade, onViewDashboard }) {
+export default function RecommendationsTab({ result, isPaid, onScenarioChange, onUpgrade, onViewDashboard, scenario, aiInsights, onSaveInsight }) {
   const [appliedIds, setAppliedIds] = useState(new Set())
+  const aiData = useMemo(
+    () => (result && scenario ? buildOptimizeAiData(result, scenario) : null),
+    [result, scenario]
+  )
 
   if (!result) {
     return (
@@ -196,45 +202,67 @@ export default function RecommendationsTab({ result, isPaid, onScenarioChange, o
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-gray-700">
-        <SparklesIcon />
-        <h2 className="text-base font-semibold">Optimize My Plan</h2>
+      {/* Mobile AI Insights */}
+      <div className="xl:hidden">
+        {aiData && (
+          <AiInsight type="optimize" data={aiData}
+            savedInsight={aiInsights?.optimize}
+            onSave={(text, hash) => onSaveInsight?.('optimize', text, hash)} />
+        )}
       </div>
 
-      <SummaryBanner result={result} />
-
-      {sections.map(({ cat, items }) => (
-        <div key={cat} className="space-y-4">
-          {/* Section header */}
-          <div className={`border-l-4 pl-3 ${CATEGORY_CONFIG[cat].borderClass}`}>
-            <h3 className={`text-xs font-semibold uppercase tracking-wide ${CATEGORY_CONFIG[cat].textClass}`}>
-              {CATEGORY_CONFIG[cat].label}
-            </h3>
+      {/* Two-column layout: content left, AI sticky right on xl+ */}
+      <div className="flex gap-6 items-start">
+        <div className="flex-1 min-w-0 space-y-4">
+          <div className="flex items-center gap-2 text-gray-700">
+            <SparklesIcon />
+            <h2 className="text-base font-semibold">Optimize My Plan</h2>
           </div>
 
-          {items.map((rec) => {
-            const globalIdx = globalIdxMap.get(rec.id)
-            const isFirst = globalIdx === 0
-            return (
-              <React.Fragment key={rec.id}>
-                <RecommendationCard
-                  rec={rec}
-                  isPaid={isPaid}
-                  isFirst={isFirst}
-                  onApply={() => handleApply(rec)}
-                  applied={appliedIds.has(rec.id)}
-                  onViewDashboard={onViewDashboard}
-                />
-                {isFirst && !isPaid && orderedRecs.length > 1 && (
-                  <UpgradeCta lockedRecs={orderedRecs.slice(1)} onUpgrade={onUpgrade} />
-                )}
-              </React.Fragment>
-            )
-          })}
-        </div>
-      ))}
+          <SummaryBanner result={result} />
 
-      <AlreadyOptimalSection items={alreadyOptimal} />
+          {sections.map(({ cat, items }) => (
+            <div key={cat} className="space-y-4">
+              {/* Section header */}
+              <div className={`border-l-4 pl-3 ${CATEGORY_CONFIG[cat].borderClass}`}>
+                <h3 className={`text-xs font-semibold uppercase tracking-wide ${CATEGORY_CONFIG[cat].textClass}`}>
+                  {CATEGORY_CONFIG[cat].label}
+                </h3>
+              </div>
+
+              {items.map((rec) => {
+                const globalIdx = globalIdxMap.get(rec.id)
+                const isFirst = globalIdx === 0
+                return (
+                  <React.Fragment key={rec.id}>
+                    <RecommendationCard
+                      rec={rec}
+                      isPaid={isPaid}
+                      isFirst={isFirst}
+                      onApply={() => handleApply(rec)}
+                      applied={appliedIds.has(rec.id)}
+                      onViewDashboard={onViewDashboard}
+                    />
+                    {isFirst && !isPaid && orderedRecs.length > 1 && (
+                      <UpgradeCta lockedRecs={orderedRecs.slice(1)} onUpgrade={onUpgrade} />
+                    )}
+                  </React.Fragment>
+                )
+              })}
+            </div>
+          ))}
+
+          <AlreadyOptimalSection items={alreadyOptimal} />
+        </div>
+
+        <div className="hidden xl:block w-96 flex-shrink-0 sticky top-24">
+          {aiData && (
+            <AiInsight type="optimize" data={aiData}
+              savedInsight={aiInsights?.optimize}
+              onSave={(text, hash) => onSaveInsight?.('optimize', text, hash)} />
+          )}
+        </div>
+      </div>
     </div>
   )
 }

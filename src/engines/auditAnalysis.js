@@ -191,6 +191,7 @@ export function auditKnownGaps() {
     ['**No tax bracket indexing**', "Federal/Ontario brackets don't adjust for inflation", 'Overstates taxes in later years (bracket creep)'],
     ['**Single tax year**', 'Uses 2024 brackets for all future years', 'Tax rates may change'],
     ['**Debt payment from income**', 'Debt payments come from gross income, not savings', 'Accurate if income covers payments; if not, withdrawals fill the gap'],
+    ['**Mortgage amortization**', 'Uses constant-principal repayment (declining total payment) instead of standard Canadian fixed-payment amortization. Early-year payments are overstated, later-year payments understated.', 'Total interest understated by ~8% over mortgage life. Modest effect on retirement portfolio — conservative in early years, slightly optimistic in later years. v2 improvement candidate.'],
     ['**No CPP survivor benefit**', 'Not modeled (single scenario)', 'N/A for single filer'],
     ['**No health/care costs**', 'Model uses flat expense growth', 'May understate expenses significantly after age 80'],
     ['**Employment income stops abruptly**', 'No part-time or gradual retirement option', 'May overstate withdrawal needs in early retirement'],

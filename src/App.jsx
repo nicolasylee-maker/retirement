@@ -710,6 +710,9 @@ export default function App() {
                 onScenarioChange={handleScenarioChange}
                 onUpgrade={() => setUpgradeModalOpen(true)}
                 onViewDashboard={() => setView('dashboard')}
+                scenario={currentScenario}
+                aiInsights={currentScenario?.aiInsights}
+                onSaveInsight={handleSaveInsight}
               />
             </div>
           )}

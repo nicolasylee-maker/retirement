@@ -89,7 +89,7 @@ export function LandingPage({ onTryAnonymous }) {
         <div className="w-full max-w-sm">
 
           <h2 className="text-3xl font-black text-gray-900 mb-2">Start your free plan</h2>
-          <p className="text-base text-gray-600 mb-8">Save it. Access it from any device.</p>
+          <p className="text-base text-gray-600 mb-8">5 minutes to know your retirement number — and whether you're on track.</p>
 
           {/* Google */}
           <button

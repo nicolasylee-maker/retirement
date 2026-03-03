@@ -180,6 +180,9 @@ export default function App() {
     setScenarios(cloudScenarios);
     setCurrentScenarioId(cloudScenarios[0].id);
     setWhatIfOverrides({});
+    // Only redirect if the user came from the sign-in flow (landing or freshly-created wizard).
+    // If they're already on dashboard (page reload with persisted auth), leave them there.
+    setView(prev => (prev === 'landing' || prev === 'wizard') ? 'returning-home' : prev);
   }, []);
 
   const { saveStatus, checkCanCreate } = useCloudSync({

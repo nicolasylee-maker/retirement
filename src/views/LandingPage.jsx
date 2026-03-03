@@ -51,7 +51,7 @@ export function LandingPage({ onTryAnonymous }) {
           Know exactly when<br />your money runs out.
         </h1>
         <p className="text-base text-gray-600 mb-6">
-          Tax-accurate retirement projections for Canadians. Free.
+          Tax-accurate retirement projections for Canadians.
         </p>
 
         {/* ── Live demo label ── */}
@@ -61,7 +61,6 @@ export function LandingPage({ onTryAnonymous }) {
           </span>
           <span className="text-xs text-gray-400">·</span>
           <span className="text-xs text-gray-500 font-medium">Sophie Martin · Age 64, Ontario</span>
-          <span className="ml-auto text-xs text-gray-400 italic hidden sm:inline">Hover chart for details</span>
         </div>
 
         {/* ── Summary cards — real engine output ── */}

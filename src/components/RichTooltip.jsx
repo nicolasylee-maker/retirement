@@ -12,15 +12,22 @@ import { formatCurrency } from '../utils/formatters';
  *   sections    - Array of { heading?, items: [{ label, value, sub?, color?, negative? }] }
  *   bar         - Optional stacked bar: [{ label, value, color }]
  */
+const SEEN_KEY = 'kpi_tooltip_seen';
+
 export default function RichTooltip({ title, subtitle, sections, bar }) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const [pulsing, setPulsing] = useState(() => !localStorage.getItem(SEEN_KEY));
   const btnRef = useRef(null);
   const popRef = useRef(null);
 
   const POP_WIDTH = 380;
 
   const handleOpen = useCallback(() => {
+    if (pulsing) {
+      localStorage.setItem(SEEN_KEY, '1');
+      setPulsing(false);
+    }
     if (btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
       const vh = window.innerHeight;
@@ -36,7 +43,7 @@ export default function RichTooltip({ title, subtitle, sections, bar }) {
       setCoords({ top, left });
     }
     setOpen(o => !o);
-  }, []);
+  }, [pulsing]);
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +78,12 @@ export default function RichTooltip({ title, subtitle, sections, bar }) {
 
   return (
     <span className="relative inline-flex items-center ml-1">
+      {pulsing && (
+        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 pointer-events-none">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+        </span>
+      )}
       <button
         ref={btnRef}
         type="button"

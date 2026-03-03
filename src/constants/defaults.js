@@ -98,6 +98,8 @@ export function createDefaultScenario(name = 'My Scenario') {
     consumerDebtRate: 0.08,
     consumerDebtPayoffAge: 70, // Target age to be debt-free
     otherDebt: 0,
+    otherDebtRate: 0.05,       // 5% blended default
+    otherDebtPayoffAge: 70,    // same default as consumerDebtPayoffAge
 
     // Step 7: Expenses & Assumptions
     monthlyExpenses: 4000,

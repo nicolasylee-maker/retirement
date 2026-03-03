@@ -7,6 +7,7 @@ const PROMPT_FIELDS = [
   { key: 'prompt_compare', label: 'Compare Prompt', variables: '{scenarioLines} (pre-built multi-line string of scenario summaries)' },
   { key: 'prompt_estate', label: 'Estate Prompt', variables: '{ageAtDeath}, {grossEstate}, {totalTax}, {netToHeirs}, {hasWill}, {primaryBeneficiary}, {rrspBalance}, {spouseRollover}' },
   { key: 'prompt_debt', label: 'Debt Prompt', variables: '{totalDebt}, {totalInterest}, {consumerDebt}, {consumerRatePct}, {mortgageBalance}, {mortgageRatePct}, {currentAge}, {retirementAge}, {debtFreeAge}, {monthlyPayments}' },
+  { key: 'prompt_optimize', label: 'Optimize Prompt', variables: '{planStatus}, {currentAge}, {lifeExpectancy}, {monthlyExpenses}, {recommendationCount}, {totalMonthlyGain}, {recommendationLines} (pre-built numbered list), {alreadyOptimalLines} (pre-built comma list)' },
 ]
 
 export default function AiConfigSection() {

@@ -267,3 +267,148 @@ describe('buildPhaseAnnotations', () => {
     expect(card.ages).toBe('63–64');
   });
 });
+
+// ─── buildPhaseAnnotations — accumulation card ──────────────────────────────
+
+describe('buildPhaseAnnotations — accumulation card', () => {
+  /** Young scenario with long accumulation phase (age 34 → retire 65). */
+  function makeAccumScenario(overrides = {}) {
+    return makeScenario({
+      currentAge: 34,
+      retirementAge: 65,
+      rrspBalance: 50000,
+      tfsaBalance: 30000,
+      cashSavings: 10000,
+      nonRegInvestments: 5000,
+      mortgageBalance: 0,
+      consumerDebt: 0,
+      ...overrides,
+    });
+  }
+
+  /** Build an accumulation work row (no drain, positive surplus deposits). */
+  function makeAccumRow(age, overrides = {}) {
+    return makeWorkRow(age, {
+      _portfolioDrain: 0,
+      tfsaDeposit: 7000,
+      nonRegDeposit: 5000,
+      mortgageBalance: 0,
+      totalPortfolio: 500000,
+      ...overrides,
+    });
+  }
+
+  function accumRows(startAge, endAge, overrides = {}) {
+    return Array.from({ length: endAge - startAge + 1 }, (_, i) =>
+      makeAccumRow(startAge + i, overrides),
+    );
+  }
+
+  it('shows accumulation card when no drain and retAge - currentAge > 5', () => {
+    const s = makeAccumScenario();
+    const rows = accumRows(34, 64);
+    const annotations = buildPhaseAnnotations(s, rows);
+    const card = annotations.find(a => a.phase === 'pre-retirement');
+    expect(card).toBeDefined();
+    expect(card.line1).toMatch(/Salary covers/);
+    expect(card.line2).toMatch(/surplus invested/);
+  });
+
+  it('omits accumulation card when retAge - currentAge <= 5 (near-retiree)', () => {
+    const s = makeAccumScenario({ currentAge: 63, retirementAge: 67 });
+    const rows = accumRows(63, 66);
+    const annotations = buildPhaseAnnotations(s, rows);
+    expect(annotations.find(a => a.phase === 'pre-retirement')).toBeUndefined();
+  });
+
+  it('omits accumulation card when maxSurplus is 0', () => {
+    const s = makeAccumScenario();
+    const rows = accumRows(34, 64, { tfsaDeposit: 0, nonRegDeposit: 0 });
+    const annotations = buildPhaseAnnotations(s, rows);
+    expect(annotations.find(a => a.phase === 'pre-retirement')).toBeUndefined();
+  });
+
+  it('line1 mentions mortgage when mortgageBalance > 0', () => {
+    const s = makeAccumScenario({ mortgageBalance: 200000 });
+    const rows = accumRows(34, 64);
+    const annotations = buildPhaseAnnotations(s, rows);
+    const card = annotations.find(a => a.phase === 'pre-retirement');
+    expect(card.line1).toMatch(/mortgage/);
+  });
+
+  it('line1 omits mortgage when mortgageBalance === 0', () => {
+    const s = makeAccumScenario({ mortgageBalance: 0 });
+    const rows = accumRows(34, 64);
+    const annotations = buildPhaseAnnotations(s, rows);
+    const card = annotations.find(a => a.phase === 'pre-retirement');
+    expect(card.line1).not.toMatch(/mortgage/);
+  });
+
+  it('line2 shows range when min and max differ by > $1K', () => {
+    const s = makeAccumScenario();
+    const rows = [
+      makeAccumRow(34, { tfsaDeposit: 3000, nonRegDeposit: 0 }),
+      makeAccumRow(35, { tfsaDeposit: 7000, nonRegDeposit: 5000 }),
+    ];
+    const annotations = buildPhaseAnnotations(s, rows);
+    const card = annotations.find(a => a.phase === 'pre-retirement');
+    // Should contain an en-dash range like "$3K–$12K/yr"
+    expect(card.line2).toMatch(/\$\d.*–.*\$\d/);
+  });
+
+  it('line2 shows single value when range < $1K', () => {
+    const s = makeAccumScenario();
+    const rows = accumRows(34, 64, { tfsaDeposit: 7000, nonRegDeposit: 5000 });
+    const annotations = buildPhaseAnnotations(s, rows);
+    const card = annotations.find(a => a.phase === 'pre-retirement');
+    // Should NOT contain range (no en-dash between two dollar amounts)
+    expect(card.line2).not.toMatch(/\$\d.*–.*\$\d/);
+  });
+
+  it('shows mortgage payoff line when payoff detected', () => {
+    const s = makeAccumScenario({ mortgageBalance: 200000 });
+    const rows = [
+      makeAccumRow(34, { mortgageBalance: 100000 }),
+      makeAccumRow(35, { mortgageBalance: 50000 }),
+      makeAccumRow(36, { mortgageBalance: 0 }),
+      makeAccumRow(37, { mortgageBalance: 0 }),
+    ];
+    const annotations = buildPhaseAnnotations(s, rows);
+    const card = annotations.find(a => a.phase === 'pre-retirement');
+    expect(card.line3).toMatch(/Mortgage paid off at 36/);
+  });
+
+  it('shows growth percentage line', () => {
+    const s = makeAccumScenario({
+      rrspBalance: 50000,
+      tfsaBalance: 30000,
+      cashSavings: 10000,
+      nonRegInvestments: 5000,
+    });
+    // originalSavings = 95000, portfolioAtRetirement = 500000
+    // growthPercent = round((500000 - 95000) / 500000 * 100) = 81%
+    const rows = accumRows(34, 64, { totalPortfolio: 500000 });
+    const annotations = buildPhaseAnnotations(s, rows);
+    const card = annotations.find(a => a.phase === 'pre-retirement');
+    const growthLine = card.line3 || card.line4;
+    expect(growthLine).toMatch(/81%.*compounding/);
+  });
+
+  it('omits growth line when portfolio <= original savings', () => {
+    const s = makeAccumScenario({
+      rrspBalance: 200000,
+      tfsaBalance: 100000,
+      cashSavings: 50000,
+      nonRegInvestments: 50000,
+    });
+    // originalSavings = 400000, portfolioAtRetirement = 300000 (less than original)
+    const rows = accumRows(34, 64, { totalPortfolio: 300000 });
+    const annotations = buildPhaseAnnotations(s, rows);
+    const card = annotations.find(a => a.phase === 'pre-retirement');
+    // Should have line1 and line2 but no growth line
+    expect(card.line1).toBeDefined();
+    expect(card.line2).toBeDefined();
+    expect(card.line3).toBeUndefined();
+    expect(card.line4).toBeUndefined();
+  });
+});

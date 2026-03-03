@@ -63,6 +63,7 @@ function AnnotationCard({ annotation: a }) {
       <p className="text-indigo-800">{a.line2}</p>
       {a.line3 && <p className="text-indigo-800">{a.line3}</p>}
       {a.line4 && <p className="text-indigo-600 mt-0.5 italic">{a.line4}</p>}
+      {a.line5 && <p className="text-indigo-600 mt-0.5 italic">{a.line5}</p>}
     </div>
   );
 }

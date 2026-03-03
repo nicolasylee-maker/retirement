@@ -6,6 +6,7 @@ import {
 import { CHART_COLORS, CHART_STYLE, COLORS } from '../../constants/designTokens';
 import { formatCurrencyShort, formatCurrency } from '../../utils/formatters';
 import ChartLegend from '../../components/ChartLegend';
+import { responsiveChartHeight } from '../../utils/responsiveChartHeight';
 
 function CustomTooltip({ active, payload }) {
   if (!active || !payload || !payload.length) return null;
@@ -62,7 +63,7 @@ export default function WithdrawalChart({ projectionData, scenario }) {
         ...(hasNonReg ? [{ color: CHART_COLORS.nonReg, label: 'Non-Reg' }]   : []),
         ...(hasOther  ? [{ color: CHART_COLORS.other,  label: 'Other' }]     : []),
       ]} />
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 180, 280)}>
         <BarChart
           data={data}
           margin={{ top: 5, right: 20, left: 10, bottom: 0 }}

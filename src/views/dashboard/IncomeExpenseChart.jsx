@@ -6,6 +6,7 @@ import {
 import { INCOME_COLORS, CHART_STYLE, COLORS } from '../../constants/designTokens';
 import { formatCurrencyShort, formatCurrency } from '../../utils/formatters';
 import ChartLegend from '../../components/ChartLegend';
+import { responsiveChartHeight } from '../../utils/responsiveChartHeight';
 
 const INCOME_SOURCES = [
   { key: 'employmentIncome', label: 'Employment', color: INCOME_COLORS.employment },
@@ -88,7 +89,7 @@ export default function IncomeExpenseChart({ projectionData }) {
         Stacked areas show where your money comes from each year; lines show where it goes.
         The gap between income and expenses is the portfolio drain (or surplus).
       </p>
-      <ResponsiveContainer width="100%" height={320}>
+      <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 200, 320)}>
         <ComposedChart
           data={projectionData}
           margin={{ top: 5, right: 20, left: 10, bottom: 0 }}

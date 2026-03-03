@@ -188,7 +188,7 @@ export default function App() {
   );
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
-  const handleSignIn = useCallback((cloudScenarios) => {
+  const handleSignIn = useCallback((cloudScenarios, { fetchError } = {}) => {
     if (cloudScenarios.length > 0) {
       // Returning user — replace state with cloud data
       setScenarios(cloudScenarios);
@@ -197,7 +197,11 @@ export default function App() {
       setView(prev => (prev === 'landing' || prev === 'wizard') ? 'returning-home' : prev);
       return;
     }
-    // Cloud empty — create default only if no local scenarios exist
+    if (fetchError) {
+      // Fetch failed — don't create a fallback "My Plan" that would auto-save as a ghost row.
+      return;
+    }
+    // Cloud genuinely empty — new user
     const fallback = createDefaultScenario('My Plan');
     setScenarios(prev => prev.length > 0 ? prev : [fallback]);
     setCurrentScenarioId(prev => prev || fallback.id);
@@ -345,7 +349,9 @@ export default function App() {
     setWhatIfOverrides({});
   }, []);
 
-  const handleDuplicateScenario = useCallback(() => {
+  const handleDuplicateScenario = useCallback(async () => {
+    const allowed = await checkCanCreate();
+    if (!allowed) return;
     const copy = { ...currentScenario, id: uid(), name: `${currentScenario.name} (copy)`, createdAt: new Date().toISOString() };
     setScenarios((prev) => [...prev, copy]);
     setCurrentScenarioId(copy.id);
@@ -355,7 +361,7 @@ export default function App() {
         console.error('[duplicate] cloud save failed:', err)
       );
     }
-  }, [currentScenario, authUser]);
+  }, [currentScenario, authUser, checkCanCreate]);
 
   const handleDeleteScenario = useCallback((id) => {
     setScenarios((prev) => {

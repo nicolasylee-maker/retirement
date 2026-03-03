@@ -36,7 +36,7 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
       } catch (err) {
         console.error('[cloud-sync] sign-in fetch failed:', err)
         if (!cancelled) {
-          onSignIn([])
+          onSignIn([], { fetchError: true })
           setSyncDone(true)
         }
       }

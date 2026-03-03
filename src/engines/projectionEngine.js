@@ -48,10 +48,16 @@ export function projectScenario(scenario, overrides = {}) {
 
     let debtPayments = 0;
     if (mortgage > 0 && s.mortgageYearsLeft > 0) {
-      const mortgagePayment = mortgage / Math.max(1, s.mortgageYearsLeft - yearsFromNow);
       if (yearsFromNow < s.mortgageYearsLeft) {
-        debtPayments += mortgagePayment + mortgage * (s.mortgageRate || 0.05);
-        mortgage -= mortgagePayment;
+        const rate = s.mortgageRate || 0.05;
+        const yearsLeft = Math.max(1, s.mortgageYearsLeft - yearsFromNow);
+        const annualPayment = rate === 0
+          ? mortgage / yearsLeft
+          : mortgage * (rate * Math.pow(1 + rate, yearsLeft)) / (Math.pow(1 + rate, yearsLeft) - 1);
+        const interest  = mortgage * rate;
+        const principal = annualPayment - interest;
+        debtPayments += annualPayment;
+        mortgage = Math.max(0, mortgage - principal);
       } else {
         mortgage = 0;
       }
@@ -71,6 +77,22 @@ export function projectScenario(scenario, overrides = {}) {
       const principalPayment = totalPayment - interestThisYear;
       debtPayments += totalPayment;
       consumer = Math.max(0, consumer - principalPayment);
+    }
+    if (otherDebt > 0) {
+      const payoffAge = s.otherDebtPayoffAge || 70;
+      const yearsLeft = Math.max(1, payoffAge - s.currentAge - yearsFromNow);
+      const rate = s.otherDebtRate || 0.05;
+      let annualPayment;
+      if (rate === 0) {
+        annualPayment = otherDebt / yearsLeft;
+      } else {
+        annualPayment = otherDebt * (rate * Math.pow(1 + rate, yearsLeft)) / (Math.pow(1 + rate, yearsLeft) - 1);
+      }
+      const interestThisYear = otherDebt * rate;
+      const totalPayment = Math.min(otherDebt + interestThisYear, annualPayment);
+      const principalPayment = totalPayment - interestThisYear;
+      debtPayments += totalPayment;
+      otherDebt = Math.max(0, otherDebt - principalPayment);
     }
 
     // Employment income (pre-retirement only)
@@ -242,7 +264,7 @@ export function projectScenario(scenario, overrides = {}) {
       const primaryTaxable = employmentIncome + cppIncome + oasIncome + pensionIncome + rrspWithdrawal;
       nonRegTaxableGain = 0;
       if (nonRegWithdrawal > 0 && nonReg > 0) {
-        const gainRatio = Math.max(0, (nonReg - nonRegCostBasis) / nonReg);
+        const gainRatio = Math.min(1, Math.max(0, (nonReg - nonRegCostBasis) / nonReg));
         nonRegTaxableGain = calcTaxableCapitalGain(nonRegWithdrawal * gainRatio);
       }
       if (s.isCouple) {

@@ -26,6 +26,12 @@ export function validateLiabilities(scenario) {
   if ((scenario.consumerDebt || 0) > 0 && payoffAge <= scenario.currentAge) {
     errors.consumerDebtPayoffAge = 'Must be after your current age';
   }
+  if ((scenario.otherDebt || 0) > 0) {
+    const otherPayoffAge = scenario.otherDebtPayoffAge || 70;
+    if (otherPayoffAge <= scenario.currentAge) {
+      errors.otherDebtPayoffAge = 'Must be after your current age';
+    }
+  }
   return errors;
 }
 
@@ -44,6 +50,16 @@ export default function LiabilitiesStep({ scenario, onChange }) {
       scenario.currentAge,
     ),
     [scenario.consumerDebt, scenario.consumerDebtRate, scenario.consumerDebtPayoffAge, scenario.currentAge],
+  );
+
+  const otherDebtSummary = useMemo(() =>
+    calcPayoffSummary(
+      scenario.otherDebt,
+      scenario.otherDebtRate || 0.05,
+      scenario.otherDebtPayoffAge || 70,
+      scenario.currentAge,
+    ),
+    [scenario.otherDebt, scenario.otherDebtRate, scenario.otherDebtPayoffAge, scenario.currentAge],
   );
 
   const mortgageSummary = useMemo(() =>
@@ -187,17 +203,70 @@ export default function LiabilitiesStep({ scenario, onChange }) {
 
       {/* Other debt */}
       <Card>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Other Debt</h3>
-        <FormField
-          label="Other Liabilities"
-          name="otherDebt"
-          type="number"
-          value={scenario.otherDebt}
-          onChange={handleChange('otherDebt')}
-          prefix="$"
-          min={0}
-          helper="Student loans, family loans, tax owing, etc."
-        />
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">Other Debts (student loans, tax owing, etc.)</h3>
+        <div className={`grid ${(scenario.otherDebt || 0) > 0 ? 'sm:grid-cols-3' : ''} gap-3`}>
+          <FormField
+            label="Other Liabilities"
+            name="otherDebt"
+            type="number"
+            value={scenario.otherDebt}
+            onChange={handleChange('otherDebt')}
+            prefix="$"
+            min={0}
+            helper="Enter a combined total with a blended rate"
+          />
+          {(scenario.otherDebt || 0) > 0 && (
+            <>
+              <FormField
+                label="Average Interest Rate"
+                name="otherDebtRate"
+                type="number"
+                value={parseFloat(((scenario.otherDebtRate || 0.05) * 100).toFixed(4))}
+                onChange={(v) => onChange({ otherDebtRate: (v || 0) / 100 })}
+                suffix="%"
+                min={0}
+                max={30}
+                step={0.1}
+                helper="Blended annual rate"
+              />
+              <FormField
+                label="Pay Off By Age"
+                name="otherDebtPayoffAge"
+                type="number"
+                value={scenario.otherDebtPayoffAge || 70}
+                onChange={handleChange('otherDebtPayoffAge')}
+                min={scenario.currentAge + 1}
+                max={scenario.lifeExpectancy}
+                helper="Target age to be debt-free"
+                error={errors.otherDebtPayoffAge}
+              />
+            </>
+          )}
+        </div>
+        {otherDebtSummary && (
+          <div className="mt-3 bg-gray-50 rounded-lg p-3">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-xs text-gray-500">Monthly Payment</p>
+                <p className="text-sm font-semibold text-gray-800">{formatCurrency(Math.round(otherDebtSummary.monthlyPayment))}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Total Interest</p>
+                <p className="text-sm font-semibold text-red-600">{formatCurrency(Math.round(otherDebtSummary.totalInterest))}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Total Cost</p>
+                <p className="text-sm font-semibold text-gray-800">{formatCurrency(Math.round(otherDebtSummary.totalPaid))}</p>
+              </div>
+            </div>
+            {(scenario.otherDebtPayoffAge || 70) > scenario.retirementAge && (
+              <p className="text-xs text-amber-700 mt-2 bg-amber-50 rounded p-2">
+                You'll still be paying this debt {(scenario.otherDebtPayoffAge || 70) - scenario.retirementAge} years into retirement.
+                Consider paying it off sooner to reduce your retirement expenses.
+              </p>
+            )}
+          </div>
+        )}
       </Card>
     </div>
   );

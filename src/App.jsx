@@ -327,15 +327,17 @@ export default function App() {
   }, [pickerAction]);
 
   const handleExport = useCallback(() => {
-    const payload = { version: 3, scenarios, exportedAt: new Date().toISOString() };
+    if (!currentScenario) return;
+    const payload = { version: 3, scenarios: [currentScenario], exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
+    const name = (currentScenario.name || 'plan').replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '-');
     const link = Object.assign(document.createElement('a'), {
-      href: url, download: `retirement-plan-${new Date().toISOString().slice(0, 10)}.json`,
+      href: url, download: `${name}-${new Date().toISOString().slice(0, 10)}.json`,
     });
     link.click();
     URL.revokeObjectURL(url);
-  }, [scenarios]);
+  }, [currentScenario]);
 
   const handleImport = useCallback((event) => {
     const file = event.target.files?.[0];

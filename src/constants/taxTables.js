@@ -7,6 +7,7 @@
 // province-aware calculations.
 //
 // To update for a new tax year: edit the JSON files, run `npm run update:tax`.
+// At runtime, admin can push new values from the DB via _injectLiveTaxData().
 // ---------------------------------------------------------------------------
 
 import FEDERAL   from '../../data/federal.json';
@@ -32,9 +33,49 @@ function normalizeProvince(data) {
 }
 
 // ---------------------------------------------------------------------------
-// All provinces keyed by code — used by province-aware engine functions
+// Builder helpers — used both for initial values and _injectLiveTaxData resets
 // ---------------------------------------------------------------------------
-export const PROVINCE_DATA = {
+function buildOasParams(f) {
+  return {
+    maxAnnual:           f.oas.maxAnnual,
+    clawbackStart:       f.oas.clawbackThreshold,
+    clawbackRate:        f.oas.clawbackRate,
+    clawbackFullRepay:   Math.round(f.oas.clawbackThreshold + f.oas.maxAnnual / f.oas.clawbackRate),
+    startAge:            f.oas.startAge,
+    deferralBonus:       f.oas.deferralBonusPerMonth,
+    maxDeferAge:         f.oas.maxDeferAge,
+    maxMonthlyAge65to74: f.oas.maxMonthlyAge65to74,
+    maxMonthlyAge75plus: f.oas.maxMonthlyAge75plus,
+  };
+}
+
+function buildCppParams(f) {
+  return {
+    maxAt65:       f.cpp.maxAnnualAt65,
+    earlyReduction: f.cpp.earlyReductionPerMonth,
+    lateIncrease:   f.cpp.lateIncreasePerMonth,
+    earliestAge:    f.cpp.earliestAge,
+    latestAge:      f.cpp.latestAge,
+  };
+}
+
+function buildGisParams(f) {
+  return {
+    maxAnnual:       f.gis.maxAnnual,
+    incomeThreshold: f.gis.singleIncomeThreshold,
+    clawbackRate:    f.gis.clawbackRate,
+  };
+}
+
+function buildRrifRates(f) {
+  return Object.fromEntries(Object.entries(f.rrifMinRates).map(([k, v]) => [Number(k), v]));
+}
+
+// ---------------------------------------------------------------------------
+// Static snapshots — captured once at module load; used by _injectLiveTaxData
+// to restore originals when called with (null, null)
+// ---------------------------------------------------------------------------
+const _STATIC_PROVINCES = {
   ON: normalizeProvince(ON_DATA), BC: normalizeProvince(BC_DATA),
   AB: normalizeProvince(AB_DATA), SK: normalizeProvince(SK_DATA),
   MB: normalizeProvince(MB_DATA), NB: normalizeProvince(NB_DATA),
@@ -42,79 +83,120 @@ export const PROVINCE_DATA = {
   PE: normalizeProvince(PE_DATA),
 };
 
-export const PROVINCE_CODES = Object.keys(PROVINCE_DATA);
+// ---------------------------------------------------------------------------
+// All provinces keyed by code — used by province-aware engine functions
+// ---------------------------------------------------------------------------
+export let PROVINCE_DATA = _STATIC_PROVINCES;
+
+export const PROVINCE_CODES = Object.keys(_STATIC_PROVINCES);
 
 export const PROVINCE_NAMES = Object.fromEntries(
-  Object.entries(PROVINCE_DATA).map(([k, v]) => [k, v.name])
+  Object.entries(_STATIC_PROVINCES).map(([k, v]) => [k, v.name])
 );
 
 // ---------------------------------------------------------------------------
 // Federal — named exports for backward compat with existing engine imports
 // ---------------------------------------------------------------------------
-export const FEDERAL_BRACKETS = normalizeBrackets(FEDERAL.brackets);
-export const FEDERAL_CREDITS  = FEDERAL.credits;
+export let FEDERAL_BRACKETS = normalizeBrackets(FEDERAL.brackets);
+export let FEDERAL_CREDITS  = FEDERAL.credits;
 
 // Ontario brackets/credits/surtax — kept for backward compat
-export const ONTARIO_BRACKETS = PROVINCE_DATA.ON.brackets;
-export const ONTARIO_CREDITS  = ON_DATA.credits;
-export const ONTARIO_SURTAX   = ON_DATA.surtax;
+export let ONTARIO_BRACKETS = _STATIC_PROVINCES.ON.brackets;
+export let ONTARIO_CREDITS  = ON_DATA.credits;
+export let ONTARIO_SURTAX   = ON_DATA.surtax;
 
 // Federal benefit program params
-export const OAS_PARAMS = {
-  maxAnnual:        FEDERAL.oas.maxAnnual,
-  clawbackStart:    FEDERAL.oas.clawbackThreshold,
-  clawbackRate:     FEDERAL.oas.clawbackRate,
-  clawbackFullRepay: Math.round(
-    FEDERAL.oas.clawbackThreshold + FEDERAL.oas.maxAnnual / FEDERAL.oas.clawbackRate
-  ),
-  startAge:         FEDERAL.oas.startAge,
-  deferralBonus:    FEDERAL.oas.deferralBonusPerMonth,
-  maxDeferAge:      FEDERAL.oas.maxDeferAge,
-  maxMonthlyAge65to74: FEDERAL.oas.maxMonthlyAge65to74,
-  maxMonthlyAge75plus: FEDERAL.oas.maxMonthlyAge75plus,
+export let OAS_PARAMS = buildOasParams(FEDERAL);
+
+export let CPP_PARAMS = buildCppParams(FEDERAL);
+
+export let GIS_PARAMS = buildGisParams(FEDERAL);
+
+export let GAINS_PARAMS = {
+  maxAnnual:             ON_DATA.lowIncomeSupplement.maxAnnual,
+  singleIncomeThreshold: ON_DATA.lowIncomeSupplement.singleIncomeThreshold,
+  clawbackRate:          ON_DATA.lowIncomeSupplement.clawbackRate,
+  minAge:                ON_DATA.lowIncomeSupplement.minAge,
 };
 
-export const CPP_PARAMS = {
-  maxAt65:       FEDERAL.cpp.maxAnnualAt65,
-  earlyReduction: FEDERAL.cpp.earlyReductionPerMonth,
-  lateIncrease:   FEDERAL.cpp.lateIncreasePerMonth,
-  earliestAge:    FEDERAL.cpp.earliestAge,
-  latestAge:      FEDERAL.cpp.latestAge,
-};
+export let RRIF_MIN_RATES = buildRrifRates(FEDERAL);
 
-export const GIS_PARAMS = {
-  maxAnnual:         FEDERAL.gis.maxAnnual,
-  incomeThreshold:   FEDERAL.gis.singleIncomeThreshold,
-  clawbackRate:      FEDERAL.gis.clawbackRate,
-};
-
-export const GAINS_PARAMS = {
-  maxAnnual:               ON_DATA.lowIncomeSupplement.maxAnnual,
-  singleIncomeThreshold:   ON_DATA.lowIncomeSupplement.singleIncomeThreshold,
-  clawbackRate:            ON_DATA.lowIncomeSupplement.clawbackRate,
-  minAge:                  ON_DATA.lowIncomeSupplement.minAge,
-};
-
-export const RRIF_MIN_RATES = Object.fromEntries(
-  Object.entries(FEDERAL.rrifMinRates).map(([k, v]) => [Number(k), v])
-);
-
-export const CAPITAL_GAINS = {
+export let CAPITAL_GAINS = {
   inclusionRate: FEDERAL.capitalGains.inclusionRate,
 };
 
-export const TFSA_PARAMS = {
+export let TFSA_PARAMS = {
   annualLimit: FEDERAL.tfsa.annualLimit,
 };
 
 // Ontario-specific probate — kept for backward compat with auditAnalysis.js
-export const PROBATE = {
+export let PROBATE = {
   firstThreshold: ON_DATA.probate.tiers[0].upTo,
   firstRate:      ON_DATA.probate.tiers[0].ratePerThousand / 1000,
   aboveRate:      ON_DATA.probate.tiers[1].ratePerThousand / 1000,
 };
 
 // Ontario-specific intestacy — kept for backward compat
-export const INTESTACY = {
+export let INTESTACY = {
   spousePreferentialShare: ON_DATA.intestacy.spousePreferentialShare,
 };
+
+// ---------------------------------------------------------------------------
+// Runtime injection — called by TaxDataContext after loading from Supabase.
+// Passing (null, null) restores all exports to the bundled-JSON baseline.
+// ES module `let` exports are live bindings: all importers immediately see
+// the updated values without any code changes in engines or components.
+// ---------------------------------------------------------------------------
+export function _injectLiveTaxData(federal, provinces) {
+  if (federal === null && provinces === null) {
+    // Reset to static (bundled) values
+    PROVINCE_DATA    = _STATIC_PROVINCES;
+    FEDERAL_BRACKETS = normalizeBrackets(FEDERAL.brackets);
+    FEDERAL_CREDITS  = FEDERAL.credits;
+    ONTARIO_BRACKETS = _STATIC_PROVINCES.ON.brackets;
+    ONTARIO_CREDITS  = ON_DATA.credits;
+    ONTARIO_SURTAX   = ON_DATA.surtax;
+    OAS_PARAMS       = buildOasParams(FEDERAL);
+    CPP_PARAMS       = buildCppParams(FEDERAL);
+    GIS_PARAMS       = buildGisParams(FEDERAL);
+    GAINS_PARAMS     = { maxAnnual: ON_DATA.lowIncomeSupplement.maxAnnual, singleIncomeThreshold: ON_DATA.lowIncomeSupplement.singleIncomeThreshold, clawbackRate: ON_DATA.lowIncomeSupplement.clawbackRate, minAge: ON_DATA.lowIncomeSupplement.minAge };
+    RRIF_MIN_RATES   = buildRrifRates(FEDERAL);
+    CAPITAL_GAINS    = { inclusionRate: FEDERAL.capitalGains.inclusionRate };
+    TFSA_PARAMS      = { annualLimit: FEDERAL.tfsa.annualLimit };
+    PROBATE          = { firstThreshold: ON_DATA.probate.tiers[0].upTo, firstRate: ON_DATA.probate.tiers[0].ratePerThousand / 1000, aboveRate: ON_DATA.probate.tiers[1].ratePerThousand / 1000 };
+    INTESTACY        = { spousePreferentialShare: ON_DATA.intestacy.spousePreferentialShare };
+    return;
+  }
+
+  if (provinces) {
+    PROVINCE_DATA = Object.fromEntries(
+      Object.entries(provinces).map(([k, v]) => [k, normalizeProvince(v)])
+    );
+    const newOn = provinces.ON;
+    if (newOn) {
+      ONTARIO_BRACKETS = PROVINCE_DATA.ON.brackets;
+      ONTARIO_CREDITS  = newOn.credits;
+      ONTARIO_SURTAX   = newOn.surtax ?? ONTARIO_SURTAX;
+      if (newOn.lowIncomeSupplement) {
+        GAINS_PARAMS = { maxAnnual: newOn.lowIncomeSupplement.maxAnnual, singleIncomeThreshold: newOn.lowIncomeSupplement.singleIncomeThreshold, clawbackRate: newOn.lowIncomeSupplement.clawbackRate, minAge: newOn.lowIncomeSupplement.minAge };
+      }
+      if (newOn.probate?.tiers?.length >= 2) {
+        PROBATE = { firstThreshold: newOn.probate.tiers[0].upTo, firstRate: newOn.probate.tiers[0].ratePerThousand / 1000, aboveRate: newOn.probate.tiers[1].ratePerThousand / 1000 };
+      }
+      if (newOn.intestacy) {
+        INTESTACY = { spousePreferentialShare: newOn.intestacy.spousePreferentialShare };
+      }
+    }
+  }
+
+  if (federal) {
+    FEDERAL_BRACKETS = normalizeBrackets(federal.brackets);
+    FEDERAL_CREDITS  = federal.credits;
+    OAS_PARAMS       = buildOasParams(federal);
+    CPP_PARAMS       = buildCppParams(federal);
+    GIS_PARAMS       = buildGisParams(federal);
+    RRIF_MIN_RATES   = buildRrifRates(federal);
+    CAPITAL_GAINS    = { inclusionRate: federal.capitalGains.inclusionRate };
+    TFSA_PARAMS      = { annualLimit: federal.tfsa.annualLimit };
+  }
+}

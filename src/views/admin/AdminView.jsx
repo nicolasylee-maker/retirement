@@ -4,6 +4,7 @@ import OverviewSection from './sections/OverviewSection'
 import UsersSection from './sections/UsersSection'
 import AiConfigSection from './sections/AiConfigSection'
 import SubscriptionsSection from './sections/SubscriptionsSection'
+import MaintenanceSection from './sections/MaintenanceSection'
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
 
@@ -12,6 +13,7 @@ const NAV = [
   { key: 'users', label: 'Users' },
   { key: 'ai-config', label: 'AI Config' },
   { key: 'subscriptions', label: 'Subscriptions' },
+  { key: 'maintenance', label: 'Maintenance' },
 ]
 
 export default function AdminView({ onClose }) {
@@ -61,6 +63,7 @@ export default function AdminView({ onClose }) {
         {activeSection === 'users' && <UsersSection />}
         {activeSection === 'ai-config' && <AiConfigSection />}
         {activeSection === 'subscriptions' && <SubscriptionsSection />}
+        {activeSection === 'maintenance' && <MaintenanceSection />}
       </main>
     </div>
   )

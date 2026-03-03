@@ -5,6 +5,7 @@ import App from './App';
 import ErrorFallback from './components/ErrorFallback';
 import { AuthProvider } from './contexts/AuthContext';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
+import { TaxDataProvider } from './contexts/TaxDataContext';
 import './index.css';
 
 if (import.meta.env.PROD) {
@@ -26,9 +27,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
       <AuthProvider>
-        <SubscriptionProvider>
-          <App />
-        </SubscriptionProvider>
+        <TaxDataProvider>
+          <SubscriptionProvider>
+            <App />
+          </SubscriptionProvider>
+        </TaxDataProvider>
       </AuthProvider>
     </Sentry.ErrorBoundary>
   </React.StrictMode>

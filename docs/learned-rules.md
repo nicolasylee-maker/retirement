@@ -35,6 +35,31 @@
 - `gemini-proxy` reads config from `admin_config` on every request. If the table is empty or missing, all prompt templates fall back to empty strings → Gemini returns garbage. Apply migration before deploying the new proxy.
 - `gemini-proxy` and `geminiService.js` are atomically coupled — they must be deployed together. Old proxy expects `{prompt}` in the body; new proxy expects `{type, context}`. Mismatched versions break all AI insights.
 
+## Stripe / Subscription
+
+- `stripe-webhook` **must** be deployed with `--no-verify-jwt`. Stripe's server sends requests with only a `Stripe-Signature` header (no Bearer JWT). The Supabase gateway returns 401 before the function body runs, causing all webhook events to silently fail. Internal auth is handled by `stripe.webhooks.constructEventAsync` (signature verification), not by a JWT.
+- `stripe-portal` likewise needs `--no-verify-jwt` — users are redirected to Stripe and return without a fresh JWT context.
+- After fixing a bad deployment, go to Stripe Dashboard → Developers → Webhooks → endpoint → Recent Deliveries and click **Resend** on each failed event. Stripe retries automatically (~51 min) but manual resend is instant.
+- Stripe webhook payloads use the **webhook endpoint's configured API version**, not the version passed to `new Stripe(key, { apiVersion })`. If the webhook version is newer (e.g. `2026-02-25.clover`), fields like `current_period_start` / `current_period_end` on the Subscription object may be absent or null. Guard all timestamp conversions: `sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null`. Calling `new Date(NaN).toISOString()` throws a `RangeError` and returns 500.
+
+- Vite only exposes env vars prefixed with `VITE_` to the browser. Stripe price IDs used in the frontend must be `VITE_STRIPE_PRICE_MONTHLY` / `VITE_STRIPE_PRICE_YEARLY`, not bare `STRIPE_*` names.
+- Edge function fallback env var names must exactly match what is set in Supabase secrets — a mismatch silently falls back to `''` and causes a 400 "Missing priceId" error.
+- Stripe test mode and live mode use separate webhook signing secrets — a mismatch causes every webhook to fail signature verification.
+- A Stripe price must have an active product to be purchasable. Archiving a product prevents checkout even in test mode.
+- `consent_collection: { terms_of_service: 'required' }` in checkout session creation requires a ToS URL to be set in Stripe Dashboard → Settings → Customer Portal — otherwise checkout creation throws a 400.
+- Nested modal z-index: if an auth modal is triggered from inside an upgrade modal (z-[9999]), the auth modal must use a higher z-index (z-[99999]) or it will be hidden behind the parent modal.
+- PostgREST `.single()` throws a 406 if zero rows match. Use `.maybeSingle()` for queries that may legitimately return no rows (e.g., users with no subscription).
+- Supabase `?checkout=success` return URL param must be cleared from the address bar with `history.replaceState` immediately after reading, otherwise a page refresh re-triggers the success banner.
+
+## Tax Data DB / Live Bindings
+
+- Tax data lives in the `tax_data` Supabase table (`province`, `tax_year`, `data JSONB`). Bundled JSON files in `data/` remain as fallback — if the table is empty or the fetch fails, the app silently uses the static imports.
+- `taxTables.js` uses ES module `let` exports (live bindings). Calling `_injectLiveTaxData(federal, provinces)` updates every importer's view of `PROVINCE_DATA`, `FEDERAL_BRACKETS`, `OAS_PARAMS`, etc. immediately — no engine or component changes needed. Calling with `(null, null)` resets to static/bundled values.
+- `TaxDataProvider` must wrap the entire app (in `main.jsx`, inside `AuthProvider`) so the DB fetch and inject happen before any projection runs.
+- The `maintenance` edge function cannot read files from the Deno filesystem at runtime — `/DATA` is FUSE and not mounted inside Supabase's edge runtime. Hardcode any data the function needs (e.g., the 18-act CanLII list).
+- `runTaxSmokeTest` (exported from `TaxDataEditor.jsx`) runs an inline bracket calculation — it does NOT call `_injectLiveTaxData`. This keeps the smoke test side-effect-free and safely callable from tests without touching global state.
+- "Seed from bundled JSON" posts the currently-bundled data to the edge function. It is idempotent (upsert on `province, tax_year`). Always run seed before expecting the Maintenance editor to show real data from the DB.
+
 ## Estate Rules (Ontario)
 
 - RRSP/RRIF deemed fully disposed at death (unless spouse rollover)

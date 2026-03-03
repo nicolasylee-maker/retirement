@@ -33,6 +33,12 @@ export const adminApi = {
     callAdminFunction('admin-config-update', { updates }),
   listSubscriptions: (page = 1, pageSize = 50) =>
     callAdminFunction('admin-users', { action: 'subscriptions', page, pageSize }),
+  upsertTaxData: (province, taxYear, data) =>
+    callAdminFunction('maintenance', { action: 'upsert-tax', province, taxYear, data }),
+  seedAllTaxData: (payload) =>
+    callAdminFunction('maintenance', { action: 'seed-all', payload }),
+  checkLegislation: () =>
+    callAdminFunction('maintenance', { action: 'check-legislation' }),
   setOverride: (email, override, accessToken) => {
     // Uses the existing send-invite edge function
     return fetch(`${SUPABASE_URL}/functions/v1/send-invite`, {

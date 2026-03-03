@@ -66,10 +66,16 @@ retirement/
 │   │   ├── auditTaxDebt.js                 ← Audit sections 4–5: tax worked example + debt trace
 │   │   └── auditAnalysis.js                ← Audit sections 6–10: estate, withdrawal, RRIF, gaps, KPIs
 │   │
+│   ├── contexts/
+│   │   ├── AuthContext.jsx                 ← Supabase session; provides user, isLoading, signOut
+│   │   ├── SubscriptionContext.jsx         ← Stripe sub state; provides isPaid, isTrial, isPastDue, isOverride
+│   │   └── TaxDataContext.jsx              ← Fetches tax_data from DB on startup; calls _injectLiveTaxData; falls back to bundled JSON
+│   │
 │   ├── services/
 │   │   ├── supabaseClient.js               ← Supabase client singleton (auth + DB)
+│   │   ├── stripeService.js                ← startCheckout(priceId), openBillingPortal() — calls edge fns
 │   │   ├── geminiService.js                ← Sends {type, context} to gemini-proxy edge fn; in-memory cache
-│   │   └── adminService.js                 ← adminApi: stats, users, config, subscriptions
+│   │   └── adminService.js                 ← adminApi: stats, users, config, subscriptions, tax data, legislation
 │   │
 │   ├── utils/
 │   │   ├── analytics.js                    ← Plausible custom event helper (no-ops if window.plausible absent)
@@ -133,13 +139,21 @@ retirement/
 │           │   ├── UsersSection.jsx        ← User table, search, override select, invite
 │           │   ├── AiConfigSection.jsx     ← Live model/temp/token/prompt editing
 │           │   └── SubscriptionsSection.jsx← Stripe subscription table + status badges
+│           ├── sections/
+│           │   ├── OverviewSection.jsx     ← Stat cards + 30-day signup chart
+│           │   ├── UsersSection.jsx        ← User table, search, override select, invite
+│           │   ├── AiConfigSection.jsx     ← Live model/temp/token/prompt editing
+│           │   ├── SubscriptionsSection.jsx← Stripe subscription table + status badges
+│           │   └── MaintenanceSection.jsx  ← Tax data JSON editor + legislation monitor
 │           └── components/
 │               ├── StatCard.jsx            ← Reusable stat display card
 │               ├── SignupChart.jsx         ← Recharts BarChart (signups by day)
 │               ├── UserScenariosPanel.jsx  ← Slide-out right panel for user's scenarios
-│               └── InviteModal.jsx         ← Invite user modal (wraps send-invite edge fn)
+│               ├── InviteModal.jsx         ← Invite user modal (wraps send-invite edge fn)
+│               ├── TaxDataEditor.jsx       ← Province JSON editor; exports parseTaxJson, runTaxSmokeTest
+│               └── LegislationPanel.jsx    ← CanLII status table + Run Check button
 │
-├── tests/                                  ← Vitest test files (277 tests, 8 files)
+├── tests/                                  ← Vitest test files (320 tests, 10 files)
 │   ├── taxEngine.test.js                   ← Federal/Ontario tax, surtax, OAS clawback, RRIF mins (51)
 │   ├── projectionEngine.test.js            ← Year-by-year projections with persona scenarios (45)
 │   ├── estateEngine.test.js                ← Death tax, probate, intestacy distribution (32)
@@ -148,6 +162,8 @@ retirement/
 │   ├── goldenFileTests.test.js             ← Per-province regression snapshots (36, 4 asserts × 9 provinces)
 │   ├── portfolioChartHelpers.test.js       ← Chart helper functions (20)
 │   ├── waterfallChartHelpers.test.js       ← Waterfall chart helpers (26)
+│   ├── taxTablesInject.test.js             ← _injectLiveTaxData live-binding correctness + reset (20)
+│   ├── taxDataHelpers.test.js              ← buildTaxDataFromRows, parseTaxJson, runTaxSmokeTest (23)
 │   └── golden/                             ← Committed JSON snapshots (regenerate: npm run generate:golden)
 │       ├── generate.test.js                ← Generator (excluded from npm test, run via generate:golden)
 │       ├── generate.config.js              ← Vitest config for generator only
@@ -321,7 +337,7 @@ tests/yourModuleEngine.test.js    ← Unit tests for engine functions
 |------|---------|
 | `src/App.jsx` | App shell — all top-level state, view routing, scenario CRUD |
 | `src/constants/defaults.js` | Scenario shape, wizard steps, preset values |
-| `src/constants/taxTables.js` | Imports `data/*.json`; exports `PROVINCE_DATA`, `PROVINCE_CODES`, `PROVINCE_NAMES`, and backward-compat constants |
+| `src/constants/taxTables.js` | Imports `data/*.json`; exports `PROVINCE_DATA`, `PROVINCE_CODES`, `PROVINCE_NAMES`, and backward-compat constants; `_injectLiveTaxData(federal, provinces)` swaps all live bindings at runtime |
 | `data/federal.json` | 2025 federal tax brackets, OAS/TFSA parameters |
 | `data/provinces/*.json` | 2025 provincial brackets, credits, probate, intestacy per province |
 | `data/canlii-state.json` | Last-seen CanLII amendment dates for 18 probate/intestacy acts |
@@ -492,3 +508,5 @@ See `docs/learned-rules.md` → Edge Function Deployment for machine-specific de
 | 2026-03-02 | Multi-province support: 9 English Canadian provinces, province-aware tax/probate/intestacy, province picker UI, golden file regression tests, annual maintenance scripts |
 | 2026-03-02 | Analytics & error monitoring: Plausible script tag, trackEvent helper, wizard funnel events, Sentry init + ErrorBoundary |
 | 2026-03-03 | Full admin dashboard: sidebar overlay (Overview/Users/AI Config/Subscriptions), admin_config DB table, admin-users + admin-config-update edge functions, gemini-proxy reads prompts from DB server-side, geminiService simplified to send {type, context} |
+| 2026-03-03 | Stripe subscription checkout: stripe-checkout edge function, UpgradePrompt (full + compact variants), SubscriptionBadge, AccountMenu "Manage Subscription", checkout=success banner, billing portal, SubscriptionContext (isPaid/isTrial/trialDaysRemaining), AuthContext, stripeService.js |
+| 2026-03-03 | Admin Maintenance tab: tax_data + legislation_checks DB tables, maintenance edge function (upsert-tax/seed-all/check-legislation), TaxDataContext (DB-driven tax data with bundled-JSON fallback), _injectLiveTaxData live-binding pattern in taxTables.js, TaxDataEditor (JSON editor + smoke test), LegislationPanel (CanLII monitor), MaintenanceSection |

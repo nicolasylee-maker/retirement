@@ -215,12 +215,9 @@ export default function App() {
     }
     const valid = loaded
       .filter(s => s?.currentAge != null && s?.retirementAge != null)
-      .map(s => ({ ...createDefaultScenario(), ...migrateScenario(s), id: s.id || uid() }));
+      .map(s => ({ ...createDefaultScenario(), ...migrateScenario(s), id: uid() }));
     if (valid.length === 0) { alert('No valid scenarios found in this file.'); return; }
-    setScenarios((prev) => {
-      const existingIds = new Set(prev.map(s => s.id));
-      return [...prev, ...valid.map(s => existingIds.has(s.id) ? { ...s, id: uid() } : s)];
-    });
+    setScenarios((prev) => [...prev, ...valid]);
     setCurrentScenarioId(valid[0].id);
     setWhatIfOverrides({});
     setView('dashboard');
@@ -324,12 +321,13 @@ export default function App() {
               RetirePlanner.ca
             </h1>
 
-            {/* Desktop: scenario picker + save status inline in row 1 */}
+            <div className="flex items-center gap-1 md:gap-2">
+            {/* Desktop: scenario picker + save status beside the 3-dots menu */}
             {authUser && scenarios.length > 0 && (
-              <div className="hidden md:flex items-center gap-2 flex-1 min-w-0 max-w-xs">
+              <div className="hidden md:flex items-center gap-2 max-w-[200px]">
                 <select value={currentScenarioId || ''} onChange={(e) => handleSwitchScenario(e.target.value)}
                   className="text-sm border border-gray-300 rounded-lg px-2 py-1.5
-                             focus:outline-none focus:ring-2 focus:ring-sunset-400 flex-1 min-w-0">
+                             focus:outline-none focus:ring-2 focus:ring-sunset-400 w-full min-w-0">
                   {scenarios.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
                 {saveStatus === 'saving' && <span className="text-xs text-gray-400 shrink-0">Saving...</span>}
@@ -337,8 +335,6 @@ export default function App() {
                 {saveStatus === 'error' && <span className="text-xs text-red-500 shrink-0">Save failed</span>}
               </div>
             )}
-
-            <div className="flex items-center gap-1 md:gap-2">
             <div className="relative" ref={menuRef}>
               <button type="button" onClick={() => setMenuOpen(v => !v)}
                 className={`p-1.5 rounded-lg transition-colors ${

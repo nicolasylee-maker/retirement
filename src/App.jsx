@@ -58,6 +58,7 @@ const NAV_TABS = [
 ];
 
 const STORAGE_KEY = 'retirement-planner-data';
+const CHOICE_SEEN_KEY = 'rp-choice-seen';
 const uid = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2);
 
 function migrateScenario(s) {
@@ -91,7 +92,7 @@ function loadSaved() {
 
 export default function App() {
   const { isPaid, isPastDue, refresh: refreshSubscription } = useSubscription();
-  const { user: authUser } = useAuth();
+  const { user: authUser, isLoading: authLoading } = useAuth();
 
   const [scenarios, setScenarios] = useState(() => {
     const saved = loadSaved();
@@ -154,6 +155,18 @@ export default function App() {
       localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
     }
   }, [authUser]);
+
+  // Show the choice screen once per browser session for logged-in users with scenarios.
+  // Covers the case where view initialises to 'dashboard' from localStorage (handleSignIn
+  // only redirects when the user came from 'landing' or 'wizard').
+  useEffect(() => {
+    if (authLoading) return;
+    if (!authUser) return;
+    if (scenarios.length === 0) return;
+    if (sessionStorage.getItem(CHOICE_SEEN_KEY)) return;
+    sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
+    setView('returning-home');
+  }, [authLoading, authUser, scenarios.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (view !== 'dashboard' && view !== 'wizard' && view !== 'save-nudge') return;
@@ -236,6 +249,7 @@ export default function App() {
   const handleWizardComplete = useCallback(() => setView('dashboard'), []);
 
   const handleChoiceViewResults = useCallback(() => {
+    sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
     const { skip, scenarioId } = getPickerTarget(scenarios);
     if (skip) {
       setCurrentScenarioId(scenarioId);
@@ -248,6 +262,7 @@ export default function App() {
   }, [scenarios]);
 
   const handleChoiceEditPlan = useCallback(() => {
+    sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
     const { skip, scenarioId } = getPickerTarget(scenarios);
     if (skip) {
       setCurrentScenarioId(scenarioId);
@@ -259,6 +274,11 @@ export default function App() {
       setView('scenario-picker');
     }
   }, [scenarios]);
+
+  const handleChoiceCreateNew = useCallback(() => {
+    sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
+    handleStartNew();
+  }, [handleStartNew]);
 
   const handlePickerSelect = useCallback((id) => {
     setCurrentScenarioId(id);
@@ -637,7 +657,7 @@ export default function App() {
               userName={authUser.user_metadata?.full_name || authUser.email}
               onViewResults={handleChoiceViewResults}
               onEditPlan={handleChoiceEditPlan}
-              onCreateNew={handleStartNew}
+              onCreateNew={handleChoiceCreateNew}
             />
           )}
           {view === 'scenario-picker' && (

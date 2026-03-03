@@ -97,6 +97,7 @@ export default function App() {
   const [whatIfOverrides, setWhatIfOverrides] = useState({});
   const [whatIfExpanded, setWhatIfExpanded] = useState(true);
   const importInputRef = useRef(null);
+  const prevAuthUserRef = useRef(authUser);
 
   useEffect(() => {
     const data = { scenarios, currentScenarioId, view: view === 'wizard' ? 'dashboard' : view };
@@ -114,6 +115,22 @@ export default function App() {
       setView('wizard');
     }
   }, [authUser, view]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // On sign-out, clear all state and return to landing page
+  useEffect(() => {
+    const wasLoggedIn = prevAuthUserRef.current !== null;
+    prevAuthUserRef.current = authUser;
+
+    if (wasLoggedIn && authUser === null) {
+      setScenarios([]);
+      setCurrentScenarioId(null);
+      setWizardStep(0);
+      setWhatIfOverrides({});
+      setView('landing');
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
+    }
+  }, [authUser]);
 
   useEffect(() => {
     if (view !== 'dashboard' && view !== 'wizard' && view !== 'save-nudge') return;

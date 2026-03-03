@@ -291,15 +291,16 @@ export default function App() {
       setCheckoutPending(true);
       history.replaceState(null, '', window.location.pathname);
       setTimeout(() => setCheckoutSuccess(false), 5000);
-      // Webhook may not have fired yet — poll a few times to catch it
-      refreshSubscription();
-      const t1 = setTimeout(refreshSubscription, 2000);
-      const t2 = setTimeout(refreshSubscription, 4000);
-      const t3 = setTimeout(refreshSubscription, 7000);
-      const t4 = setTimeout(refreshSubscription, 11000);
-      // Safety fallback: stop waiting after 13s regardless
-      const t5 = setTimeout(() => setCheckoutPending(false), 13000);
-      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); };
+      // Poll every 2s until isPaid or 60s cap
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        refreshSubscription();
+        if (Date.now() - startTime >= 60000) {
+          clearInterval(interval);
+          setCheckoutPending(false);
+        }
+      }, 2000);
+      return () => clearInterval(interval);
     }
   }, []); // eslint-disable-line
 
@@ -333,14 +334,16 @@ export default function App() {
           Your trial is active! Welcome to RetirePlanner Pro.
         </div>
       )}
-      {checkoutPending && (
-        <div className="bg-indigo-600 text-white text-center py-2 text-sm font-medium flex items-center justify-center gap-2">
-          <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+      {checkoutPending && createPortal(
+        <div className="fixed inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+          <svg className="animate-spin h-10 w-10 text-indigo-600" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
           </svg>
-          Activating your Pro access…
-        </div>
+          <p className="text-lg font-semibold text-gray-800">Activating your Pro access…</p>
+          <p className="text-sm text-gray-500">This usually takes a few seconds.</p>
+        </div>,
+        document.body
       )}
       {isPastDue && (
         <div className="bg-red-600 text-white text-center py-2 text-sm">

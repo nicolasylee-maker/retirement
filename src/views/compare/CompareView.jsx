@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import AiInsight from '../../components/AiInsight';
 import Button from '../../components/Button';
 import { projectScenario } from '../../engines/projectionEngine';
-import { calcSustainableWithdrawal } from '../../engines/withdrawalCalc';
+import { buildCompareAiData } from '../../utils/buildAiData';
 import { SCENARIO_COLORS } from '../../constants/designTokens';
 import CompareChart from './CompareChart';
 import CompareTable from './CompareTable';
@@ -56,22 +56,10 @@ export default function CompareView({ scenarios, onNavigate, aiInsights, onSaveI
     );
   }
 
-  const aiData = projections.length > 1 ? {
-    scenarios: selectedScenarios.map((s, i) => {
-      const proj = projections[i];
-      const retRow = proj?.find(r => r.age === s.retirementAge);
-      const lastRow = proj?.[proj.length - 1];
-      const sw = calcSustainableWithdrawal(s);
-      return {
-        name: s.name || 'Unnamed',
-        netWorthAtRetirement: retRow?.netWorth || 0,
-        sustainableMonthly: sw.sustainableMonthly,
-        annualTax: retRow?.totalTax || 0,
-        portfolioAtEnd: lastRow?.totalPortfolio || 0,
-        lifeExpectancy: s.lifeExpectancy,
-      };
-    }),
-  } : null;
+  const aiData = useMemo(
+    () => buildCompareAiData(selectedScenarios),
+    [selectedScenarios],
+  );
 
   return (
     <div className="space-y-4">

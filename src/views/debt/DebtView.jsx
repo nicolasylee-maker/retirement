@@ -10,6 +10,7 @@ import {
 import { CHART_STYLE } from '../../constants/designTokens';
 import ChartLegend from '../../components/ChartLegend';
 import { calcDebtSchedule } from '../../utils/debtCalc';
+import { buildDebtAiData } from '../../utils/buildAiData';
 
 export default function DebtView({ scenario, projectionData, onNavigate, aiInsights, onSaveInsight }) {
   const consumerPayoffAge = scenario.consumerDebtPayoffAge || (scenario.currentAge + 10);
@@ -60,13 +61,10 @@ export default function DebtView({ scenario, projectionData, onNavigate, aiInsig
   const projectedDebtFreeAge = debtFreeRow?.age || debtFreeAge;
 
   // AI data
-  const aiData = useMemo(() => ({
-    totalDebt, totalInterest, debtFreeAge: projectedDebtFreeAge,
-    consumerDebt: scenario.consumerDebt, consumerRate: scenario.consumerDebtRate,
-    mortgageBalance: scenario.mortgageBalance, mortgageRate: scenario.mortgageRate,
-    retirementAge: scenario.retirementAge, currentAge: scenario.currentAge,
-    monthlyPayments,
-  }), [totalDebt, totalInterest, projectedDebtFreeAge, scenario, monthlyPayments]);
+  const aiData = useMemo(
+    () => buildDebtAiData(scenario, projectionData),
+    [scenario, projectionData],
+  );
 
   if (totalDebt === 0) {
     return (

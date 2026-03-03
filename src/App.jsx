@@ -24,6 +24,9 @@ import { useSubscription } from './contexts/SubscriptionContext';
 import { useAuth } from './contexts/AuthContext';
 import { useCloudSync } from './hooks/useCloudSync';
 import { deleteScenario as deleteScenarioFromCloud } from './services/scenarioService';
+import { getAiRecommendation } from './services/geminiService';
+import { computeHash } from './components/AiInsight';
+import { buildDashboardAiData, buildDebtAiData, buildCompareAiData, buildEstateAiData } from './utils/buildAiData';
 
 const WIZARD_CHECKPOINT_KEY = 'rp-wizard-step';
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
@@ -280,7 +283,7 @@ export default function App() {
   const handleSaveInsight = useCallback((type, text, hash) => {
     setScenarios((prev) => prev.map((s) =>
       s.id === currentScenarioId
-        ? { ...s, aiInsights: { ...s.aiInsights, [type]: { text, hash } } }
+        ? { ...s, aiInsights: { ...s.aiInsights, [type]: { text, hash, generatedAt: new Date().toISOString() } } }
         : s,
     ));
   }, [currentScenarioId]);
@@ -312,10 +315,34 @@ export default function App() {
     }
   }, []); // eslint-disable-line
 
-  // Clear pending state as soon as subscription is confirmed
+  // When subscription unlocks after checkout, auto-generate all AI insights
   useEffect(() => {
-    if (isPaid && checkoutPending) setCheckoutPending(false);
-  }, [isPaid, checkoutPending]);
+    if (!isPaid || !checkoutPending) return;
+    setCheckoutPending(false);
+
+    const scenario = scenarios.find(s => s.id === currentScenarioId) || scenarios[0];
+    if (!scenario) return;
+
+    const proj = projectScenario(scenario);
+
+    const jobs = [
+      { type: 'dashboard', data: buildDashboardAiData(scenario, proj) },
+      { type: 'debt', data: buildDebtAiData(scenario, proj) },
+      { type: 'estate', data: buildEstateAiData(scenario, proj) },
+    ];
+
+    if (scenarios.length >= 2) {
+      const compareData = buildCompareAiData(scenarios);
+      if (compareData) jobs.push({ type: 'compare', data: compareData });
+    }
+
+    jobs.forEach(({ type, data }) => {
+      const hash = computeHash(data);
+      getAiRecommendation(type, data, true)
+        .then(text => handleSaveInsight(type, text, hash))
+        .catch(() => {}); // quota or network errors silently skipped
+    });
+  }, [isPaid, checkoutPending]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTabClick = useCallback((tabKey) => {
     if (!isPaid && GATED_TABS.has(tabKey)) {

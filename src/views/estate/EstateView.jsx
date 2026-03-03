@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import AiInsight from '../../components/AiInsight';
 import SliderControl from '../../components/SliderControl';
 import { calcEstateImpact } from '../../engines/estateEngine';
+import { buildEstateAiData } from '../../utils/buildAiData';
 import { formatCurrency } from '../../utils/formatters';
 import EstateSummaryCards from './EstateSummaryCards';
 import EstateBreakdown from './EstateBreakdown';
@@ -46,16 +47,10 @@ export default function EstateView({ scenario, projectionData, onNavigate, lifeE
   const minAge = scenario.currentAge;
   const maxAge = 100;
 
-  const aiData = {
-    ageAtDeath,
-    grossEstate: estateResult.grossEstate,
-    totalTax: estateResult.totalEstateTax,
-    netToHeirs: estateResult.netToHeirs,
-    hasWill: hasWillOverride,
-    primaryBeneficiary: scenario.primaryBeneficiary,
-    rrspBalance: estateResult.rrspRrifDeemed || 0,
-    spouseRollover: scenario.primaryBeneficiary === 'spouse',
-  };
+  const aiData = useMemo(
+    () => buildEstateAiData(estateScenario, projectionData, ageAtDeath),
+    [estateScenario, projectionData, ageAtDeath],
+  );
 
   const fmt = (v) => new Intl.NumberFormat('en-CA', {
     style: 'currency', currency: 'CAD',

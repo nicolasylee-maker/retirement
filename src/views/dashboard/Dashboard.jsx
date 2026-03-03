@@ -7,9 +7,9 @@ import IncomeExpenseChart from './IncomeExpenseChart';
 import WithdrawalChart from './WithdrawalChart';
 import AccountChart from './AccountChart';
 import MilestoneCards from './MilestoneCards';
-import { calcSustainableWithdrawal } from '../../engines/withdrawalCalc';
 import { calcTotalTax } from '../../engines/taxEngine';
 import { formatCurrency } from '../../utils/formatters';
+import { buildDashboardAiData } from '../../utils/buildAiData';
 
 const SECTIONS = [
   { id: 'summary', label: 'Summary' },
@@ -39,29 +39,10 @@ export default function Dashboard({
     );
   }
 
-  const retirementRow = projectionData.find(r => r.age === scenario.retirementAge);
-  const lastRow = projectionData[projectionData.length - 1];
-  const { sustainableMonthly } = calcSustainableWithdrawal(scenario);
-
-  const aiData = useMemo(() => ({
-    currentAge: scenario.currentAge,
-    retirementAge: scenario.retirementAge,
-    lifeExpectancy: scenario.lifeExpectancy,
-    monthlyExpenses: scenario.monthlyExpenses,
-    netWorthAtRetirement: retirementRow?.netWorth || 0,
-    annualIncome: retirementRow?.totalIncome || 0,
-    annualTax: retirementRow?.totalTax || 0,
-    sustainableMonthly,
-    portfolioAtEnd: lastRow?.totalPortfolio || 0,
-    rrspBalance: scenario.rrspBalance,
-    tfsaBalance: scenario.tfsaBalance,
-    nonRegBalance: scenario.nonRegInvestments,
-    cppMonthly: scenario.cppMonthly,
-    cppStartAge: scenario.cppStartAge,
-    oasMonthly: scenario.oasMonthly,
-    oasStartAge: scenario.oasStartAge,
-    pensionIncome: scenario.pensionType === 'db' ? scenario.dbPensionAnnual : 0,
-  }), [scenario, retirementRow, lastRow, sustainableMonthly]);
+  const aiData = useMemo(
+    () => buildDashboardAiData(scenario, projectionData),
+    [scenario, projectionData],
+  );
 
   return (
     <div className="space-y-4">

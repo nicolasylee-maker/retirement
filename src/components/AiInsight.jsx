@@ -89,13 +89,27 @@ export function computeHash(data) {
   return (h >>> 0).toString(36)
 }
 
+/** Format a relative time string from an ISO timestamp */
+function relativeTime(isoString) {
+  if (!isoString) return null
+  const diff = Date.now() - new Date(isoString).getTime()
+  if (diff < 0) return 'just now'
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
+}
+
 /**
  * AiInsight card.
  *
  * Props:
  *   type        – 'dashboard' | 'debt' | 'compare' | 'estate'
  *   data        – current aiData object (used for hash + API call)
- *   savedInsight – { text, hash } | null  — persisted insight from scenario
+ *   savedInsight – { text, hash, generatedAt? } | null  — persisted insight from scenario
  *   onSave      – (text, hash) => void    — called after a successful fetch
  */
 export default function AiInsight({ type, data, savedInsight, onSave }) {
@@ -202,7 +216,14 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
           {stale && !loading && (
             <div className="flex items-center justify-between gap-2 mb-3 px-3 py-2
                             bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-              <span>Inputs have changed</span>
+              <div>
+                <span>Inputs have changed</span>
+                {savedInsight?.generatedAt && (
+                  <span className="block text-xs text-gray-400 mt-0.5">
+                    Generated {relativeTime(savedInsight.generatedAt)}
+                  </span>
+                )}
+              </div>
               <button
                 onClick={handleGenerate}
                 className="font-semibold text-amber-900 underline underline-offset-2
@@ -228,7 +249,17 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
             </div>
           )}
           {recommendation && !loading && (
-            <div className="ai-fade-in">{renderText(recommendation)}</div>
+            <div className="ai-fade-in">
+              {renderText(recommendation)}
+              {!stale && savedInsight?.generatedAt && (
+                <p className="flex items-center gap-1 mt-3 text-xs text-green-600">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Up to date &middot; Generated {relativeTime(savedInsight.generatedAt)}
+                </p>
+              )}
+            </div>
           )}
           {!recommendation && !loading && !quotaInfo && !error && (
             <button

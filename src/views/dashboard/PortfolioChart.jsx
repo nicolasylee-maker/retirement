@@ -1,68 +1,48 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ComposedChart, BarChart, Bar,
+  ComposedChart,
   Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, ReferenceDot,
 } from 'recharts';
-import { COLORS, CHART_STYLE } from '../../constants/designTokens';
+import { COLORS, CHART_STYLE, CHART_COLORS } from '../../constants/designTokens';
 import ChartLegend from '../../components/ChartLegend';
-import { formatCurrencyShort } from '../../utils/formatters';
+import { formatCurrencyShort, formatCurrency } from '../../utils/formatters';
 import { projectScenario } from '../../engines/projectionEngine';
 import CustomTooltip from './PortfolioChartTooltip';
 import { buildMilestones, buildPhaseAnnotations } from './portfolioChartHelpers';
 import { responsiveChartHeight } from '../../utils/responsiveChartHeight';
-import {
-  buildWaterfallData,
-  buildWaterfallInsight,
-  buildDriversAnnotations,
-  WATERFALL_COLORS,
-} from './waterfallChartHelpers';
+
+// ---------------------------------------------------------------------------
+// Account config for stacked-area "Accounts" view
+// ---------------------------------------------------------------------------
+const ACCOUNTS = [
+  { key: 'rrspBalance', label: 'RRSP/RRIF', color: CHART_COLORS.rrsp },
+  { key: 'tfsaBalance', label: 'TFSA', color: CHART_COLORS.tfsa },
+  { key: 'nonRegBalance', label: 'Non-Registered', color: CHART_COLORS.nonReg },
+  { key: 'otherBalance', label: 'Other', color: CHART_COLORS.other },
+];
 
 // ---------------------------------------------------------------------------
 // Shared label components
 // ---------------------------------------------------------------------------
-
 const LABEL_DY = [-14, -28, -42];
-
 const ACCT_LABELS = { tfsa: 'TFSA', nonReg: 'Non-reg', rrsp: 'RRSP', other: 'Other' };
 
 function MilestoneLabel({ viewBox, label, color, level }) {
   const isMobile = window.innerWidth < 640;
-
   const hiddenOnMobile = ['RRIF convert', 'RRSP meltdown starts', 'RRSP empty'];
   if (isMobile && hiddenOnMobile.includes(label)) return null;
-
-  const displayLabel = isMobile
-    ? label.replace(' starts', '')   // 'CPP starts' → 'CPP', 'OAS starts' → 'OAS'
-    : label;
-
+  const displayLabel = isMobile ? label.replace(' starts', '') : label;
   const { x, y } = viewBox;
   return (
     <text
-      x={x}
-      y={y + (LABEL_DY[Math.min(level, LABEL_DY.length - 1)] ?? -14)}
-      fill={color}
-      fontSize={10}
-      fontWeight={600}
-      textAnchor="middle"
+      x={x} y={y + (LABEL_DY[Math.min(level, LABEL_DY.length - 1)] ?? -14)}
+      fill={color} fontSize={10} fontWeight={600} textAnchor="middle"
     >
       {displayLabel}
     </text>
   );
 }
-
-function PhaseLabel({ viewBox, label }) {
-  const { x, y } = viewBox;
-  return (
-    <text x={x + 4} y={y + 14} fill={COLORS.gray[500]} fontSize={9} fontWeight={500}>
-      {label} →
-    </text>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Annotation card (shared by both views)
-// ---------------------------------------------------------------------------
 
 function AnnotationCard({ annotation: a }) {
   return (
@@ -79,83 +59,26 @@ function AnnotationCard({ annotation: a }) {
 }
 
 // ---------------------------------------------------------------------------
-// Waterfall tooltip
+// Accounts-view tooltip
 // ---------------------------------------------------------------------------
-
-function WaterfallTooltip({ active, payload }) {
+function AccountsTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
-  const row = payload[0]?.payload;
-  if (!row) return null;
-
-  const fmtSigned = (n) =>
-    n >= 0
-      ? `+${formatCurrencyShort(n)}`
-      : `−${formatCurrencyShort(Math.abs(n))}`;
-
-  if (row.isPostDepletion) {
-    return (
-      <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg text-xs min-w-[180px]">
-        <p className="font-semibold text-gray-900 mb-1">Age {row.age}</p>
-        <p className="text-red-700">Unfunded shortfall: {formatCurrencyShort(row._shortfallRaw)}</p>
-        <p className="text-gray-400 italic mt-1">Portfolio depleted</p>
-      </div>
-    );
-  }
-
-  const net = row.portfolioChange;
-  const segments = [
-    { sign: '+', label: 'Growth',       val: row._growthRaw,      color: 'text-emerald-700', show: true },
-    { sign: '+', label: 'Salary surplus', val: row._surplusRaw,   color: 'text-emerald-600', show: row._surplusRaw > 0 },
-    { sign: '−', label: 'Expense gap',  val: row._expenseGapRaw,  color: 'text-rose-700',    show: true },
-    { sign: '−', label: 'Debt',         val: row._debtPaymentRaw, color: 'text-red-700',     show: row._debtPaymentRaw > 0 },
-    { sign: '−', label: 'Tax',          val: row._taxDrainRaw,    color: 'text-orange-600',  show: true },
-    { sign: '−', label: 'Meltdown tax', val: row._meltdownTaxRaw, color: 'text-amber-600',   show: row._meltdownTaxRaw > 0 },
-  ].filter(s => s.show);
-
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  const total = ACCOUNTS.reduce((sum, a) => sum + (d[a.key] || 0), 0);
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg text-xs min-w-[200px]">
-      <p className="font-semibold text-gray-900 mb-2">Age {row.age}</p>
-      <div className="space-y-0.5">
-        {segments.map(s => (
-          <p key={s.label} className={s.color}>
-            {s.sign} {s.label}:{' '}
-            {s.sign === '+' ? fmtSigned(s.val) : `−${formatCurrencyShort(s.val)}`}
-          </p>
-        ))}
-      </div>
-      <div className="border-t border-gray-200 mt-2 pt-2">
-        <p className={`font-semibold ${net >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-          Net: {fmtSigned(net)}
+    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg text-sm min-w-[180px]">
+      <p className="font-semibold text-gray-900 mb-1">Age {d.age}</p>
+      {ACCOUNTS.map(({ key, label, color }) => (
+        <p key={key} className="flex items-center gap-2">
+          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+          <span className="text-gray-600">{label}:</span>
+          <span className="font-medium text-gray-900">{formatCurrency(d[key])}</span>
         </p>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Waterfall legend
-// ---------------------------------------------------------------------------
-
-function WaterfallLegend({ hasDebt, hasMeltdown, hasSurplus, hasShortfall }) {
-  const items = [
-    { color: WATERFALL_COLORS.growth,      label: 'Investment growth',   show: true },
-    { color: WATERFALL_COLORS.surplus,     label: 'Salary surplus',      show: hasSurplus },
-    { color: WATERFALL_COLORS.expenseGap,  label: 'Expense gap',         show: true },
-    { color: WATERFALL_COLORS.debtPayment, label: 'Debt payments',       show: hasDebt },
-    { color: WATERFALL_COLORS.taxDrain,    label: 'Tax',                 show: true },
-    { color: WATERFALL_COLORS.meltdownTax, label: 'Meltdown tax leakage', show: hasMeltdown },
-    { color: WATERFALL_COLORS.shortfall,   label: 'Unfunded shortfall',  show: hasShortfall },
-  ].filter(i => i.show);
-
-  return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 text-xs text-gray-500">
-      {items.map(i => (
-        <span key={i.label} className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
-                style={{ backgroundColor: i.color }} />
-          {i.label}
-        </span>
       ))}
+      <div className="border-t border-gray-200 mt-1 pt-1">
+        <p className="font-semibold text-gray-900">Total: {formatCurrency(total)}</p>
+      </div>
     </div>
   );
 }
@@ -163,16 +86,18 @@ function WaterfallLegend({ hasDebt, hasMeltdown, hasSurplus, hasShortfall }) {
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
-
-export default function PortfolioChart({ projectionData, scenario, forceView, chartHeight = responsiveChartHeight(window.innerWidth, 220, 360) }) {
+export default function PortfolioChart({
+  projectionData, scenario, forceView,
+  chartHeight = responsiveChartHeight(window.innerWidth, 220, 360),
+}) {
   if (!projectionData || projectionData.length === 0) return null;
 
-  const [showNoDebt,  setShowNoDebt]  = useState(false);
-  const [activeView,  setActiveView]  = useState(forceView || 'balance'); // 'balance' | 'drivers'
+  const [showNoDebt, setShowNoDebt] = useState(false);
+  const [activeView, setActiveView] = useState(forceView || 'balance');
   const [assumptionsExpanded, setAssumptionsExpanded] = useState(false);
   const hasConsumerDebt = (scenario.consumerDebt || 0) + (scenario.otherDebt || 0) > 0;
 
-  // ── Balance-view data ──────────────────────────────────────────────────────
+  // ── Balance-view data ────────────────────────────────────────────────────
   const chartData = useMemo(() => projectionData.map(r => ({
     ...r,
     _portfolioDrain: Math.max(0,
@@ -182,9 +107,7 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
   })), [projectionData]);
 
   const noDebtData = useMemo(
-    () => hasConsumerDebt
-      ? projectScenario(scenario, { consumerDebt: 0, otherDebt: 0 })
-      : null,
+    () => hasConsumerDebt ? projectScenario(scenario, { consumerDebt: 0, otherDebt: 0 }) : null,
     [scenario, hasConsumerDebt],
   );
 
@@ -194,48 +117,13 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
     return chartData.map(r => ({ ...r, noDebtPortfolio: map.get(r.age) ?? null }));
   }, [chartData, noDebtData]);
 
-  // ── Drivers-view data (lazy — only computed when Drivers tab is active) ───
-  // O(n) extra calcTotalTax() calls; keep behind the activeView guard.
-  // When forceView='drivers' is set, compute unconditionally on mount.
-  const waterfallData = useMemo(
-    () => (activeView === 'drivers' || forceView === 'drivers')
-      ? buildWaterfallData(scenario, projectionData)
-      : null,
-    [activeView, forceView, scenario, projectionData],
-  );
-
-  // ── Shared chart infrastructure ───────────────────────────────────────────
-  const lastRow      = chartData[chartData.length - 1];
-  const milestones   = useMemo(() => buildMilestones(scenario, chartData), [scenario, chartData]);
+  // ── Shared chart infrastructure ──────────────────────────────────────────
+  const lastRow = chartData[chartData.length - 1];
+  const milestones = useMemo(() => buildMilestones(scenario, chartData), [scenario, chartData]);
   const depletionRow = chartData.find(r => r.totalPortfolio <= 0 && r.age > scenario.currentAge);
-  const hasDrain     = chartData.some(r => r._portfolioDrain > 0);
+  const hasDrain = chartData.some(r => r._portfolioDrain > 0);
+  const annotations = useMemo(() => buildPhaseAnnotations(scenario, chartData), [scenario, chartData]);
 
-  // ── Annotations (view-specific) ──────────────────────────────────────────
-  const balanceAnnotations = useMemo(
-    () => buildPhaseAnnotations(scenario, chartData),
-    [scenario, chartData],
-  );
-  const driversAnnotations = useMemo(
-    () => activeView === 'drivers' && waterfallData
-      ? buildDriversAnnotations(scenario, waterfallData, projectionData)
-      : null,
-    [activeView, waterfallData, scenario, projectionData],
-  );
-  const annotations = activeView === 'balance' ? balanceAnnotations : (driversAnnotations ?? []);
-
-  // ── Waterfall-specific flags ──────────────────────────────────────────────
-  const waterfallInsight = useMemo(
-    () => waterfallData
-      ? buildWaterfallInsight(scenario, waterfallData, projectionData)
-      : '',
-    [waterfallData, scenario, projectionData],
-  );
-  const wfHasDebt      = waterfallData?.some(r => r._debtPaymentRaw > 0) ?? false;
-  const wfHasMeltdown  = waterfallData?.some(r => r._meltdownTaxRaw > 0) ?? false;
-  const wfHasSurplus   = waterfallData?.some(r => r._surplusRaw > 0)     ?? false;
-  const wfHasShortfall = waterfallData?.some(r => r.isPostDepletion)     ?? false;
-
-  // ── Shared milestone lines (rendered in both views) ────────────────────────
   const MilestoneLines = milestones.map(m => (
     <ReferenceLine
       key={m.label} x={m.age}
@@ -244,59 +132,32 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
     />
   ));
 
-  // ── Phase separator lines for waterfall ──────────────────────────────────
-  const PhaseSeparators = activeView === 'drivers' ? [
-    <ReferenceLine
-      key="retire-sep" x={scenario.retirementAge}
-      stroke={COLORS.gray[200]} strokeDasharray="2 3" strokeWidth={1}
-    />,
-    ...(depletionRow ? [
-      <ReferenceLine
-        key="deplete-sep" x={depletionRow.age}
-        stroke={COLORS.danger} strokeDasharray="2 3" strokeWidth={1} opacity={0.4}
-      />,
-    ] : []),
-  ] : [];
-
   return (
     <div className="card-base p-6">
-
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
         <h3 className="text-lg font-semibold text-gray-900">
-          {activeView === 'balance' ? 'Total Portfolio Over Time' : "What's Driving the Change?"}
+          {activeView === 'balance' ? 'Total Portfolio Over Time' : 'Portfolio by Account'}
         </h3>
-
         {!forceView && (
           <div className="flex items-center gap-3">
-            {/* No-debt toggle — balance view only */}
             {activeView === 'balance' && hasConsumerDebt && (
               <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={showNoDebt}
-                  onChange={e => setShowNoDebt(e.target.checked)}
-                  className="rounded border-gray-300 text-indigo-500 focus:ring-indigo-400"
-                />
+                <input type="checkbox" checked={showNoDebt} onChange={e => setShowNoDebt(e.target.checked)}
+                  className="rounded border-gray-300 text-indigo-500 focus:ring-indigo-400" />
                 Without consumer debt
               </label>
             )}
-
-            {/* Segmented control — Balance / Drivers */}
             <div className="flex rounded-full border border-gray-200 bg-gray-50 p-0.5 gap-0.5">
-              {['balance', 'drivers'].map(view => (
-                <button
-                  key={view}
-                  type="button"
-                  onClick={() => setActiveView(view)}
+              {['balance', 'accounts'].map(view => (
+                <button key={view} type="button" onClick={() => setActiveView(view)}
                   className={[
                     'px-3 py-1 rounded-full text-xs font-medium transition-colors duration-150',
                     activeView === view
                       ? 'bg-indigo-600 text-white shadow-sm'
                       : 'text-gray-500 hover:text-gray-700',
-                  ].join(' ')}
-                >
-                  {view === 'balance' ? 'Balance' : 'Drivers'}
+                  ].join(' ')}>
+                  {view === 'balance' ? 'Balance' : 'Accounts'}
                 </button>
               ))}
             </div>
@@ -304,152 +165,101 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
         )}
       </div>
 
-      {/* ── Legend — below title, view-specific ──────────────────────────── */}
-      {activeView === 'balance' && (
+      {/* ── Legend ──────────────────────────────────────────────────────────── */}
+      {activeView === 'balance' ? (
         <ChartLegend items={[
           { color: COLORS.sunset.main, label: 'Portfolio' },
           ...(hasDrain ? [{ color: '#6366f1', label: 'Annual gap funded by portfolio' }] : []),
           ...(showNoDebt && hasConsumerDebt ? [{ color: '#9ca3af', label: 'Without consumer debt' }] : []),
         ]} />
-      )}
-      {activeView === 'drivers' && waterfallData && (
-        <WaterfallLegend
-          hasDebt={wfHasDebt}
-          hasMeltdown={wfHasMeltdown}
-          hasSurplus={wfHasSurplus}
-          hasShortfall={wfHasShortfall}
-        />
-      )}
-
-      {/* ── Waterfall insight line ─────────────────────────────────────────── */}
-      {activeView === 'drivers' && waterfallInsight && (
-        <p className="text-xs text-gray-600 bg-gray-50 rounded-md px-3 py-1.5 mb-3 italic">
-          {waterfallInsight}
-        </p>
+      ) : (
+        <ChartLegend items={[
+          ...ACCOUNTS.map(a => ({ color: a.color, label: a.label })),
+          { color: COLORS.gray[700], label: 'Total Portfolio', dashed: true },
+        ]} />
       )}
 
       {/* ── Chart area with crossfade ──────────────────────────────────────── */}
       <div className="relative" style={{ height: chartHeight }}>
-
         {/* Balance view */}
-        <div
-          style={{
-            position: 'absolute', inset: 0,
-            opacity: activeView === 'balance' ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: activeView === 'balance' ? 'auto' : 'none',
-            zIndex: activeView === 'balance' ? 1 : 0,
-          }}
-        >
+        <div style={{
+          position: 'absolute', inset: 0,
+          opacity: activeView === 'balance' ? 1 : 0,
+          transition: 'opacity 0.3s ease',
+          pointerEvents: activeView === 'balance' ? 'auto' : 'none',
+          zIndex: activeView === 'balance' ? 1 : 0,
+        }}>
           <ResponsiveContainer width="100%" height={chartHeight}>
             <ComposedChart data={mergedData} margin={{ top: 46, right: 20, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor={COLORS.sunset.main} stopOpacity={0.3} />
+                  <stop offset="5%" stopColor={COLORS.sunset.main} stopOpacity={0.3} />
                   <stop offset="95%" stopColor={COLORS.sunset.main} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_STYLE.gridColor} vertical={false} />
-              <XAxis
-                dataKey="age"
+              <XAxis dataKey="age" tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}
+                tickLine={false} axisLine={{ stroke: CHART_STYLE.gridColor }} />
+              <YAxis tickFormatter={formatCurrencyShort}
                 tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}
-                tickLine={false}
-                axisLine={{ stroke: CHART_STYLE.gridColor }}
-              />
-              <YAxis
-                tickFormatter={formatCurrencyShort}
-                tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}
-                tickLine={false} axisLine={false} width={window.innerWidth < 640 ? 46 : 60}
-              />
+                tickLine={false} axisLine={false} width={window.innerWidth < 640 ? 46 : 60} />
               {!forceView && <Tooltip content={<CustomTooltip scenario={scenario} />} />}
-
               {MilestoneLines}
               <ReferenceLine y={0} stroke={COLORS.gray[500]} strokeDasharray="4 4" />
-
               {showNoDebt && noDebtData && (
-                <Line
-                  type="monotone" dataKey="noDebtPortfolio"
-                  stroke="#9ca3af" strokeWidth={1.5} strokeDasharray="3 4"
-                  dot={false} activeDot={false}
-                  name="Without consumer debt"
-                />
+                <Line type="monotone" dataKey="noDebtPortfolio" stroke="#9ca3af" strokeWidth={1.5}
+                  strokeDasharray="3 4" dot={false} activeDot={false} name="Without consumer debt" />
               )}
-
-              <Area
-                type="monotone" dataKey="totalPortfolio"
-                stroke={COLORS.sunset.main} strokeWidth={2}
+              <Area type="monotone" dataKey="totalPortfolio" stroke={COLORS.sunset.main} strokeWidth={2}
                 fill="url(#portfolioGradient)" dot={false}
-                activeDot={{ r: 5, fill: COLORS.sunset.main }}
-                name="Portfolio"
-              />
-
+                activeDot={{ r: 5, fill: COLORS.sunset.main }} name="Portfolio" />
               {hasDrain && (
-                <Line
-                  type="monotone" dataKey="_portfolioDrain"
-                  stroke="#6366f1" strokeWidth={1.5} strokeDasharray="3 3"
-                  dot={false} activeDot={{ r: 3, fill: '#6366f1' }}
-                  name="Annual gap funded by portfolio"
-                />
+                <Line type="monotone" dataKey="_portfolioDrain" stroke="#6366f1" strokeWidth={1.5}
+                  strokeDasharray="3 3" dot={false} activeDot={{ r: 3, fill: '#6366f1' }}
+                  name="Annual gap funded by portfolio" />
               )}
-
               {depletionRow && (
                 <ReferenceDot x={depletionRow.age} y={0} r={6}
                   fill={COLORS.danger} stroke="#fff" strokeWidth={2} />
               )}
-              <ReferenceDot
-                x={lastRow.age} y={lastRow.totalPortfolio} r={6}
+              <ReferenceDot x={lastRow.age} y={lastRow.totalPortfolio} r={6}
                 fill={lastRow.totalPortfolio > 0 ? COLORS.forest.main : COLORS.danger}
-                stroke="#fff" strokeWidth={2}
-              />
+                stroke="#fff" strokeWidth={2} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Drivers view — only mounted once waterfallData is ready */}
-        <div
-          style={{
-            position: 'absolute', inset: 0,
-            opacity: activeView === 'drivers' ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: activeView === 'drivers' ? 'auto' : 'none',
-            zIndex: activeView === 'drivers' ? 1 : 0,
-          }}
-        >
-          {waterfallData && (
-            <ResponsiveContainer width="100%" height={chartHeight}>
-              <BarChart data={waterfallData} margin={{ top: 46, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={CHART_STYLE.gridColor} vertical={false} />
-                <XAxis
-                  dataKey="age"
-                  tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}
-                  tickLine={false}
-                  axisLine={{ stroke: CHART_STYLE.gridColor }}
-                />
-                <YAxis
-                  tickFormatter={formatCurrencyShort}
-                  tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}
-                  tickLine={false} axisLine={false} width={window.innerWidth < 640 ? 46 : 65}
-                />
-                <Tooltip content={<WaterfallTooltip />} />
-
-                {MilestoneLines}
-                {PhaseSeparators}
-                <ReferenceLine y={0} stroke={COLORS.gray[500]} strokeDasharray="4 4" />
-
-                {/* Green stack: growth and salary surplus */}
-                <Bar stackId="pos" dataKey="_growth"  fill={WATERFALL_COLORS.growth}  name="Growth"         maxBarSize={40} />
-                <Bar stackId="pos" dataKey="_surplus" fill={WATERFALL_COLORS.surplus} name="Salary surplus"  maxBarSize={40} />
-
-                {/* Red stack: negative values (displayed below x-axis) */}
-                <Bar stackId="neg" dataKey="_expenseGap"  fill={WATERFALL_COLORS.expenseGap}  name="Expense gap"         maxBarSize={40} />
-                <Bar stackId="neg" dataKey="_debtPayment" fill={WATERFALL_COLORS.debtPayment} name="Debt payments"        maxBarSize={40} />
-                <Bar stackId="neg" dataKey="_taxDrain"    fill={WATERFALL_COLORS.taxDrain}    name="Tax"                  maxBarSize={40} />
-                <Bar stackId="neg" dataKey="_meltdownTax" fill={WATERFALL_COLORS.meltdownTax} name="Meltdown tax leakage" maxBarSize={40} />
-                <Bar stackId="neg" dataKey="_shortfall"   fill={WATERFALL_COLORS.shortfall}   name="Unfunded shortfall"   maxBarSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
+        {/* Accounts view */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          opacity: activeView === 'accounts' ? 1 : 0,
+          transition: 'opacity 0.3s ease',
+          pointerEvents: activeView === 'accounts' ? 'auto' : 'none',
+          zIndex: activeView === 'accounts' ? 1 : 0,
+        }}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <ComposedChart data={chartData} margin={{ top: 46, right: 20, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_STYLE.gridColor} vertical={false} />
+              <XAxis dataKey="age" tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}
+                tickLine={false} axisLine={{ stroke: CHART_STYLE.gridColor }} />
+              <YAxis tickFormatter={formatCurrencyShort}
+                tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}
+                tickLine={false} axisLine={false} width={window.innerWidth < 640 ? 46 : 60} />
+              <Tooltip content={<AccountsTooltip />} />
+              {MilestoneLines}
+              {ACCOUNTS.map(({ key, label, color }) => (
+                <Area key={key} type="monotone" dataKey={key} name={label} stackId="accounts"
+                  stroke={color} fill={color} fillOpacity={0.6} dot={false} />
+              ))}
+              <Line type="monotone" dataKey="totalPortfolio" stroke={COLORS.gray[700]}
+                strokeWidth={1.5} strokeDasharray="6 3" dot={false}
+                activeDot={{ r: 3, fill: COLORS.gray[700] }} name="Total Portfolio" />
+              {depletionRow && (
+                <ReferenceDot x={depletionRow.age} y={0} r={6}
+                  fill={COLORS.danger} stroke="#fff" strokeWidth={2} />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
@@ -460,22 +270,15 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
         </div>
       )}
 
-      {/* ── Key assumptions ────────────────────────────────────────────────── */}
+      {/* ── Key Assumptions ────────────────────────────────────────────────── */}
       <div className="mt-4 pt-3 border-t border-gray-100">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Key Assumptions
-          </p>
-          <button
-            type="button"
-            onClick={() => setAssumptionsExpanded(e => !e)}
-            className="text-xs text-purple-600 hover:text-purple-800 transition-colors"
-          >
-            {assumptionsExpanded ? 'Collapse ▲' : 'See all ▼'}
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Key Assumptions</p>
+          <button type="button" onClick={() => setAssumptionsExpanded(e => !e)}
+            className="text-xs text-purple-600 hover:text-purple-800 transition-colors">
+            {assumptionsExpanded ? 'Collapse \u25B2' : 'See all \u25BC'}
           </button>
         </div>
-
-        {/* Compact always-visible row */}
         <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600">
           <span>Return: <strong className="text-gray-900">{(scenario.realReturn * 100).toFixed(1)}%</strong></span>
           <span>Inflation: <strong className="text-gray-900">{(scenario.inflationRate * 100).toFixed(1)}%</strong></span>
@@ -487,7 +290,7 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
           )}
           {scenario.rrspMeltdownEnabled && scenario.rrspMeltdownAnnual > 0 && (
             <span className="text-purple-600">
-              RRSP meltdown: <strong>${scenario.rrspMeltdownAnnual.toLocaleString()}/yr (ages {scenario.rrspMeltdownStartAge ?? scenario.retirementAge}–{scenario.rrspMeltdownTargetAge})</strong>
+              RRSP meltdown: <strong>${scenario.rrspMeltdownAnnual.toLocaleString()}/yr (ages {scenario.rrspMeltdownStartAge ?? scenario.retirementAge}&ndash;{scenario.rrspMeltdownTargetAge})</strong>
             </span>
           )}
           {depletionRow && (
@@ -496,73 +299,60 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
           <span>Tax tables: <strong className="text-gray-900">2025 federal + provincial</strong></span>
         </div>
 
-        {/* Expandable detail panel */}
         {assumptionsExpanded && (
           <div className="mt-3 bg-indigo-50/70 border border-indigo-100 rounded-lg px-4 py-3 text-xs space-y-3">
-
-            {/* YOUR INPUTS */}
             <div>
               <p className="font-semibold text-indigo-700 mb-1 uppercase tracking-wider">Your Inputs</p>
               <ul className="space-y-0.5 text-indigo-800">
                 {scenario.stillWorking && (scenario.employmentIncome || 0) > 0 && (
-                  <li>• Salary: <strong>${(scenario.employmentIncome).toLocaleString()}/yr</strong> (grows with {(scenario.inflationRate * 100).toFixed(1)}% inflation until age {scenario.retirementAge})</li>
+                  <li>&bull; Salary: <strong>${(scenario.employmentIncome).toLocaleString()}/yr</strong> (grows with {(scenario.inflationRate * 100).toFixed(1)}% inflation until age {scenario.retirementAge})</li>
                 )}
                 <li>
-                  • Monthly expenses: <strong>${scenario.monthlyExpenses?.toLocaleString()}/mo</strong>
+                  &bull; Monthly expenses: <strong>${scenario.monthlyExpenses?.toLocaleString()}/mo</strong>
                   {(scenario.expenseReductionAtRetirement || 0) > 0 && (
                     <span> (drops {(scenario.expenseReductionAtRetirement * 100).toFixed(0)}% at retirement)</span>
                   )}
                 </li>
                 {(scenario.mortgageBalance || 0) > 0 && (
-                  <li>• Mortgage: <strong>${scenario.mortgageBalance.toLocaleString()}</strong> at <strong>{(scenario.mortgageRate * 100).toFixed(1)}%</strong>, paid off by age <strong>{scenario.currentAge + (scenario.mortgageYearsLeft || 0)}</strong></li>
+                  <li>&bull; Mortgage: <strong>${scenario.mortgageBalance.toLocaleString()}</strong> at <strong>{(scenario.mortgageRate * 100).toFixed(1)}%</strong>, paid off by age <strong>{scenario.currentAge + (scenario.mortgageYearsLeft || 0)}</strong></li>
                 )}
                 {(scenario.consumerDebt || 0) > 0 && (
-                  <li>• Consumer debt: <strong>${scenario.consumerDebt.toLocaleString()}</strong> at <strong>{(scenario.consumerDebtRate * 100).toFixed(1)}%</strong></li>
+                  <li>&bull; Consumer debt: <strong>${scenario.consumerDebt.toLocaleString()}</strong> at <strong>{(scenario.consumerDebtRate * 100).toFixed(1)}%</strong></li>
                 )}
               </ul>
             </div>
-
-            {/* GOVERNMENT BENEFITS */}
             <div>
               <p className="font-semibold text-indigo-700 mb-1 uppercase tracking-wider">Government Benefits</p>
               <ul className="space-y-0.5 text-indigo-800">
-                <li>• CPP: <strong>${scenario.cppMonthly}/mo</strong> starting at age <strong>{scenario.cppStartAge}</strong></li>
-                <li>• OAS: <strong>${scenario.oasMonthly}/mo</strong> starting at age <strong>{scenario.oasStartAge}</strong></li>
-                <li>• Both grow with inflation after they start</li>
+                <li>&bull; CPP: <strong>${scenario.cppMonthly}/mo</strong> starting at age <strong>{scenario.cppStartAge}</strong></li>
+                <li>&bull; OAS: <strong>${scenario.oasMonthly}/mo</strong> starting at age <strong>{scenario.oasStartAge}</strong></li>
+                <li>&bull; Both grow with inflation after they start</li>
               </ul>
             </div>
-
-            {/* INVESTMENT ASSUMPTIONS */}
             <div>
               <p className="font-semibold text-indigo-700 mb-1 uppercase tracking-wider">Investment Assumptions</p>
               <ul className="space-y-0.5 text-indigo-800">
-                <li>• Portfolio return: <strong>{(scenario.realReturn * 100).toFixed(1)}%</strong> (after inflation)</li>
+                <li>&bull; Portfolio return: <strong>{(scenario.realReturn * 100).toFixed(1)}%</strong> (after inflation)</li>
                 {scenario.tfsaReturn != null && scenario.tfsaReturn !== scenario.realReturn && (
-                  <li>• TFSA return: <strong>{(scenario.tfsaReturn * 100).toFixed(1)}%</strong></li>
+                  <li>&bull; TFSA return: <strong>{(scenario.tfsaReturn * 100).toFixed(1)}%</strong></li>
                 )}
-                <li>• Withdrawal order: <strong>{(scenario.withdrawalOrder || ['tfsa', 'nonReg', 'rrsp']).map(k => ACCT_LABELS[k] ?? k).join(' → ')}</strong></li>
+                <li>&bull; Withdrawal order: <strong>{(scenario.withdrawalOrder || ['tfsa', 'nonReg', 'rrsp']).map(k => ACCT_LABELS[k] ?? k).join(' \u2192 ')}</strong></li>
               </ul>
             </div>
-
-            {/* WHAT'S NOT INCLUDED */}
             <div>
               <p className="font-semibold text-indigo-700 mb-1 uppercase tracking-wider">What's Not Included</p>
               <ul className="space-y-0.5 text-indigo-800">
-                <li>• No salary raises beyond inflation</li>
-                <li>• No part-time work in retirement</li>
-                <li>• No health care cost increases after 80</li>
-                <li>• House value stays flat (no appreciation)</li>
-                <li>• Tax brackets don't adjust for inflation</li>
-                <li>• No CPP survivor benefit (single filer)</li>
+                <li>&bull; No salary raises beyond inflation</li>
+                <li>&bull; No part-time work in retirement</li>
+                <li>&bull; No health care cost increases after 80</li>
+                <li>&bull; House value stays flat (no appreciation)</li>
+                <li>&bull; Tax brackets don't adjust for inflation</li>
+                <li>&bull; No CPP survivor benefit (single filer)</li>
               </ul>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setAssumptionsExpanded(false)}
-              className="text-purple-600 hover:text-purple-800 transition-colors"
-            >
-              Collapse ▲
+            <button type="button" onClick={() => setAssumptionsExpanded(false)}
+              className="text-purple-600 hover:text-purple-800 transition-colors">
+              Collapse &#9650;
             </button>
           </div>
         )}

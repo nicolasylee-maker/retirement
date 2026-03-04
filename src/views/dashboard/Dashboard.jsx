@@ -4,7 +4,6 @@ import SummaryCards from './SummaryCards';
 import PortfolioChart from './PortfolioChart';
 import IncomeExpenseChart from './IncomeExpenseChart';
 import WithdrawalChart from './WithdrawalChart';
-import AccountChart from './AccountChart';
 import MilestoneCards from './MilestoneCards';
 import { calcTotalTax } from '../../engines/taxEngine';
 import { formatCurrency } from '../../utils/formatters';
@@ -16,7 +15,6 @@ const SECTIONS = [
   { id: 'portfolio-chart', label: 'Portfolio' },
   { id: 'income-chart', label: 'Income vs Expenses' },
   { id: 'withdrawal-chart', label: 'Withdrawals' },
-  { id: 'account-chart', label: 'Accounts' },
   { id: 'milestones', label: 'Milestones' },
 ];
 
@@ -166,10 +164,6 @@ export default function Dashboard({
 
           <div id="withdrawal-chart">
             <WithdrawalChart projectionData={projectionData} scenario={scenario} />
-          </div>
-
-          <div id="account-chart">
-            <AccountChart projectionData={projectionData} scenario={scenario} />
           </div>
 
           <div id="milestones">

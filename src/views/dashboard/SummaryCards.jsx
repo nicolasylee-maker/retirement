@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import SummaryCard from '../../components/SummaryCard';
 import { calcSustainableWithdrawal } from '../../engines/withdrawalCalc';
 import { formatCurrency } from '../../utils/formatters';
+import { todaysDollarsLabel } from '../../utils/inflationHelper';
 
 export default function SummaryCards({ projectionData, scenario, pulseSafeSpend = false }) {
   const retirementRow = useMemo(
@@ -42,6 +43,10 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
 
   // Helper to build "You entered $X" sub lines showing original input → projected value
   const entered = (v) => formatCurrency(v);
+  const retAge = scenario.retirementAge;
+  const curAge = scenario.currentAge;
+  const inf = scenario.inflationRate;
+  const td = (v, period = 'monthly') => todaysDollarsLabel(v, retAge, curAge, inf, period);
   const rrspInput = (scenario.rrspBalance || 0) + (scenario.rrifBalance || 0) + (scenario.dcPensionBalance || 0) + (scenario.liraBalance || 0);
   const nonRegInput = (scenario.nonRegInvestments || 0) + (scenario.cashSavings || 0);
   const yearsToRetire = Math.max(0, scenario.retirementAge - scenario.currentAge);
@@ -97,11 +102,11 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
           { label: 'CPP', value: retirementRow.cppIncome, color: '#3b82f6',
             sub: `You entered: $${scenario.cppMonthly}/mo starting at age ${scenario.cppStartAge}. ${retirementRow.cppIncome > 0
               ? `Active — adjusted for ${scenario.cppStartAge < 65 ? 'early' : scenario.cppStartAge > 65 ? 'late' : 'standard'} start. Taxable income.`
-              : 'Not active yet at this age'}` },
+              : 'Not active yet at this age'}${retirementRow.cppIncome > 0 && td(retirementRow.cppIncome) ? '\n' + td(retirementRow.cppIncome) : ''}` },
           { label: 'OAS', value: retirementRow.oasIncome, color: '#14b8a6',
             sub: `You entered: $${scenario.oasMonthly}/mo starting at age ${scenario.oasStartAge}. ${retirementRow.oasIncome > 0
               ? `Active — ${scenario.oasStartAge > 65 ? `+${((Math.min(scenario.oasStartAge, 70) - 65) * 12 * 0.6).toFixed(1)}% deferral bonus. ` : 'standard start. '}Taxable (shown after any OAS clawback)`
-              : 'Not active yet at this age'}` },
+              : 'Not active yet at this age'}${retirementRow.oasIncome > 0 && td(retirementRow.oasIncome) ? '\n' + td(retirementRow.oasIncome) : ''}` },
           ...(retirementRow.gisIncome > 0 ? [{ label: 'GIS', value: retirementRow.gisIncome, color: '#059669',
             sub: 'Income-tested supplement for low-income seniors' }] : []),
         ],
@@ -110,7 +115,7 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
         heading: 'Pension',
         items: [
           { label: 'Employer Pension', value: retirementRow.pensionIncome, color: '#8b5cf6',
-            sub: `You entered: ${entered(scenario.dbPensionAnnual)}/yr starting age ${scenario.dbPensionStartAge}. ${scenario.dbPensionIndexed ? 'Indexed to inflation' : 'Not indexed — loses purchasing power'}` },
+            sub: `You entered: ${entered(scenario.dbPensionAnnual)}/yr starting age ${scenario.dbPensionStartAge}. ${scenario.dbPensionIndexed ? 'Indexed to inflation' : 'Not indexed — loses purchasing power'}${td(retirementRow.pensionIncome) ? '\n' + td(retirementRow.pensionIncome) : ''}` },
         ],
       }] : []),
       ...(scenario.stillWorking && scenario.employmentIncome > 0 && scenario.currentAge < scenario.retirementAge ? [{
@@ -124,11 +129,11 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
         heading: 'Account Withdrawals',
         items: [
           ...(retirementRow.rrspWithdrawal > 0 ? [{ label: 'RRSP/RRIF', value: retirementRow.rrspWithdrawal, color: '#f97316',
-            sub: 'Fully taxable as income. Drawn to cover shortfall between income and expenses' }] : []),
+            sub: `Fully taxable as income. Drawn to cover shortfall between income and expenses${td(retirementRow.rrspWithdrawal) ? '\n' + td(retirementRow.rrspWithdrawal) : ''}` }] : []),
           ...(retirementRow.tfsaWithdrawal > 0 ? [{ label: 'TFSA', value: retirementRow.tfsaWithdrawal, color: '#22c55e',
-            sub: 'Tax-free — doesn\'t affect OAS or GIS' }] : []),
+            sub: `Tax-free — doesn't affect OAS or GIS${td(retirementRow.tfsaWithdrawal) ? '\n' + td(retirementRow.tfsaWithdrawal) : ''}` }] : []),
           ...(retirementRow.nonRegWithdrawal > 0 ? [{ label: 'Non-Registered', value: retirementRow.nonRegWithdrawal, color: '#0ea5e9',
-            sub: 'Only the gain portion is taxed' }] : []),
+            sub: `Only the gain portion is taxed${td(retirementRow.nonRegWithdrawal) ? '\n' + td(retirementRow.nonRegWithdrawal) : ''}` }] : []),
           ...(retirementRow.rrspWithdrawal === 0 && retirementRow.tfsaWithdrawal === 0 && retirementRow.nonRegWithdrawal === 0
             ? [{ label: 'No withdrawals needed', value: '—', sub: 'Income covers expenses without drawing on savings' }] : []),
         ],
@@ -150,7 +155,7 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
         heading: 'How it\'s calculated',
         items: [
           { label: 'Taxable Income', value: retirementRow.totalTaxableIncome,
-            sub: 'CPP + OAS + pension + RRSP/RRIF withdrawals (TFSA is excluded)' },
+            sub: `CPP + OAS + pension + RRSP/RRIF withdrawals (TFSA is excluded)${td(retirementRow.totalTaxableIncome, 'annual') ? '\n' + td(retirementRow.totalTaxableIncome, 'annual') : ''}` },
           { label: 'Federal + Ontario Tax', value: retirementRow.totalTax, negative: true, color: '#ef4444',
             sub: 'Includes federal basic personal amount and Ontario surtax' },
           { label: 'Effective Tax Rate', value: `${effTaxRate}%`,
@@ -163,7 +168,7 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
           { label: 'Gross Income', value: retirementRow.totalIncome, color: '#22c55e' },
           { label: 'Minus Tax', value: -retirementRow.totalTax, negative: true, color: '#ef4444' },
           { label: 'After-Tax Income', value: retirementRow.afterTaxIncome, color: '#22c55e',
-            sub: `${formatCurrency(Math.round(retirementRow.afterTaxIncome / 12))}/mo to cover expenses` },
+            sub: `${formatCurrency(Math.round(retirementRow.afterTaxIncome / 12))}/mo to cover expenses${td(retirementRow.afterTaxIncome) ? '\n' + td(retirementRow.afterTaxIncome) : ''}` },
         ],
       },
     ],
@@ -186,9 +191,9 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
         heading: 'The math',
         items: [
           { label: 'After-Tax Income', value: retirementRow.afterTaxIncome, color: '#22c55e',
-            sub: `${formatCurrency(Math.round(retirementRow.afterTaxIncome / 12))}/mo from all sources after tax` },
+            sub: `${formatCurrency(Math.round(retirementRow.afterTaxIncome / 12))}/mo from all sources after tax${td(retirementRow.afterTaxIncome) ? '\n' + td(retirementRow.afterTaxIncome) : ''}` },
           { label: 'Living Expenses', value: -retirementRow.expenses, negative: true, color: '#ef4444',
-            sub: `You entered: ${entered(scenario.monthlyExpenses)}/mo. In retirement: ${retExpPct}% of pre-retirement (${parseFloat((scenario.expenseReductionAtRetirement * 100).toFixed(4))}% reduction)` },
+            sub: `You entered: ${entered(scenario.monthlyExpenses)}/mo. In retirement: ${retExpPct}% of pre-retirement (${parseFloat((scenario.expenseReductionAtRetirement * 100).toFixed(4))}% reduction)${td(retirementRow.expenses) ? '\n' + td(retirementRow.expenses) : ''}` },
           ...(retirementRow.debtPayments > 0 ? [{ label: 'Debt Payments', value: -retirementRow.debtPayments, negative: true, color: '#f97316',
             sub: `You entered: ${entered(scenario.consumerDebt)} consumer debt + ${entered(scenario.mortgageBalance)} mortgage.${debtFreeAge ? ` Debt-free by age ${debtFreeAge}.` : ''} Lifetime cost: ${entered(Math.round(totalLifetimeDebtPayments))} total (${entered(Math.round(totalLifetimeInterest))} in interest)` }] : []),
         ],
@@ -200,8 +205,8 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
             negative: !surplusPositive,
             color: surplusPositive ? '#22c55e' : '#ef4444',
             sub: surplusPositive
-              ? `${formatCurrency(Math.round(surplus / 12))}/mo extra`
-              : `${formatCurrency(Math.round(Math.abs(surplus) / 12))}/mo shortfall drawn from savings` },
+              ? `${formatCurrency(Math.round(surplus / 12))}/mo extra${td(surplus) ? '\n' + td(surplus) : ''}`
+              : `${formatCurrency(Math.round(Math.abs(surplus) / 12))}/mo shortfall drawn from savings${td(Math.abs(surplus)) ? '\n' + td(Math.abs(surplus)) : ''}` },
         ],
       },
     ],
@@ -220,12 +225,12 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
         heading: 'Your situation',
         items: [
           { label: 'Safe Monthly Spend', value: sustainableMonthly, color: '#22c55e',
-            sub: 'Calculated by testing thousands of spending levels against your full projection' },
+            sub: `Calculated by testing thousands of spending levels against your full projection${td(sustainableMonthly * 12) ? '\n' + td(sustainableMonthly * 12) : ''}` },
           { label: 'Your Current Budget', value: scenario.monthlyExpenses,
             color: scenario.monthlyExpenses > sustainableMonthly ? '#ef4444' : '#3b82f6',
             sub: scenario.monthlyExpenses > sustainableMonthly
-              ? `You\'re ${formatCurrency(scenario.monthlyExpenses - sustainableMonthly)}/mo over the safe limit`
-              : `You\'re ${formatCurrency(sustainableMonthly - scenario.monthlyExpenses)}/mo under — you have room` },
+              ? `You're ${formatCurrency(scenario.monthlyExpenses - sustainableMonthly)}/mo over the safe limit (your input — today's dollars)`
+              : `You're ${formatCurrency(sustainableMonthly - scenario.monthlyExpenses)}/mo under — you have room (your input — today's dollars)` },
         ],
       },
       {

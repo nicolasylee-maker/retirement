@@ -8,6 +8,7 @@ import AccountChart from './AccountChart';
 import MilestoneCards from './MilestoneCards';
 import { calcTotalTax } from '../../engines/taxEngine';
 import { formatCurrency } from '../../utils/formatters';
+import { todaysDollarsCompact } from '../../utils/inflationHelper';
 import { buildDashboardAiData } from '../../utils/buildAiData';
 
 const SECTIONS = [
@@ -141,7 +142,13 @@ export default function Dashboard({
                   </p>
                   <p className="mt-1 text-red-700">
                     After age {depRow.age}, your only income is {formatCurrency(postIncome)}/yr
-                    against expenses of {formatCurrency(depRow.expenses)}/yr
+                    {todaysDollarsCompact(postIncome, depRow.age, scenario.currentAge, scenario.inflationRate, 'yearly') && (
+                      <span className="text-red-500 text-xs"> {todaysDollarsCompact(postIncome, depRow.age, scenario.currentAge, scenario.inflationRate, 'yearly')}</span>
+                    )}
+                    {' '}against expenses of {formatCurrency(depRow.expenses)}/yr
+                    {todaysDollarsCompact(depRow.expenses, depRow.age, scenario.currentAge, scenario.inflationRate, 'yearly') && (
+                      <span className="text-red-500 text-xs"> {todaysDollarsCompact(depRow.expenses, depRow.age, scenario.currentAge, scenario.inflationRate, 'yearly')}</span>
+                    )}
                     {shortfall > 0 && <>, leaving a <span className="font-semibold">{formatCurrency(shortfall)}/yr shortfall</span></>}.
                   </p>
                 </div>

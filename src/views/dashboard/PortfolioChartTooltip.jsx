@@ -1,10 +1,14 @@
 import React from 'react';
 import { CHART_STYLE } from '../../constants/designTokens';
 import { formatCurrency } from '../../utils/formatters';
+import { todaysDollarsCompact } from '../../utils/inflationHelper';
 
-export default function CustomTooltip({ active, payload }) {
+export default function CustomTooltip({ active, payload, scenario }) {
   if (!active || !payload || !payload.length) return null;
   const d = payload[0].payload;
+  const curAge = scenario?.currentAge;
+  const inf = scenario?.inflationRate;
+  const tc = (val) => curAge && inf ? todaysDollarsCompact(val, d.age, curAge, inf, 'yearly') : null;
 
   // Real income (not withdrawals)
   const realIncome = (d.employmentIncome || 0)
@@ -53,12 +57,18 @@ export default function CustomTooltip({ active, payload }) {
       {incomeSources.length > 0 && (<>
         <div className="border-t border-gray-100 pt-1.5 mt-1.5">
           <p className="text-gray-400 font-medium mb-0.5">Income</p>
-          {incomeSources.map(s => (
-            <p key={s.label} className="text-green-700 flex justify-between gap-3">
-              <span>{s.label}</span>
-              <span className="tabular-nums">{formatCurrency(s.value)}/yr</span>
-            </p>
-          ))}
+          {incomeSources.map(s => {
+            const compact = tc(s.value);
+            return (
+              <div key={s.label}>
+                <p className="text-green-700 flex justify-between gap-3">
+                  <span>{s.label}</span>
+                  <span className="tabular-nums">{formatCurrency(s.value)}/yr</span>
+                </p>
+                {compact && <p className="text-gray-400 text-right text-[10px]">{compact}</p>}
+              </div>
+            );
+          })}
         </div>
       </>)}
 
@@ -69,6 +79,7 @@ export default function CustomTooltip({ active, payload }) {
           <span>Expenses</span>
           <span className="tabular-nums">{formatCurrency(d.expenses)}</span>
         </p>
+        {tc(d.expenses) && <p className="text-gray-400 text-right text-[10px]">{tc(d.expenses)}</p>}
         {d.totalTax > 0 && (
           <p className="text-gray-600 flex justify-between gap-3">
             <span>Tax</span>
@@ -90,6 +101,7 @@ export default function CustomTooltip({ active, payload }) {
             <span>{gap < 0 ? 'Gap' : 'Surplus'}</span>
             <span className="tabular-nums">{gap < 0 ? '-' : ''}{formatCurrency(Math.abs(gap))}/yr</span>
           </p>
+          {tc(Math.abs(gap)) && <p className="text-gray-400 text-right text-[10px]">{tc(Math.abs(gap))}</p>}
           {gap < 0 && withdrawals.map(w => (
             <p key={w.label} className="text-gray-500 flex justify-between gap-3 pl-2">
               <span className="italic">from {w.label}</span>

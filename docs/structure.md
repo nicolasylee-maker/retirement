@@ -26,7 +26,8 @@ retirement/
 ├── scripts/
 │   ├── update-tax-data.js                  ← Annual update checklist (data freshness + CRA links)
 │   ├── check-canlii.js                     ← CanLII amendment monitor for probate/intestacy acts
-│   └── update-compare-prompt.sql           ← SQL upsert for prompt_compare in admin_config (one-off)
+│   ├── update-compare-prompt.sql           ← SQL upsert for prompt_compare in admin_config (one-off)
+│   └── update-prompts-todays-dollars.sql  ← SQL upsert for all prompt templates with today's-dollars variables
 │
 ├── src/
 │   ├── main.jsx                            ← React root render (StrictMode → App)
@@ -78,6 +79,7 @@ retirement/
 │   │   ├── debtCalc.js                     ← calcDebtSchedule: debt amortization schedule (balance, interest, principal per year)
 │   │   ├── downloadAudit.js                ← Audit report assembler + Markdown download trigger
 │   │   ├── formatters.js                   ← Currency, percent, UUID, math utilities
+│   │   ├── inflationHelper.js              ← Today's-dollars conversion helpers (toTodaysDollars, labels, compact)
 │   │   ├── generateReport.js               ← HTML retirement report (PDF-printable, inputs + projection)
 │   │   ├── openPrintReport.js              ← Opens new window, renders PrintReportView via React createRoot
 │   │   ├── responsiveChartHeight.js        ← Pure fn: returns mobileH when windowWidth<640, else desktopH

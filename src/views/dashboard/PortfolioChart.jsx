@@ -362,7 +362,7 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
                 tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}
                 tickLine={false} axisLine={false} width={window.innerWidth < 640 ? 46 : 60}
               />
-              {!forceView && <Tooltip content={<CustomTooltip />} />}
+              {!forceView && <Tooltip content={<CustomTooltip scenario={scenario} />} />}
 
               {MilestoneLines}
               <ReferenceLine y={0} stroke={COLORS.gray[500]} strokeDasharray="4 4" />

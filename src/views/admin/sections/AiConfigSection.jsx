@@ -3,9 +3,9 @@ import { adminApi } from '../../../services/adminService'
 
 const PROMPT_FIELDS = [
   { key: 'prompt_base', label: 'Base System Prompt', variables: '(no variables — this is the base instructions)' },
-  { key: 'prompt_dashboard', label: 'Dashboard Prompt', variables: '{currentAge}, {retirementAge}, {lifeExpectancy}, {monthlyExpenses}, {netWorthAtRetirement}, {annualIncome}, {annualTax}, {sustainableMonthly}, {portfolioAtEnd}, {rrspBalance}, {tfsaBalance}, {nonRegBalance}, {cppMonthly}, {cppStartAge}, {oasMonthly}, {oasStartAge}, {pensionLine}' },
-  { key: 'prompt_compare', label: 'Compare Prompt', variables: '{scenarioLines} (pre-built multi-line string of scenario summaries)' },
-  { key: 'prompt_estate', label: 'Estate Prompt', variables: '{ageAtDeath}, {grossEstate}, {totalTax}, {netToHeirs}, {hasWill}, {primaryBeneficiary}, {rrspBalance}, {spouseRollover}' },
+  { key: 'prompt_dashboard', label: 'Dashboard Prompt', variables: '{currentAge}, {retirementAge}, {lifeExpectancy}, {inflationRatePct}, {monthlyExpenses}, {expensesAtRetirement}, {expensesMonthlyToday}, {netWorthAtRetirement}, {annualIncome}, {annualTax}, {annualShortfall}, {shortfallMonthlyToday}, {sustainableMonthly}, {sustainableMonthlyToday}, {portfolioAtEnd}, {rrspBalance}, {tfsaBalance}, {nonRegBalance}, {cppMonthly}, {cppStartAge}, {cppAtRetirement}, {cppMonthlyToday}, {oasMonthly}, {oasStartAge}, {oasAtRetirement}, {oasMonthlyToday}, {pensionLine}' },
+  { key: 'prompt_compare', label: 'Compare Prompt', variables: '{inflationRatePct}, {scenarioLines}, {diffLines}, {phaseLines}, {monthlyLines} (all pre-built multi-line strings)' },
+  { key: 'prompt_estate', label: 'Estate Prompt', variables: '{ageAtDeath}, {inflationRatePct}, {yearsToDeath}, {grossEstate}, {grossEstateToday}, {totalTax}, {netToHeirs}, {netToHeirsToday}, {hasWill}, {primaryBeneficiary}, {rrspBalance}, {rrspBalanceToday}, {spouseRollover}' },
   { key: 'prompt_debt', label: 'Debt Prompt', variables: '{totalDebt}, {totalInterest}, {consumerDebt}, {consumerRatePct}, {mortgageBalance}, {mortgageRatePct}, {currentAge}, {retirementAge}, {debtFreeAge}, {monthlyPayments}' },
   { key: 'prompt_optimize', label: 'Optimize Prompt', variables: '{planStatus}, {currentAge}, {lifeExpectancy}, {monthlyExpenses}, {recommendationCount}, {totalMonthlyGain}, {recommendationLines} (pre-built numbered list), {alreadyOptimalLines} (pre-built comma list)' },
 ]

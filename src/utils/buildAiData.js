@@ -3,29 +3,50 @@ import { calcDebtSchedule } from './debtCalc';
 import { projectScenario } from '../engines/projectionEngine';
 import { calcEstateImpact } from '../engines/estateEngine';
 import { computeDiffDrivers, getPhaseRanges, computePhaseSummary, computePhaseStatus, computeMonthlySnapshots } from './compareAnalysis';
+import { toTodaysDollars } from './inflationHelper';
 
 export function buildDashboardAiData(scenario, projectionData) {
   const retirementRow = projectionData.find(r => r.age === scenario.retirementAge);
   const lastRow = projectionData[projectionData.length - 1];
   const { sustainableMonthly } = calcSustainableWithdrawal(scenario);
 
+  const yearsToRet = scenario.retirementAge - scenario.currentAge;
+  const inf = scenario.inflationRate || 0;
+  const tdMonthly = (futureAnnual) => Math.round(toTodaysDollars(futureAnnual, yearsToRet, inf) / 12);
+
+  const expensesAtRet = retirementRow?.expenses || 0;
+  const cppAtRet = retirementRow?.cppIncome || 0;
+  const oasAtRet = retirementRow?.oasIncome || 0;
+  const shortfall = (retirementRow?.rrspWithdrawal || 0) + (retirementRow?.tfsaWithdrawal || 0)
+    + (retirementRow?.nonRegWithdrawal || 0) + (retirementRow?.otherWithdrawal || 0);
+
   return {
     currentAge: scenario.currentAge,
     retirementAge: scenario.retirementAge,
     lifeExpectancy: scenario.lifeExpectancy,
+    inflationRatePct: (inf * 100).toFixed(1),
     monthlyExpenses: scenario.monthlyExpenses,
+    expensesAtRetirement: expensesAtRet,
+    expensesMonthlyToday: tdMonthly(expensesAtRet),
     netWorthAtRetirement: retirementRow?.netWorth || 0,
     annualIncome: retirementRow?.totalIncome || 0,
     annualTax: retirementRow?.totalTax || 0,
+    annualShortfall: shortfall,
+    shortfallMonthlyToday: tdMonthly(shortfall),
     sustainableMonthly,
+    sustainableMonthlyToday: tdMonthly(sustainableMonthly * 12),
     portfolioAtEnd: lastRow?.totalPortfolio || 0,
     rrspBalance: scenario.rrspBalance,
     tfsaBalance: scenario.tfsaBalance,
     nonRegBalance: scenario.nonRegInvestments,
     cppMonthly: scenario.cppMonthly,
     cppStartAge: scenario.cppStartAge,
+    cppAtRetirement: cppAtRet,
+    cppMonthlyToday: tdMonthly(cppAtRet),
     oasMonthly: scenario.oasMonthly,
     oasStartAge: scenario.oasStartAge,
+    oasAtRetirement: oasAtRet,
+    oasMonthlyToday: tdMonthly(oasAtRet),
     pensionIncome: scenario.pensionType === 'db' ? scenario.dbPensionAnnual : 0,
   };
 }
@@ -117,7 +138,9 @@ export function buildCompareAiData(selectedScenarios, projections) {
     snapshots: computeMonthlySnapshots(projs[i]),
   }));
 
+  const inf0 = selectedScenarios[0]?.inflationRate || 0;
   return {
+    inflationRatePct: (inf0 * 100).toFixed(1),
     scenarios: scenarioData,
     diffs,
     phaseSummaries,
@@ -129,14 +152,23 @@ export function buildEstateAiData(scenario, projectionData, ageAtDeath) {
   const effectiveAge = ageAtDeath ?? Math.min(scenario.lifeExpectancy ?? 90, 85);
   const estateResult = calcEstateImpact(scenario, projectionData, effectiveAge);
 
+  const yearsToDeath = effectiveAge - scenario.currentAge;
+  const inf = scenario.inflationRate || 0;
+  const tdAnnual = (futureVal) => Math.round(toTodaysDollars(futureVal, yearsToDeath, inf));
+
   return {
     ageAtDeath: effectiveAge,
+    inflationRatePct: (inf * 100).toFixed(1),
+    yearsToDeath,
     grossEstate: estateResult.grossEstate,
+    grossEstateToday: tdAnnual(estateResult.grossEstate),
     totalTax: estateResult.totalEstateTax,
     netToHeirs: estateResult.netToHeirs,
+    netToHeirsToday: tdAnnual(estateResult.netToHeirs),
     hasWill: scenario.hasWill ?? true,
     primaryBeneficiary: scenario.primaryBeneficiary,
     rrspBalance: estateResult.rrspRrifDeemed || 0,
+    rrspBalanceToday: tdAnnual(estateResult.rrspRrifDeemed || 0),
     spouseRollover: scenario.primaryBeneficiary === 'spouse',
   };
 }

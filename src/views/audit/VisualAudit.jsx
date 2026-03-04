@@ -42,8 +42,12 @@ export default function VisualAudit({ scenario, projectionData, optimizationResu
   };
 
   if (!scenario || !projectionData?.length) {
-    return (
+    return onClose ? (
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white">
+        <p className="text-sm text-gray-500">No scenario data available.</p>
+      </div>
+    ) : (
+      <div className="flex items-center justify-center min-h-[40vh]">
         <p className="text-sm text-gray-500">No scenario data available.</p>
       </div>
     );
@@ -63,24 +67,26 @@ export default function VisualAudit({ scenario, projectionData, optimizationResu
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-white overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-widest text-purple-600 mr-2">
-            Visual Audit
-          </span>
-          <span className="text-sm font-semibold text-gray-900">{scenario?.name || 'Scenario'}</span>
+  const content = (
+    <>
+      {/* Header — only in modal mode */}
+      {onClose && (
+        <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-widest text-purple-600 mr-2">
+              Deep Dive
+            </span>
+            <span className="text-sm font-semibold text-gray-900">{scenario?.name || 'Scenario'}</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900
+                       border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            Close
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900
-                     border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          Close
-        </button>
-      </div>
+      )}
 
       {/* Phase timeline */}
       <PhaseTimeline phases={phases} activePage={activeIdx} onNavigate={setActiveIdx} />
@@ -89,6 +95,13 @@ export default function VisualAudit({ scenario, projectionData, optimizationResu
       <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
         {renderPage()}
       </div>
-    </div>
+    </>
   );
+
+  // Modal mode (admin preview) vs inline tab mode
+  if (onClose) {
+    return <div className="fixed inset-0 z-[60] flex flex-col bg-white overflow-hidden">{content}</div>;
+  }
+
+  return <div className="flex flex-col min-h-[calc(100vh-10rem)]">{content}</div>;
 }

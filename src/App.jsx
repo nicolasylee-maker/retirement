@@ -67,6 +67,11 @@ const NAV_TABS = [
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
     </svg>
   )},
+  { key: 'deep-dive', label: 'Deep Dive', icon: (
+    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+    </svg>
+  )},
   { key: 'recommendations', label: 'Optimize', special: true, icon: (
     <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
@@ -455,10 +460,9 @@ export default function App() {
   const [signInOpen, setSignInOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
-  const [visualAuditOpen, setVisualAuditOpen] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(false);
-  const GATED_TABS = new Set(['compare', 'estate']);
+  const GATED_TABS = new Set(['compare', 'estate', 'deep-dive']);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -651,8 +655,6 @@ export default function App() {
                           <div className="border-t border-gray-100 my-1.5 mx-3" />
                           <button onClick={menuAction(() => downloadExcelAudit(effectiveScenario, projectionData, optimizationResult))}
                             className="menu-item">📊 Excel Audit</button>
-                          <button onClick={menuAction(() => setVisualAuditOpen(true))}
-                            className="menu-item">📊 Visual Audit Report</button>
                           <div className="border-t border-gray-100 my-1.5 mx-3" />
                         </>
                       )}
@@ -804,6 +806,14 @@ export default function App() {
               />
             </div>
           )}
+          {view === 'deep-dive' && currentScenario && (
+            <div className="flex-1">
+              {isPaid || isAdmin
+                ? <VisualAudit scenario={effectiveScenario} projectionData={projectionData} optimizationResult={optimizationResult} />
+                : <div className="px-4 sm:px-6 lg:px-10 py-4"><UpgradePrompt variant="full" featureName="Deep Dive" /></div>
+              }
+            </div>
+          )}
           {view === 'save-nudge' && <SaveNudgeScreen onSkip={() => setView('dashboard')} />}
           {view === 'returning-home' && authUser && (
             <ReturningHomeView
@@ -879,14 +889,6 @@ export default function App() {
         />
       )}
 
-      {visualAuditOpen && currentScenario && (
-        <VisualAudit
-          scenario={effectiveScenario}
-          projectionData={projectionData}
-          optimizationResult={optimizationResult}
-          onClose={() => setVisualAuditOpen(false)}
-        />
-      )}
     </div>
   );
 }

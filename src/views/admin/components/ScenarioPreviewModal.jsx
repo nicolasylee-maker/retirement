@@ -14,12 +14,12 @@ const TABS = [
   { key: 'debt',      label: 'Debt' },
   { key: 'compare',   label: 'Compare' },
   { key: 'estate',    label: 'Estate' },
+  { key: 'deep-dive', label: 'Deep Dive' },
 ]
 
 export default function ScenarioPreviewModal({ scenario, userEmail, onClose }) {
   const [tab, setTab] = useState('dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [visualAuditOpen, setVisualAuditOpen] = useState(false)
   const menuRef = useRef(null)
   const projectionData = useMemo(() => projectScenario(scenario), [scenario])
 
@@ -91,12 +91,6 @@ export default function ScenarioPreviewModal({ scenario, userEmail, onClose }) {
                   className="menu-item w-full text-left"
                 >
                   📊 Excel Audit
-                </button>
-                <button
-                  onClick={() => { setVisualAuditOpen(true); setMenuOpen(false) }}
-                  className="menu-item w-full text-left"
-                >
-                  📊 Visual Audit Report
                 </button>
                 <div className="border-t border-gray-100 my-1.5 mx-3" />
                 <button onClick={handleExport} className="menu-item w-full text-left">
@@ -170,15 +164,13 @@ export default function ScenarioPreviewModal({ scenario, userEmail, onClose }) {
             onSaveInsight={null}
           />
         )}
+        {tab === 'deep-dive' && (
+          <VisualAudit
+            scenario={scenario}
+            projectionData={projectionData}
+          />
+        )}
       </div>
-
-      {visualAuditOpen && (
-        <VisualAudit
-          scenario={scenario}
-          projectionData={projectionData}
-          onClose={() => setVisualAuditOpen(false)}
-        />
-      )}
     </div>
   )
 }

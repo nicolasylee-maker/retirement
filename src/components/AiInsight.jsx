@@ -166,7 +166,7 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
         )}
       </div>
 
-      {!collapsed && (
+      {!collapsed && (<>
         <div className="px-5 pb-5 max-h-[calc(100vh-10rem)] overflow-y-auto">
           {(loading || autoGenLoading) && <ShimmerLines />}
 
@@ -230,7 +230,12 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
             </button>
           )}
         </div>
-      )}
+        {recommendation && !(loading || autoGenLoading) && (
+          <p className="px-5 pt-2 pb-3 mt-0 text-[9px] italic text-gray-400 border-t border-gray-200">
+            AI-generated insights for educational purposes only. Not financial advice. Consult a qualified advisor before making financial decisions.
+          </p>
+        )}
+      </>)}
     </div>
 
     {upgradeOpen && createPortal(

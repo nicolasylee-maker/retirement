@@ -39,6 +39,12 @@ export const adminApi = {
     callAdminFunction('maintenance', { action: 'seed-all', payload }),
   checkLegislation: () =>
     callAdminFunction('maintenance', { action: 'check-legislation' }),
+  testAi: (provider, model, apiKey, prompt) =>
+    callAdminFunction('ai-test-proxy', { action: 'run', provider, model, apiKey, prompt }),
+
+  fetchAiModels: (provider, apiKey) =>
+    callAdminFunction('ai-test-proxy', { action: 'list-models', provider, apiKey }),
+
   setOverride: (email, override, accessToken) => {
     // Uses the existing send-invite edge function
     return fetch(`${SUPABASE_URL}/functions/v1/send-invite`, {

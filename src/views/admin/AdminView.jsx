@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import OverviewSection from './sections/OverviewSection'
 import UsersSection from './sections/UsersSection'
 import AiConfigSection from './sections/AiConfigSection'
+import AiTestingSection from './sections/AiTestingSection'
 import SubscriptionsSection from './sections/SubscriptionsSection'
 import MaintenanceSection from './sections/MaintenanceSection'
 
@@ -12,6 +13,7 @@ const NAV = [
   { key: 'overview', label: 'Overview' },
   { key: 'users', label: 'Users' },
   { key: 'ai-config', label: 'AI Config' },
+  { key: 'ai-testing', label: 'AI Testing' },
   { key: 'subscriptions', label: 'Subscriptions' },
   { key: 'maintenance', label: 'Maintenance' },
 ]
@@ -62,6 +64,7 @@ export default function AdminView({ onClose }) {
         {activeSection === 'overview' && <OverviewSection />}
         {activeSection === 'users' && <UsersSection />}
         {activeSection === 'ai-config' && <AiConfigSection />}
+        {activeSection === 'ai-testing' && <AiTestingSection />}
         {activeSection === 'subscriptions' && <SubscriptionsSection />}
         {activeSection === 'maintenance' && <MaintenanceSection />}
       </main>

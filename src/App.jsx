@@ -123,7 +123,7 @@ export default function App() {
     const saved = loadSaved();
     if (saved?.scenarios?.length > 0) {
       if (sessionStorage.getItem(ANON_SESSION_KEY)) return 'wizard'; // anonymous: never start at dashboard
-      return 'dashboard';
+      return saved.view || 'dashboard';
     }
     return 'landing';
   });
@@ -155,9 +155,12 @@ export default function App() {
     if (stored !== null) setWhatIfExpanded(stored === 'true');
   }, [authUser?.id]);
 
-  // On sign-out, clear all state and return to landing page
+  // On sign-out, clear all state and return to landing page.
+  // On sign-in, clear ANON_SESSION_KEY (may linger from a prior anonymous session)
+  // and correct the view if we landed on wizard due to it.
   useEffect(() => {
     const wasLoggedIn = prevAuthUserRef.current !== null;
+    const justLoggedIn = prevAuthUserRef.current === null && authUser !== null;
     prevAuthUserRef.current = authUser;
 
     if (wasLoggedIn && authUser === null) {
@@ -170,6 +173,11 @@ export default function App() {
       localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
       sessionStorage.removeItem(CHOICE_SEEN_KEY);
       sessionStorage.removeItem(ANON_SESSION_KEY);
+    }
+
+    if (justLoggedIn && sessionStorage.getItem(ANON_SESSION_KEY)) {
+      sessionStorage.removeItem(ANON_SESSION_KEY);
+      setView(v => v === 'wizard' ? (loadSaved()?.view || 'dashboard') : v);
     }
   }, [authUser]);
 
@@ -451,7 +459,9 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('checkout') === 'success') {
+    if (params.get('checkout') === 'cancelled') {
+      history.replaceState(null, '', window.location.pathname);
+    } else if (params.get('checkout') === 'success') {
       setCheckoutSuccess(true);
       setCheckoutPending(true);
       history.replaceState(null, '', window.location.pathname);

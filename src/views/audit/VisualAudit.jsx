@@ -92,7 +92,7 @@ export default function VisualAudit({ scenario, projectionData, optimizationResu
       <PhaseTimeline phases={phases} activePage={activeIdx} onNavigate={setActiveIdx} />
 
       {/* Page content */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+      <div className={`flex-1 overflow-y-auto px-4 py-4 sm:px-6 lg:px-10${onClose ? '' : ' pb-20 md:pb-4'}`}>
         {renderPage()}
       </div>
     </>

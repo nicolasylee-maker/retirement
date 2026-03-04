@@ -20,6 +20,27 @@ export function buildDashboardAiData(scenario, projectionData) {
   const shortfall = (retirementRow?.rrspWithdrawal || 0) + (retirementRow?.tfsaWithdrawal || 0)
     + (retirementRow?.nonRegWithdrawal || 0) + (retirementRow?.otherWithdrawal || 0);
 
+  // Bug 3: Portfolio (liquid) vs net worth (includes real estate)
+  const portfolioAtRet = retirementRow?.totalPortfolio || 0;
+  const depletionRow = projectionData.find(r => r.age > scenario.currentAge && r.totalPortfolio <= 0);
+  const depletionAge = depletionRow ? depletionRow.age : null;
+  const portfolioDepleted = depletionAge !== null && depletionAge < scenario.lifeExpectancy;
+  const postDepIncome = depletionRow
+    ? Math.round((depletionRow.cppIncome || 0) + (depletionRow.oasIncome || 0)
+      + (depletionRow.gisIncome || 0) + (depletionRow.pensionIncome || 0))
+    : null;
+  const postDepExpenses = depletionRow ? Math.round(depletionRow.expenses) : null;
+
+  // Bug 4: Working-years financial health
+  const workingYears = projectionData.filter(r => r.age >= scenario.currentAge && r.age < scenario.retirementAge);
+  const workingYearsWithWithdrawals = workingYears.filter(r =>
+    (r.rrspWithdrawal || 0) + (r.tfsaWithdrawal || 0) + (r.nonRegWithdrawal || 0) + (r.otherWithdrawal || 0) > 0
+  ).length;
+  const tfsaDepletedWhileWorking = workingYears.some(r => (r.tfsaBalance ?? 1) <= 0);
+
+  // Expense reduction context
+  const expReductionPct = Math.round((scenario.expenseReductionAtRetirement || 0) * 100);
+
   return {
     currentAge: scenario.currentAge,
     retirementAge: scenario.retirementAge,
@@ -28,13 +49,14 @@ export function buildDashboardAiData(scenario, projectionData) {
     monthlyExpenses: scenario.monthlyExpenses,
     expensesAtRetirement: expensesAtRet,
     expensesMonthlyToday: tdMonthly(expensesAtRet),
+    portfolioAtRetirement: portfolioAtRet,
     netWorthAtRetirement: retirementRow?.netWorth || 0,
     annualIncome: retirementRow?.totalIncome || 0,
     annualTax: retirementRow?.totalTax || 0,
     annualShortfall: shortfall,
     shortfallMonthlyToday: tdMonthly(shortfall),
     sustainableMonthly,
-    sustainableMonthlyToday: tdMonthly(sustainableMonthly * 12),
+    sustainableMonthlyToday: sustainableMonthly, // already today's dollars — no deflation
     portfolioAtEnd: lastRow?.totalPortfolio || 0,
     rrspBalance: scenario.rrspBalance,
     tfsaBalance: scenario.tfsaBalance,
@@ -48,6 +70,16 @@ export function buildDashboardAiData(scenario, projectionData) {
     oasAtRetirement: oasAtRet,
     oasMonthlyToday: tdMonthly(oasAtRet),
     pensionIncome: scenario.pensionType === 'db' ? scenario.dbPensionAnnual : 0,
+    expReductionPct,
+    // Depletion context (Bug 3)
+    depletionAge: depletionAge || 'never',
+    portfolioDepleted: portfolioDepleted ? 'Yes' : 'No',
+    postDepletionIncome: postDepIncome,
+    postDepletionExpenses: postDepExpenses,
+    // Working-years health (Bug 4)
+    yearsToRetirement: yearsToRet,
+    workingYearsWithWithdrawals,
+    tfsaDepletedWhileWorking: tfsaDepletedWhileWorking ? 'Yes' : 'No',
   };
 }
 

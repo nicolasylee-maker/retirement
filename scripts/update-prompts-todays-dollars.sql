@@ -22,23 +22,48 @@ Overall Assessment: ⚠️ Needs Attention
 ON CONFLICT (config_key)
 DO UPDATE SET config_value = EXCLUDED.config_value;
 
--- 2. Dashboard prompt — add today's dollars variables
+-- 2. Dashboard prompt — structured sections with portfolio/depletion/working-year context
 INSERT INTO admin_config (config_key, config_value)
 VALUES ('prompt_dashboard', 'Based on this Ontario retirement scenario, provide exactly 4 numbered recommendations with alternatives:
+
+DEMOGRAPHICS:
 - Age {currentAge}, retiring at {retirementAge}, plan to age {lifeExpectancy}
-- Inflation rate: {inflationRatePct}% — all projected values are inflation-adjusted future dollars. Today''s dollars equivalents shown in parentheses.
-- Monthly expenses (user input): ${monthlyExpenses}/mo — projected to ${expensesAtRetirement}/yr at retirement (${expensesMonthlyToday}/mo in today''s dollars)
-- Net worth at retirement: ${netWorthAtRetirement}
+- Inflation rate: {inflationRatePct}%
+
+EXPENSES:
+- Pre-retirement expenses: ${monthlyExpenses}/mo (user input, today''s dollars)
+- Retirement expense reduction: {expReductionPct}%
+- Projected retirement expenses: ${expensesAtRetirement}/yr (${expensesMonthlyToday}/mo in today''s dollars, after the {expReductionPct}% reduction)
+
+PORTFOLIO (liquid investments only — does NOT include real estate):
+- Portfolio at retirement: ${portfolioAtRetirement}
+- Net worth at retirement: ${netWorthAtRetirement} (portfolio + real estate — real estate cannot fund withdrawals)
+- Portfolio at life expectancy: ${portfolioAtEnd}
+- Portfolio depleted: {portfolioDepleted}, at age {depletionAge}
+- After depletion, income: ${postDepletionIncome}/yr, expenses: ${postDepletionExpenses}/yr
+
+INCOME AT RETIREMENT:
 - Annual retirement income: ${annualIncome}, Tax: ${annualTax}
 - Annual shortfall funded from savings: ${annualShortfall} (${shortfallMonthlyToday}/mo in today''s dollars)
-- Sustainable monthly spending: ${sustainableMonthly} (${sustainableMonthlyToday}/mo in today''s dollars)
-- Portfolio at life expectancy: ${portfolioAtEnd}
+- Safe monthly spending: ${sustainableMonthly}/mo (already today''s dollars — the max you can spend and not run out before 95)
 - RRSP: ${rrspBalance}, TFSA: ${tfsaBalance}, Non-reg: ${nonRegBalance}
 - CPP input: ${cppMonthly}/mo at age {cppStartAge} → projected ${cppAtRetirement}/yr (${cppMonthlyToday}/mo in today''s dollars)
 - OAS input: ${oasMonthly}/mo at age {oasStartAge} → projected ${oasAtRetirement}/yr (${oasMonthlyToday}/mo in today''s dollars)
 {pensionLine}
 
-When discussing dollar amounts, always show the future value with today''s dollars in parentheses so the user can relate to what they entered. For example say "your expenses of $131,357/yr ($5,000/mo in today''s dollars)" not just "$131,357/yr". Suggest alternatives using today''s dollars — say "reduce spending to $4,000/mo" not "reduce to $96,000/yr". For each recommendation, explain the financial impact in dollars and suggest an alternative strategy.')
+PRE-RETIREMENT FINANCIAL HEALTH:
+- Years to retirement: {yearsToRetirement}
+- Years with savings withdrawals while still working: {workingYearsWithWithdrawals} of {yearsToRetirement}
+- TFSA depleted before retirement: {tfsaDepletedWhileWorking}
+
+IMPORTANT RULES:
+1. "Net worth" includes real estate which cannot be spent. "Portfolio" is liquid investments (RRSP, TFSA, Non-reg) that fund retirement withdrawals. When discussing depletion risk, ALWAYS reference the portfolio amount and depletion age, NOT net worth.
+2. When discussing dollar amounts, always show the future value with today''s dollars in parentheses. For example say "your expenses of $131,357/yr ($4,500/mo in today''s dollars)" NOT "$131,357/yr ($5,000/mo)". The today''s dollars amount reflects the retirement reduction, not the pre-retirement input.
+3. Safe monthly spending (${sustainableMonthly}/mo) is already in today''s dollars. Do NOT deflate it further.
+4. Check the pre-retirement financial health data before recommending increased savings or contributions. If the user has withdrawals during working years or TFSA depleted before retirement, do NOT recommend additional TFSA/RRSP contributions — they have no spare cash. Instead, focus on spending reduction, income growth, or delaying retirement.
+5. Suggest alternatives using today''s dollars — say "reduce spending to $4,000/mo" not "reduce to $96,000/yr".
+
+For each recommendation, explain the financial impact in dollars and suggest an alternative strategy.')
 ON CONFLICT (config_key)
 DO UPDATE SET config_value = EXCLUDED.config_value;
 

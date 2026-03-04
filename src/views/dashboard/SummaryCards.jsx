@@ -225,7 +225,7 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
         heading: 'Your situation',
         items: [
           { label: 'Safe Monthly Spend', value: sustainableMonthly, color: '#22c55e',
-            sub: `Calculated by testing thousands of spending levels against your full projection${td(sustainableMonthly * 12) ? '\n' + td(sustainableMonthly * 12) : ''}` },
+            sub: `Calculated by testing thousands of spending levels against your full projection. This value is already in today's dollars.` },
           { label: 'Your Current Budget', value: scenario.monthlyExpenses,
             color: scenario.monthlyExpenses > sustainableMonthly ? '#ef4444' : '#3b82f6',
             sub: scenario.monthlyExpenses > sustainableMonthly

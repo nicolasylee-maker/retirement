@@ -196,7 +196,8 @@ Deno.serve(async (req: Request) => {
         .order('created_at', { ascending: false })
 
       if (error) {
-        return errorResponse(error.message, 500)
+        console.error('[admin-users] scenarios query error', error)
+        return errorResponse('Internal server error', 500)
       }
 
       return jsonResponse({ scenarios })
@@ -244,7 +245,7 @@ Deno.serve(async (req: Request) => {
 
     return errorResponse('Unknown action', 400)
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    return errorResponse(message, 500)
+    console.error('[admin-users]', err)
+    return errorResponse('Internal server error', 500)
   }
 })

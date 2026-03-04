@@ -284,7 +284,14 @@ export default function App() {
     }
     const valid = loaded
       .filter(s => s?.currentAge != null && s?.retirementAge != null)
-      .map(s => ({ ...createDefaultScenario(), ...migrateScenario(s), id: uid() }));
+      .map(s => {
+        const migrated = migrateScenario(s);
+        const SCENARIO_KEYS = Object.keys(createDefaultScenario());
+        const sanitized = Object.fromEntries(
+          Object.entries(migrated).filter(([k]) => SCENARIO_KEYS.includes(k))
+        );
+        return { ...createDefaultScenario(), ...sanitized, id: uid() };
+      });
     if (valid.length === 0) { alert('No valid scenarios found in this file.'); return; }
     setScenarios((prev) => [...prev, ...valid]);
     setCurrentScenarioId(valid[0].id);

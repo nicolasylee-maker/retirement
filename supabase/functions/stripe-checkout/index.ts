@@ -44,20 +44,27 @@ serve(async (req) => {
       })
     }
 
-    // Parse request body for priceId, successUrl, cancelUrl
+    // Parse request body for priceId
     const body = await req.json().catch(() => ({}))
     const priceId = body.priceId
       || Deno.env.get('STRIPE_PRICE_MONTHLY')
       || ''
-    const successUrl = body.successUrl || Deno.env.get('APP_URL') || 'http://localhost:5173'
-    const cancelUrl = body.cancelUrl || Deno.env.get('APP_URL') || 'http://localhost:5173'
 
-    if (!priceId) {
-      return new Response(JSON.stringify({ error: 'Missing priceId' }), {
+    // Validate priceId against allowlist
+    const ALLOWED_PRICE_IDS = [
+      Deno.env.get('STRIPE_PRICE_MONTHLY'),
+      Deno.env.get('STRIPE_PRICE_YEARLY'),
+    ].filter(Boolean)
+
+    if (!priceId || !ALLOWED_PRICE_IDS.includes(priceId)) {
+      return new Response(JSON.stringify({ error: 'Invalid price' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    // Always use server-side APP_URL — never trust client-supplied redirect URLs
+    const appUrl = Deno.env.get('APP_URL') || 'http://localhost:5173'
 
     // Use service role client to read/write users table
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
@@ -91,8 +98,8 @@ serve(async (req) => {
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: { trial_period_days: 7 },
       consent_collection: { terms_of_service: 'required' },
-      success_url: `${successUrl}?checkout=success`,
-      cancel_url: `${cancelUrl}?checkout=cancelled`,
+      success_url: `${appUrl}?checkout=success`,
+      cancel_url: `${appUrl}?checkout=cancelled`,
     })
 
     return new Response(JSON.stringify({ url: session.url }), {
@@ -100,8 +107,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    return new Response(JSON.stringify({ error: message }), {
+    console.error('[stripe-checkout]', err)
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

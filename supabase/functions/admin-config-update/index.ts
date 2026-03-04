@@ -105,7 +105,8 @@ Deno.serve(async (req: Request) => {
         .upsert(rows, { onConflict: 'config_key' })
 
       if (error) {
-        return errorResponse(error.message, 500)
+        console.error('[admin-config-update] upsert error', error)
+        return errorResponse('Internal server error', 500)
       }
 
       return jsonResponse({ success: true, updated: rows.map(r => r.config_key) })
@@ -113,7 +114,7 @@ Deno.serve(async (req: Request) => {
 
     return errorResponse('Invalid request: provide action or updates', 400)
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    return errorResponse(message, 500)
+    console.error('[admin-config-update]', err)
+    return errorResponse('Internal server error', 500)
   }
 })

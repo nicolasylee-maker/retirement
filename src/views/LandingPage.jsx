@@ -41,16 +41,16 @@ export function LandingPage({ onTryAnonymous }) {
     <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
 
       {/* ── LEFT 60%: Live Dashboard Demo ─────────────────────── */}
-      <div className="order-2 lg:order-1 lg:w-3/5 flex flex-col px-8 py-10 lg:px-10 lg:py-10 overflow-y-auto">
+      <div className="order-2 lg:order-1 lg:w-3/5 flex flex-col px-8 py-10 lg:px-10 lg:py-6 overflow-y-auto">
 
-        <div className="text-xl font-bold text-orange-500 tracking-tight mb-6">
+        <div className="text-xl font-bold text-orange-500 tracking-tight mb-3">
           RetirePlanner.ca
         </div>
 
-        <h1 className="text-3xl lg:text-4xl font-black text-gray-900 leading-tight mb-2">
+        <h1 className="text-3xl lg:text-3xl font-black text-gray-900 leading-tight mb-2">
           Know exactly when<br />your money runs out.
         </h1>
-        <p className="text-base text-gray-600 mb-6">
+        <p className="text-base text-gray-600 mb-4">
           Tax-accurate retirement projections for Canadians.
         </p>
 
@@ -64,7 +64,7 @@ export function LandingPage({ onTryAnonymous }) {
         </div>
 
         {/* ── Summary cards — real engine output ── */}
-        <div className="mb-4">
+        <div className="mb-3">
           <SummaryCards projectionData={DEMO_PROJECTION} scenario={DEMO_SCENARIO} pulseSafeSpend />
         </div>
 
@@ -73,6 +73,7 @@ export function LandingPage({ onTryAnonymous }) {
           projectionData={DEMO_PROJECTION}
           scenario={DEMO_SCENARIO}
           forceView="balance"
+          chartHeight={300}
         />
 
         <p className="text-xs text-gray-400 mt-4">

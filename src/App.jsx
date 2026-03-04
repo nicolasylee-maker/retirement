@@ -817,14 +817,14 @@ export default function App() {
         document.body
       )}
 
-      <footer className="py-4 text-center border-t border-gray-100">
+      {view !== 'landing' && <footer className="py-4 text-center border-t border-gray-100">
         <p className="text-xs text-gray-400">
           RetirePlanner.ca &middot; Not financial advice &middot;{' '}
           <a href="/privacy" className="hover:underline">Privacy</a>
           {' '}&middot;{' '}
           <a href="/terms" className="hover:underline">Terms</a>
         </p>
-      </footer>
+      </footer>}
     </div>
   );
 }

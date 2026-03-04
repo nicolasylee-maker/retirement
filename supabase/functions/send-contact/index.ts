@@ -37,7 +37,7 @@ serve(async (req) => {
   const fromEmail = email?.trim() || 'unknown';
   const body = {
     from: 'RetirePlanner Contact <hello@retireplanner.ca>',
-    to: ['hello@retireplanner.ca'],
+    to: ['help@retireplanner.ca'],
     reply_to: email?.trim() || undefined,
     subject: 'RetirePlanner.ca — Contact Form',
     text: `From: ${fromEmail}\n\n${message.trim()}`,

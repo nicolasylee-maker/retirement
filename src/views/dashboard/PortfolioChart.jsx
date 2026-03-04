@@ -24,6 +24,8 @@ import {
 
 const LABEL_DY = [-14, -28, -42];
 
+const ACCT_LABELS = { tfsa: 'TFSA', nonReg: 'Non-reg', rrsp: 'RRSP', other: 'Other' };
+
 function MilestoneLabel({ viewBox, label, color, level }) {
   if (window.innerWidth < 640) return null;
   const { x, y } = viewBox;
@@ -159,6 +161,7 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
 
   const [showNoDebt,  setShowNoDebt]  = useState(false);
   const [activeView,  setActiveView]  = useState(forceView || 'balance'); // 'balance' | 'drivers'
+  const [assumptionsExpanded, setAssumptionsExpanded] = useState(false);
   const hasConsumerDebt = (scenario.consumerDebt || 0) + (scenario.otherDebt || 0) > 0;
 
   // ── Balance-view data ──────────────────────────────────────────────────────
@@ -451,9 +454,20 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
 
       {/* ── Key assumptions ────────────────────────────────────────────────── */}
       <div className="mt-4 pt-3 border-t border-gray-100">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-          Key Assumptions
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Key Assumptions
+          </p>
+          <button
+            type="button"
+            onClick={() => setAssumptionsExpanded(e => !e)}
+            className="text-xs text-purple-600 hover:text-purple-800 transition-colors"
+          >
+            {assumptionsExpanded ? 'Collapse ▲' : 'See all ▼'}
+          </button>
+        </div>
+
+        {/* Compact always-visible row */}
         <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600">
           <span>Return: <strong className="text-gray-900">{(scenario.realReturn * 100).toFixed(1)}%</strong></span>
           <span>Inflation: <strong className="text-gray-900">{(scenario.inflationRate * 100).toFixed(1)}%</strong></span>
@@ -473,6 +487,77 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
           )}
           <span>Tax tables: <strong className="text-gray-900">2025 federal + provincial</strong></span>
         </div>
+
+        {/* Expandable detail panel */}
+        {assumptionsExpanded && (
+          <div className="mt-3 bg-indigo-50/70 border border-indigo-100 rounded-lg px-4 py-3 text-xs space-y-3">
+
+            {/* YOUR INPUTS */}
+            <div>
+              <p className="font-semibold text-indigo-700 mb-1 uppercase tracking-wider">Your Inputs</p>
+              <ul className="space-y-0.5 text-indigo-800">
+                {scenario.stillWorking && (scenario.employmentIncome || 0) > 0 && (
+                  <li>• Salary: <strong>${(scenario.employmentIncome).toLocaleString()}/yr</strong> (grows with {(scenario.inflationRate * 100).toFixed(1)}% inflation until age {scenario.retirementAge})</li>
+                )}
+                <li>
+                  • Monthly expenses: <strong>${scenario.monthlyExpenses?.toLocaleString()}/mo</strong>
+                  {(scenario.expenseReductionAtRetirement || 0) > 0 && (
+                    <span> (drops {(scenario.expenseReductionAtRetirement * 100).toFixed(0)}% at retirement)</span>
+                  )}
+                </li>
+                {(scenario.mortgageBalance || 0) > 0 && (
+                  <li>• Mortgage: <strong>${scenario.mortgageBalance.toLocaleString()}</strong> at <strong>{(scenario.mortgageRate * 100).toFixed(1)}%</strong>, paid off by age <strong>{scenario.currentAge + (scenario.mortgageYearsLeft || 0)}</strong></li>
+                )}
+                {(scenario.consumerDebt || 0) > 0 && (
+                  <li>• Consumer debt: <strong>${scenario.consumerDebt.toLocaleString()}</strong> at <strong>{(scenario.consumerDebtRate * 100).toFixed(1)}%</strong></li>
+                )}
+              </ul>
+            </div>
+
+            {/* GOVERNMENT BENEFITS */}
+            <div>
+              <p className="font-semibold text-indigo-700 mb-1 uppercase tracking-wider">Government Benefits</p>
+              <ul className="space-y-0.5 text-indigo-800">
+                <li>• CPP: <strong>${scenario.cppMonthly}/mo</strong> starting at age <strong>{scenario.cppStartAge}</strong></li>
+                <li>• OAS: <strong>${scenario.oasMonthly}/mo</strong> starting at age <strong>{scenario.oasStartAge}</strong></li>
+                <li>• Both grow with inflation after they start</li>
+              </ul>
+            </div>
+
+            {/* INVESTMENT ASSUMPTIONS */}
+            <div>
+              <p className="font-semibold text-indigo-700 mb-1 uppercase tracking-wider">Investment Assumptions</p>
+              <ul className="space-y-0.5 text-indigo-800">
+                <li>• Portfolio return: <strong>{(scenario.realReturn * 100).toFixed(1)}%</strong> (after inflation)</li>
+                {scenario.tfsaReturn != null && scenario.tfsaReturn !== scenario.realReturn && (
+                  <li>• TFSA return: <strong>{(scenario.tfsaReturn * 100).toFixed(1)}%</strong></li>
+                )}
+                <li>• Withdrawal order: <strong>{(scenario.withdrawalOrder || ['tfsa', 'nonReg', 'rrsp']).map(k => ACCT_LABELS[k] ?? k).join(' → ')}</strong></li>
+              </ul>
+            </div>
+
+            {/* WHAT'S NOT INCLUDED */}
+            <div>
+              <p className="font-semibold text-indigo-700 mb-1 uppercase tracking-wider">What's Not Included</p>
+              <ul className="space-y-0.5 text-indigo-800">
+                <li>• No salary raises beyond inflation</li>
+                <li>• No part-time work in retirement</li>
+                <li>• No health care cost increases after 80</li>
+                <li>• House value stays flat (no appreciation)</li>
+                <li>• Tax brackets don't adjust for inflation</li>
+                <li>• No CPP survivor benefit (single filer)</li>
+              </ul>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setAssumptionsExpanded(false)}
+              className="text-purple-600 hover:text-purple-800 transition-colors"
+            >
+              Collapse ▲
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -138,6 +138,7 @@ export default function App() {
   const [whatIfOverrides, setWhatIfOverrides] = useState({});
   const [whatIfExpanded, setWhatIfExpanded] = useState(true);
   const [pickerAction, setPickerAction] = useState('results');
+  const [wizardIsNew, setWizardIsNew] = useState(false);
   const importInputRef = useRef(null);
   const prevAuthUserRef = useRef(authUser);
 
@@ -279,6 +280,7 @@ export default function App() {
     setWizardStep(0);
     localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
     setWhatIfOverrides({});
+    setWizardIsNew(true);
     setView('wizard');
     if (authUser) {
       saveScenario(authUser.id, newScenario).catch((err) =>
@@ -322,7 +324,7 @@ export default function App() {
     }
   }, [authUser]);
 
-  const handleWizardComplete = useCallback(() => setView('dashboard'), []);
+  const handleWizardComplete = useCallback(() => { setWizardIsNew(false); setView('dashboard'); }, []);
 
   const handleChoiceViewResults = useCallback(() => {
     sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
@@ -344,6 +346,7 @@ export default function App() {
       setCurrentScenarioId(scenarioId);
       setWizardStep(0);
       setWhatIfOverrides({});
+      setWizardIsNew(false);
       setView('wizard');
     } else {
       setPickerAction('edit');
@@ -361,6 +364,7 @@ export default function App() {
     setWhatIfOverrides({});
     if (pickerAction === 'edit') {
       setWizardStep(0);
+      setWizardIsNew(false);
       setView('wizard');
     } else {
       setView('dashboard');
@@ -619,7 +623,7 @@ export default function App() {
 
                   {authUser && (
                     <>
-                      <button onClick={menuAction(() => { setWizardStep(0); setView('wizard'); })} className="menu-item">Edit Plan</button>
+                      <button onClick={menuAction(() => { setWizardStep(0); setWizardIsNew(false); setView('wizard'); })} className="menu-item">Edit Plan</button>
                       <GatedButton featureName="Multiple Plans" onClick={menuAction(handleStartNew)} className="menu-item w-full text-left">New Plan</GatedButton>
                       <button onClick={menuAction(() => handleRenameScenario())} className="menu-item">Rename Plan</button>
                       <GatedButton featureName="Multiple Plans" onClick={menuAction(handleDuplicateScenario)} className="menu-item w-full text-left">Duplicate Plan</GatedButton>
@@ -715,12 +719,14 @@ export default function App() {
                   const newScenario = createDefaultScenario('My Plan');
                   setScenarios([newScenario]);
                   setCurrentScenarioId(newScenario.id);
+                  setWizardIsNew(true);
                   setView('wizard');
                 }} />
           )}
           {view === 'wizard' && currentScenario && (
             <WizardShell scenario={currentScenario} onChange={handleScenarioChange}
-              onComplete={handleWizardComplete} currentStep={wizardStep} onStepChange={setWizardStep} />
+              onComplete={handleWizardComplete} currentStep={wizardStep} onStepChange={setWizardStep}
+              isNewScenario={wizardIsNew} />
           )}
           {view === 'dashboard' && currentScenario && (
             <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4 pb-20 md:pb-4">

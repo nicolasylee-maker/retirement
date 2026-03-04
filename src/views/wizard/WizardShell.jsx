@@ -33,6 +33,7 @@ export default function WizardShell({
   onComplete,
   currentStep,
   onStepChange,
+  isNewScenario,
 }) {
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === WIZARD_STEPS - 1;
@@ -41,7 +42,12 @@ export default function WizardShell({
   const [dismissedDots, setDismissedDots] = useState(new Set());
   const dismissDot = (id) => setDismissedDots(prev => new Set([...prev, id]));
 
-  const [visitedSteps, setVisitedSteps] = useState(new Set([currentStep]));
+  const [visitedSteps, setVisitedSteps] = useState(() => {
+    if (!isNewScenario || localStorage.getItem(`rp-wiz-${scenario.id}`)) {
+      return new Set(Array.from({ length: WIZARD_STEPS }, (_, i) => i));
+    }
+    return new Set([currentStep]);
+  });
   const allStepsVisited = visitedSteps.size >= WIZARD_STEPS;
 
   const stepErrors = useMemo(() => {
@@ -62,6 +68,7 @@ export default function WizardShell({
   const handleNext = () => {
     if (isLastStep) {
       localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
+      localStorage.setItem(`rp-wiz-${scenario.id}`, '1');
       trackEvent('wizard_completed');
       setVisitedSteps(prev => new Set([...prev, currentStep]));
       onComplete();

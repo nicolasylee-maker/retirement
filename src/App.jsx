@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { createDefaultScenario } from './constants/defaults';
 import { projectScenario } from './engines/projectionEngine';
 import { openPrintReport } from './utils/openPrintReport';
@@ -896,6 +897,7 @@ export default function App() {
         />
       )}
 
+      <Analytics />
     </div>
   );
 }

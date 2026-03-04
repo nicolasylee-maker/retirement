@@ -156,8 +156,11 @@ serve(async (req) => {
         break
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Handler error'
-    return new Response(message, { status: 500 })
+    console.error('[stripe-webhook]', err)
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   return new Response(JSON.stringify({ received: true }), {

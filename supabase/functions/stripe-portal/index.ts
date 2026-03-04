@@ -59,8 +59,8 @@ serve(async (req) => {
       })
     }
 
-    const body = await req.json().catch(() => ({}))
-    const returnUrl = body.returnUrl || Deno.env.get('APP_URL') || 'http://localhost:5173'
+    // Always use server-side APP_URL — never trust client-supplied redirect URLs
+    const returnUrl = Deno.env.get('APP_URL') || 'http://localhost:5173'
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
@@ -72,8 +72,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    return new Response(JSON.stringify({ error: message }), {
+    console.error('[stripe-portal]', err)
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

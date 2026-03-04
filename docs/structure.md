@@ -53,7 +53,9 @@ retirement/
 │   │   ├── auditInputSnapshot.js           ← Audit section 1: full input snapshot table
 │   │   ├── auditProjection.js              ← Audit sections 2–3: projection table + CPP/OAS verification
 │   │   ├── auditTaxDebt.js                 ← Audit sections 4–5: tax worked example + debt trace
-│   │   └── auditAnalysis.js                ← Audit sections 6–10: estate, withdrawal, RRIF, gaps, KPIs
+│   │   ├── auditAnalysis.js                ← Audit sections 6–10: estate, withdrawal, RRIF, gaps, KPIs
+│   │   ├── auditDashboard.js               ← Audit sections 11–13: dashboard KPIs, depletion, pre-retirement health
+│   │   └── auditCrosswalk.js               ← Audit sections 14–15: inflation crosswalk, chart tooltip snapshots
 │   │
 │   ├── contexts/
 │   │   ├── AuthContext.jsx                 ← Supabase session; provides user, isLoading, signOut, signInWithGoogle/MagicLink

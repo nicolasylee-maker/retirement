@@ -1,7 +1,7 @@
 /**
  * Audit export orchestrator.
  *
- * Assembles all 11 audit sections into a single Markdown document
+ * Assembles all 17 audit sections into a single Markdown document
  * and triggers a browser download.
  */
 
@@ -17,6 +17,20 @@ import {
   auditKpiDerivations,
 } from '../engines/auditAnalysis.js';
 
+import {
+  auditDashboardSummary,
+  auditDepletionAnalysis,
+  auditPreRetirementHealth,
+} from '../engines/auditDashboard.js';
+
+import {
+  auditInflationCrosswalk,
+  auditChartSnapshots,
+} from '../engines/auditCrosswalk.js';
+
+import { buildDashboardAiData } from './buildAiData.js';
+import { mdTable } from './formatters.js';
+
 const DIM_LABELS = {
   cpp: 'CPP Timing', oas: 'OAS Timing', withdrawalOrder: 'Withdrawal Order',
   meltdown: 'RRSP Meltdown', debt: 'Debt Payoff', expenses: 'Expense Level',
@@ -29,9 +43,18 @@ function fmtAudit(n) {
   return `$${Math.round(Math.abs(n) / 1000)}K`
 }
 
+function auditAiContextDump(scenario, projectionData) {
+  const ctx = buildDashboardAiData(scenario, projectionData);
+  let md = '## 16. AI Insights Context Dump\n\n';
+  md += '*Exact data sent to the AI insights engine. Verify any AI claim against these values.*\n\n';
+  const rows = Object.entries(ctx).map(([key, value]) => [key, String(value ?? '')]);
+  md += mdTable(['Variable', 'Value'], rows) + '\n\n';
+  return md;
+}
+
 function auditOptimizerTrace(scenario, optimizationResult) {
   if (!optimizationResult) {
-    return '## 11. Optimizer Recommendations\n\nOptimizer not yet run — navigate to the Optimize tab first to generate recommendations.\n\n'
+    return '## 17. Optimizer Recommendations\n\nOptimizer not yet run — navigate to the Optimize tab first to generate recommendations.\n\n'
   }
 
   const { recommendations, alreadyOptimal, runCount, baselineDepletion, baselineLifetimeIncome, lifeExpectancy } = optimizationResult
@@ -54,7 +77,7 @@ function auditOptimizerTrace(scenario, optimizationResult) {
     spouseOas: !scenario.isCouple || !scenario.spouseOasMonthly ? 'single person or no spouse OAS' : null,
   }
 
-  let md = '## 11. Optimizer Recommendations\n\n'
+  let md = '## 17. Optimizer Recommendations\n\n'
   md += `Tested **${runCount}** plan variations.\n`
   md += `Baseline: depletes at **${baselineDepletion ?? `never (outlasts age ${lifeExpectancy})`}**`
   if (baselineLifetimeIncome) md += ` | lifetime after-tax income: **${fmtAudit(baselineLifetimeIncome)}**`
@@ -123,6 +146,18 @@ export function generateAuditMarkdown(scenario, projectionData, optimizationResu
   md += auditKnownGaps();
   md += '---\n\n';
   md += auditKpiDerivations(scenario, projectionData);
+  md += '\n---\n\n';
+  md += auditDashboardSummary(scenario, projectionData);
+  md += '---\n\n';
+  md += auditDepletionAnalysis(scenario, projectionData);
+  md += '---\n\n';
+  md += auditPreRetirementHealth(scenario, projectionData);
+  md += '---\n\n';
+  md += auditInflationCrosswalk(scenario, projectionData);
+  md += '---\n\n';
+  md += auditChartSnapshots(scenario, projectionData);
+  md += '---\n\n';
+  md += auditAiContextDump(scenario, projectionData);
   md += '\n---\n\n';
   md += auditOptimizerTrace(scenario, optimizationResult);
 

@@ -1,13 +1,13 @@
 import React from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { INCOME_COLORS, CHART_STYLE } from '../../constants/designTokens';
 import { formatCurrency, formatCurrencyShort } from '../../utils/formatters';
 import ChartLegend from '../../components/ChartLegend';
 
-function CustomTooltip({ active, payload }) {
+function CustomTooltip({ active, payload, lineData }) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
@@ -30,16 +30,23 @@ function CustomTooltip({ active, payload }) {
         <p className="text-amber-600">Tax: {formatCurrency(d.negTax ? -d.negTax : d.totalTax)}</p>
         {d.debtPayments > 0 && <p className="text-orange-600">Debt: {formatCurrency(d.negDebt ? -d.negDebt : d.debtPayments)}</p>}
       </div>
+      {lineData && d[lineData.key] != null && (
+        <div className="mt-1 pt-1 border-t border-gray-100">
+          <p style={{ color: lineData.color }}>{lineData.label}: {formatCurrency(d[lineData.key])}</p>
+        </div>
+      )}
     </div>
   );
 }
 
 /**
  * Stacked bar chart — income above axis, expenses+tax below.
+ * Optional line overlay on a secondary right Y-axis.
  * @param {Array} data - Projection data rows (filtered to phase)
  * @param {number} [height=280]
+ * @param {{ key: string, label: string, color: string }} [lineData] - optional line series
  */
-export default function IncomeExpenseBar({ data, height = 280 }) {
+export default function IncomeExpenseBar({ data, height = 280, lineData }) {
   if (!data?.length) return null;
 
   const chartData = data.map(d => ({
@@ -57,31 +64,39 @@ export default function IncomeExpenseBar({ data, height = 280 }) {
     { color: INCOME_COLORS.tfsaWithdrawal, label: 'TFSA' },
     { color: '#ef4444', label: 'Expenses' },
     { color: '#f59e0b', label: 'Tax' },
+    ...(lineData ? [{ color: lineData.color, label: lineData.label }] : []),
   ];
 
   return (
     <div>
       <ChartLegend items={legend} />
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={chartData} stackOffset="sign" margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+        <ComposedChart data={chartData} stackOffset="sign" margin={{ top: 5, right: lineData ? 10 : 5, bottom: 5, left: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={CHART_STYLE.gridColor} />
           <XAxis dataKey="age" tick={{ fontSize: 11 }} />
-          <YAxis tickFormatter={formatCurrencyShort} tick={{ fontSize: 11 }} />
-          <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine y={0} stroke="#9ca3af" />
+          <YAxis yAxisId="left" tickFormatter={formatCurrencyShort} tick={{ fontSize: 11 }} />
+          {lineData && (
+            <YAxis yAxisId="right" orientation="right" tickFormatter={formatCurrencyShort} tick={{ fontSize: 11 }} />
+          )}
+          <Tooltip content={<CustomTooltip lineData={lineData} />} />
+          <ReferenceLine y={0} stroke="#9ca3af" yAxisId="left" />
           {/* Income (positive) */}
-          <Bar dataKey="employmentIncome" stackId="stack" fill={INCOME_COLORS.employment} />
-          <Bar dataKey="cppIncome" stackId="stack" fill={INCOME_COLORS.cpp} />
-          <Bar dataKey="oasIncome" stackId="stack" fill={INCOME_COLORS.oas} />
-          <Bar dataKey="pensionIncome" stackId="stack" fill={INCOME_COLORS.pension} />
-          <Bar dataKey="rrspWithdrawal" stackId="stack" fill={INCOME_COLORS.rrspWithdrawal} />
-          <Bar dataKey="tfsaWithdrawal" stackId="stack" fill={INCOME_COLORS.tfsaWithdrawal} />
-          <Bar dataKey="nonRegWithdrawal" stackId="stack" fill={INCOME_COLORS.nonRegWithdrawal} />
+          <Bar yAxisId="left" dataKey="employmentIncome" stackId="stack" fill={INCOME_COLORS.employment} />
+          <Bar yAxisId="left" dataKey="cppIncome" stackId="stack" fill={INCOME_COLORS.cpp} />
+          <Bar yAxisId="left" dataKey="oasIncome" stackId="stack" fill={INCOME_COLORS.oas} />
+          <Bar yAxisId="left" dataKey="pensionIncome" stackId="stack" fill={INCOME_COLORS.pension} />
+          <Bar yAxisId="left" dataKey="rrspWithdrawal" stackId="stack" fill={INCOME_COLORS.rrspWithdrawal} />
+          <Bar yAxisId="left" dataKey="tfsaWithdrawal" stackId="stack" fill={INCOME_COLORS.tfsaWithdrawal} />
+          <Bar yAxisId="left" dataKey="nonRegWithdrawal" stackId="stack" fill={INCOME_COLORS.nonRegWithdrawal} />
           {/* Expenses (negative) */}
-          <Bar dataKey="negExpenses" stackId="stack" fill="#ef4444" />
-          <Bar dataKey="negTax" stackId="stack" fill="#f59e0b" />
-          <Bar dataKey="negDebt" stackId="stack" fill="#f97316" />
-        </BarChart>
+          <Bar yAxisId="left" dataKey="negExpenses" stackId="stack" fill="#ef4444" />
+          <Bar yAxisId="left" dataKey="negTax" stackId="stack" fill="#f59e0b" />
+          <Bar yAxisId="left" dataKey="negDebt" stackId="stack" fill="#f97316" />
+          {/* Optional line overlay */}
+          {lineData && (
+            <Line yAxisId="right" type="monotone" dataKey={lineData.key} stroke={lineData.color} dot={false} strokeWidth={2} />
+          )}
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );

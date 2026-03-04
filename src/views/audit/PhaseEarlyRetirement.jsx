@@ -41,6 +41,14 @@ export default function PhaseEarlyRetirement({ scenario, projectionData }) {
   const expTotal = data.reduce((s, d) => s + (d.expenses || 0), 0);
   const govCover = expTotal > 0 ? (govTotal / expTotal * 100) : 0;
 
+  // KPI computations
+  const totalSurplus = data.reduce((sum, d) => sum + (d.surplus || 0), 0);
+  const avgSurplus = data.length > 0 ? totalSurplus / data.length : 0;
+  const isSurplus = avgSurplus >= 0;
+  const portfolioStart = data[0]?.totalPortfolio || 0;
+  const portfolioEnd = data[data.length - 1]?.totalPortfolio || 0;
+  const portfolioChange = portfolioEnd - portfolioStart;
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -103,7 +111,32 @@ export default function PhaseEarlyRetirement({ scenario, projectionData }) {
         </div>
         <div>
           <p className="text-sm font-semibold text-gray-700 mb-1">Income vs Expenses</p>
-          <IncomeExpenseBar data={data} height={220} />
+          <IncomeExpenseBar data={data} height={220} lineData={{ key: 'totalPortfolio', label: 'Portfolio Balance', color: '#4ade80' }} />
+        </div>
+      </div>
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
+          <p className="text-xs text-gray-500">{isSurplus ? 'Avg Annual Surplus' : 'Avg Annual Drawdown'}</p>
+          <p className={`text-lg font-bold ${isSurplus ? 'text-green-700' : 'text-red-700'}`}>
+            {formatCurrency(Math.abs(avgSurplus))}/yr
+          </p>
+          <p className="text-xs text-gray-500">{isSurplus ? 'Saved per year' : 'Drawn from savings'}</p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
+          <p className="text-xs text-gray-500">Portfolio Change</p>
+          <p className={`text-lg font-bold ${portfolioChange >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+            {portfolioChange >= 0 ? '+' : ''}{formatCurrency(portfolioChange)}
+          </p>
+          <p className="text-xs text-gray-500">{formatCurrency(portfolioStart)} → {formatCurrency(portfolioEnd)}</p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
+          <p className="text-xs text-gray-500">Benefits Coverage</p>
+          <p className={`text-lg font-bold ${govCover >= 100 ? 'text-green-700' : 'text-amber-700'}`}>
+            {govCover.toFixed(0)}%
+          </p>
+          <p className="text-xs text-gray-500">of expenses covered by CPP+OAS+pension</p>
         </div>
       </div>
 

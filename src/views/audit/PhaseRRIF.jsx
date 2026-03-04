@@ -40,6 +40,13 @@ export default function PhaseRRIF({ scenario, projectionData }) {
   // RRIF rate for selected age
   const rrifRate = RRIF_MIN_RATES[selectedAge] || (selectedAge <= 70 ? 1 / (90 - selectedAge) : 0.20);
 
+  // KPI computations
+  const drawdownYears = data.filter(d => (d.surplus || 0) < 0);
+  const totalDrawdown = drawdownYears.reduce((sum, d) => sum + Math.abs(d.surplus || 0), 0);
+  const avgDrawdown = drawdownYears.length > 0 ? totalDrawdown / drawdownYears.length : 0;
+  const portfolioStart = data[0]?.totalPortfolio || 0;
+  const runwayYears = avgDrawdown > 0 ? portfolioStart / avgDrawdown : null;
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -92,7 +99,36 @@ export default function PhaseRRIF({ scenario, projectionData }) {
 
       <div>
         <p className="text-sm font-semibold text-gray-700 mb-1">Income vs Expenses (Age 72+)</p>
-        <IncomeExpenseBar data={data} height={240} />
+        <IncomeExpenseBar data={data} height={240} lineData={{ key: 'totalPortfolio', label: 'Portfolio Balance', color: '#4ade80' }} />
+      </div>
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
+          <p className="text-xs text-gray-500">Avg Annual Drawdown</p>
+          <p className="text-lg font-bold text-red-700">
+            {avgDrawdown > 0 ? `${formatCurrency(avgDrawdown)}/yr` : 'No drawdown'}
+          </p>
+          <p className="text-xs text-gray-500">{avgDrawdown > 0 ? 'Drawn from savings' : 'Benefits cover expenses'}</p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
+          <p className="text-xs text-gray-500">Portfolio Runway</p>
+          <p className={`text-lg font-bold ${runwayYears && runwayYears < 20 ? 'text-amber-700' : 'text-green-700'}`}>
+            {runwayYears ? `${Math.round(runwayYears)} years` : 'Never depletes'}
+          </p>
+          <p className="text-xs text-gray-500">
+            {runwayYears ? `Depletes around age ${72 + Math.round(runwayYears)}` : 'Portfolio sustains indefinitely'}
+          </p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
+          <p className="text-xs text-gray-500">Total OAS Clawback</p>
+          <p className={`text-lg font-bold ${totalClawback > 0 ? 'text-red-700' : 'text-green-700'}`}>
+            {totalClawback > 0 ? formatCurrency(totalClawback) : 'No clawback'}
+          </p>
+          <p className="text-xs text-gray-500">
+            {totalClawback > 0 ? `Over ${clawbackYears.length} years` : 'Income stays below threshold'}
+          </p>
+        </div>
       </div>
 
       {clawbackYears.length > 0 && (

@@ -141,7 +141,7 @@ export default function AiTestingSection() {
   }, [provider, apiKey])
 
   // ─── Run Test ──────────────────────────────────────────────────────────────
-  const handleRunTest = useCallback(async () => {
+  const handleRunTest = useCallback(async (target = 'both') => {
     if (!adminConfig) return
     const config = adminConfig.config || {}
     const geminiModel = config['gemini_model'] || 'gemini-2.0-flash'
@@ -160,38 +160,38 @@ export default function AiTestingSection() {
     try {
       context = buildContext(insightType, scenario, scenario2)
     } catch (e) {
-      setGeminiError(`Context build failed: ${e.message}`)
-      setRivalError(`Context build failed: ${e.message}`)
+      if (target !== 'rival') setGeminiError(`Context build failed: ${e.message}`)
+      if (target !== 'gemini') setRivalError(`Context build failed: ${e.message}`)
       return
     }
     const prompt = buildAiPrompt(insightType, context, config)
     setResolvedPrompt(prompt)
     setRawTemplate(getPromptTemplate(insightType, config))
 
-    // Reset result state
-    setGeminiText(''); setRivalText('')
-    setGeminiError(null); setRivalError(null)
-    setGeminiLoading(true); setRivalLoading(true)
+    // Reset only the columns we're running
+    if (target !== 'rival') { setGeminiText(''); setGeminiError(null); setGeminiLoading(true) }
+    if (target !== 'gemini') { setRivalText(''); setRivalError(null); setRivalLoading(true) }
 
-    // Fire both in parallel
-    const [geminiResult, rivalResult] = await Promise.allSettled([
-      adminApi.testAi('gemini', geminiModel, null, prompt),
-      adminApi.testAi(provider, model, apiKey || null, prompt),
-    ])
+    // Fire the selected calls
+    const calls = []
+    if (target !== 'rival') calls.push(adminApi.testAi('gemini', geminiModel, null, prompt))
+    if (target !== 'gemini') calls.push(adminApi.testAi(provider, model, apiKey || null, prompt))
 
-    setGeminiLoading(false)
-    setRivalLoading(false)
+    const results = await Promise.allSettled(calls)
+    let ri = 0
 
-    if (geminiResult.status === 'fulfilled') {
-      setGeminiText(geminiResult.value.text || '')
-    } else {
-      setGeminiError(geminiResult.reason?.message || 'Unknown error')
+    if (target !== 'rival') {
+      setGeminiLoading(false)
+      const r = results[ri++]
+      if (r.status === 'fulfilled') setGeminiText(r.value.text || '')
+      else setGeminiError(r.reason?.message || 'Unknown error')
     }
 
-    if (rivalResult.status === 'fulfilled') {
-      setRivalText(rivalResult.value.text || '')
-    } else {
-      setRivalError(rivalResult.reason?.message || 'Unknown error')
+    if (target !== 'gemini') {
+      setRivalLoading(false)
+      const r = results[ri++]
+      if (r.status === 'fulfilled') setRivalText(r.value.text || '')
+      else setRivalError(r.reason?.message || 'Unknown error')
     }
   }, [adminConfig, scenarios, selectedScenarioId, selectedScenarioId2, insightType, provider, model, apiKey])
 

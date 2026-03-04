@@ -35,10 +35,8 @@ export default function AiTestConfigPanel({
   const hasScenario = !!selectedScenarioId
   const needsSecondScenario = insightType === 'compare'
   const hasSecondScenario = !!selectedScenarioId2
-  const canRun = selectedUser &&
-    hasScenario &&
-    model.trim() &&
-    (!needsSecondScenario || hasSecondScenario)
+  const canRunBase = !running && !!selectedUser && hasScenario && (!needsSecondScenario || hasSecondScenario)
+  const canRunRival = canRunBase && !!model.trim()
 
   const compareScenario2Options = scenarios.filter(s => s.id !== selectedScenarioId)
 
@@ -204,21 +202,34 @@ export default function AiTestConfigPanel({
         )}
       </div>
 
-      {/* Run button */}
-      <div className="flex items-center gap-3 pt-1">
+      {/* Run buttons */}
+      <div className="flex items-center gap-2 pt-1 flex-wrap">
         <button
           type="button"
-          onClick={onRunTest}
-          disabled={!canRun || running}
-          title={
-            !selectedUser ? 'Select a user first' :
-            !hasScenario ? 'Select a scenario' :
-            needsSecondScenario && !hasSecondScenario ? 'Select 2 scenarios to compare' :
-            !model.trim() ? 'Enter a model name' : ''
-          }
-          className="px-5 py-2 text-sm font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-40 transition-colors"
+          onClick={() => onRunTest('both')}
+          disabled={!canRunRival}
+          title={!canRunBase ? 'Select user + scenario first' : !model.trim() ? 'Enter a model name' : ''}
+          className="px-4 py-2 text-sm font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-40 transition-colors"
         >
-          {running ? 'Running...' : 'Run Test'}
+          {running ? 'Running...' : 'Run Both'}
+        </button>
+        <button
+          type="button"
+          onClick={() => onRunTest('gemini')}
+          disabled={!canRunBase}
+          title={!canRunBase ? 'Select user + scenario first' : ''}
+          className="px-4 py-2 text-sm font-medium bg-white border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 disabled:opacity-40 transition-colors"
+        >
+          Gemini Only
+        </button>
+        <button
+          type="button"
+          onClick={() => onRunTest('rival')}
+          disabled={!canRunRival}
+          title={!canRunBase ? 'Select user + scenario first' : !model.trim() ? 'Enter a model name' : ''}
+          className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-40 transition-colors"
+        >
+          Other Only
         </button>
         {needsSecondScenario && !hasSecondScenario && (
           <span className="text-xs text-amber-600">Select 2 scenarios to compare</span>

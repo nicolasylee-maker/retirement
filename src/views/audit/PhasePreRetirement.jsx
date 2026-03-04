@@ -32,26 +32,20 @@ export default function PhasePreRetirement({ scenario, projectionData }) {
 
   if (!data.length) return <p className="text-sm text-gray-500 p-4">No pre-retirement years in this scenario.</p>;
 
-  // Insight: how much comes from compounding
-  const totalDeposits = data.reduce((s, d) => s + Math.max(0, d.surplus || 0), 0);
+  // Annual deposits = TFSA + non-reg (surplus is zeroed by engine after deposit)
+  const totalDeposits = data.reduce((sum, d) => sum + (d.tfsaDeposit || 0) + (d.nonRegDeposit || 0), 0);
+  const portfolioStart = data[0]?.totalPortfolio || 0;
   const lastPreRet = data[data.length - 1];
   const portfolioAtRet = lastPreRet?.totalPortfolio || 0;
-  const compoundPct = portfolioAtRet > 0 ? Math.max(0, (1 - totalDeposits / portfolioAtRet) * 100) : 0;
+  const portfolioGrowth = portfolioAtRet - portfolioStart;
+  const growthFromReturns = portfolioGrowth - totalDeposits;
+  const compoundPct = portfolioAtRet > 0 ? Math.max(0, (growthFromReturns / portfolioAtRet) * 100) : 0;
 
   // KPI computations
   const totalGrossIncome = data.reduce((sum, d) => sum + (d.totalIncome || 0), 0);
   const avgAnnualSavings = data.length > 0 ? totalDeposits / data.length : 0;
   const savingsRatePct = totalGrossIncome > 0 ? (totalDeposits / totalGrossIncome) * 100 : 0;
   const nominalReturnPct = ((s.inflationRate || 0.025) + (s.realReturn || 0.04)) * 100;
-
-  // Chart data with cumulative surplus line
-  const chartDataWithLine = useMemo(() => {
-    let cumulative = 0;
-    return data.map(d => {
-      cumulative += Math.max(0, d.surplus || 0);
-      return { ...d, cumulativeSurplus: cumulative };
-    });
-  }, [data]);
 
   // Mortgage payoff age
   const mortgagePaidRow = projectionData.find(d => d.age > s.currentAge && (d.mortgageBalance || 0) <= 0);
@@ -122,28 +116,34 @@ export default function PhasePreRetirement({ scenario, projectionData }) {
         </div>
       </div>
 
-      {/* Bar chart with cumulative savings line */}
+      {/* Bar chart with portfolio line */}
       <div>
         <p className="text-sm font-semibold text-gray-700 mb-1">Income vs Expenses Over Time</p>
-        <IncomeExpenseBar data={chartDataWithLine} height={240} lineData={{ key: 'cumulativeSurplus', label: 'Cumulative Savings', color: '#4ade80' }} />
+        <IncomeExpenseBar data={data} height={240} lineData={{ key: 'totalPortfolio', label: 'Portfolio', color: '#4ade80' }} />
       </div>
 
       {/* KPI strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
-          <p className="text-xs text-gray-500">Avg Annual Savings</p>
-          <p className="text-lg font-bold text-gray-900">{formatCurrency(avgAnnualSavings)}/yr</p>
-          <p className="text-xs text-gray-500">{savingsRatePct.toFixed(1)}% of gross income</p>
+          <p className="text-xs text-gray-500">New Savings</p>
+          <p className="text-lg font-bold text-gray-900">
+            {totalDeposits > 0 ? `${formatCurrency(avgAnnualSavings)}/yr` : 'None'}
+          </p>
+          <p className="text-xs text-gray-500">
+            {totalDeposits > 0
+              ? `${savingsRatePct.toFixed(1)}% of gross income`
+              : 'Expenses consume all income'}
+          </p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
-          <p className="text-xs text-gray-500">Cumulative Saved</p>
-          <p className="text-lg font-bold text-gray-900">{formatCurrency(totalDeposits)}</p>
-          <p className="text-xs text-gray-500">over {data.length} years</p>
+          <p className="text-xs text-gray-500">Portfolio at Retirement</p>
+          <p className="text-lg font-bold text-green-700">{formatCurrency(portfolioAtRet)}</p>
+          <p className="text-xs text-gray-500">{formatCurrency(portfolioStart)} → {formatCurrency(portfolioAtRet)}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
-          <p className="text-xs text-gray-500">Compounded Value</p>
-          <p className="text-lg font-bold text-gray-900">{formatCurrency(portfolioAtRet)}</p>
-          <p className="text-xs text-gray-500">{formatCurrency(totalDeposits)} saved @ {nominalReturnPct.toFixed(1)}% over {data.length} yrs</p>
+          <p className="text-xs text-gray-500">Growth from Returns</p>
+          <p className="text-lg font-bold text-green-700">{formatCurrency(growthFromReturns)}</p>
+          <p className="text-xs text-gray-500">{compoundPct.toFixed(0)}% of portfolio @ {nominalReturnPct.toFixed(1)}%/yr</p>
         </div>
       </div>
 

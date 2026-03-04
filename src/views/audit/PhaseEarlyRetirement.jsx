@@ -41,13 +41,12 @@ export default function PhaseEarlyRetirement({ scenario, projectionData }) {
   const expTotal = data.reduce((s, d) => s + (d.expenses || 0), 0);
   const govCover = expTotal > 0 ? (govTotal / expTotal * 100) : 0;
 
-  // KPI computations
-  const totalSurplus = data.reduce((sum, d) => sum + (d.surplus || 0), 0);
-  const avgSurplus = data.length > 0 ? totalSurplus / data.length : 0;
-  const isSurplus = avgSurplus >= 0;
+  // KPI computations — use portfolio change (surplus is zeroed by engine)
   const portfolioStart = data[0]?.totalPortfolio || 0;
   const portfolioEnd = data[data.length - 1]?.totalPortfolio || 0;
   const portfolioChange = portfolioEnd - portfolioStart;
+  const avgAnnualChange = data.length > 0 ? portfolioChange / data.length : 0;
+  const isGrowing = portfolioChange >= 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -118,11 +117,11 @@ export default function PhaseEarlyRetirement({ scenario, projectionData }) {
       {/* KPI strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
-          <p className="text-xs text-gray-500">{isSurplus ? 'Avg Annual Surplus' : 'Avg Annual Drawdown'}</p>
-          <p className={`text-lg font-bold ${isSurplus ? 'text-green-700' : 'text-red-700'}`}>
-            {formatCurrency(Math.abs(avgSurplus))}/yr
+          <p className="text-xs text-gray-500">{isGrowing ? 'Avg Annual Growth' : 'Avg Annual Drawdown'}</p>
+          <p className={`text-lg font-bold ${isGrowing ? 'text-green-700' : 'text-red-700'}`}>
+            {formatCurrency(Math.abs(avgAnnualChange))}/yr
           </p>
-          <p className="text-xs text-gray-500">{isSurplus ? 'Saved per year' : 'Drawn from savings'}</p>
+          <p className="text-xs text-gray-500">{isGrowing ? 'Portfolio still growing' : 'Net drawn from portfolio'}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
           <p className="text-xs text-gray-500">Portfolio Change</p>

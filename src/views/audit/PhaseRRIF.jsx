@@ -40,12 +40,14 @@ export default function PhaseRRIF({ scenario, projectionData }) {
   // RRIF rate for selected age
   const rrifRate = RRIF_MIN_RATES[selectedAge] || (selectedAge <= 70 ? 1 / (90 - selectedAge) : 0.20);
 
-  // KPI computations
-  const drawdownYears = data.filter(d => (d.surplus || 0) < 0);
-  const totalDrawdown = drawdownYears.reduce((sum, d) => sum + Math.abs(d.surplus || 0), 0);
-  const avgDrawdown = drawdownYears.length > 0 ? totalDrawdown / drawdownYears.length : 0;
+  // KPI computations — use portfolio change (surplus is zeroed by engine)
   const portfolioStart = data[0]?.totalPortfolio || 0;
-  const runwayYears = avgDrawdown > 0 ? portfolioStart / avgDrawdown : null;
+  const portfolioEnd = data[data.length - 1]?.totalPortfolio || 0;
+  const portfolioChange = portfolioEnd - portfolioStart;
+  const avgAnnualChange = data.length > 0 ? portfolioChange / data.length : 0;
+  const isDeclining = portfolioChange < 0;
+  const avgAnnualDrawdown = isDeclining ? Math.abs(avgAnnualChange) : 0;
+  const runwayYears = avgAnnualDrawdown > 0 ? portfolioStart / avgAnnualDrawdown : null;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -105,11 +107,13 @@ export default function PhaseRRIF({ scenario, projectionData }) {
       {/* KPI strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
-          <p className="text-xs text-gray-500">Avg Annual Drawdown</p>
-          <p className="text-lg font-bold text-red-700">
-            {avgDrawdown > 0 ? `${formatCurrency(avgDrawdown)}/yr` : 'No drawdown'}
+          <p className="text-xs text-gray-500">{isDeclining ? 'Avg Annual Drawdown' : 'Avg Annual Growth'}</p>
+          <p className={`text-lg font-bold ${isDeclining ? 'text-red-700' : 'text-green-700'}`}>
+            {formatCurrency(Math.abs(avgAnnualChange))}/yr
           </p>
-          <p className="text-xs text-gray-500">{avgDrawdown > 0 ? 'Drawn from savings' : 'Benefits cover expenses'}</p>
+          <p className="text-xs text-gray-500">
+            {isDeclining ? 'Net drawn from portfolio' : 'Portfolio still growing'}
+          </p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
           <p className="text-xs text-gray-500">Portfolio Runway</p>

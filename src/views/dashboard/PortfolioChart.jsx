@@ -27,7 +27,15 @@ const LABEL_DY = [-14, -28, -42];
 const ACCT_LABELS = { tfsa: 'TFSA', nonReg: 'Non-reg', rrsp: 'RRSP', other: 'Other' };
 
 function MilestoneLabel({ viewBox, label, color, level }) {
-  if (window.innerWidth < 640) return null;
+  const isMobile = window.innerWidth < 640;
+
+  const hiddenOnMobile = ['RRIF convert', 'RRSP meltdown starts', 'RRSP empty'];
+  if (isMobile && hiddenOnMobile.includes(label)) return null;
+
+  const displayLabel = isMobile
+    ? label.replace(' starts', '')   // 'CPP starts' → 'CPP', 'OAS starts' → 'OAS'
+    : label;
+
   const { x, y } = viewBox;
   return (
     <text
@@ -38,7 +46,7 @@ function MilestoneLabel({ viewBox, label, color, level }) {
       fontWeight={600}
       textAnchor="middle"
     >
-      {label}
+      {displayLabel}
     </text>
   );
 }

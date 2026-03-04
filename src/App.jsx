@@ -21,6 +21,7 @@ import AdminView from './views/admin/AdminView';
 import RecommendationsTab from './views/recommendations/RecommendationsTab';
 import { runOptimization } from './engines/optimizerEngine';
 import AccountMenu from './components/AccountMenu';
+import ContactModal from './components/ContactModal';
 import SubscriptionBadge from './components/SubscriptionBadge';
 import UpgradePrompt from './components/UpgradePrompt';
 import { GatedButton } from './components/GatedButton';
@@ -452,6 +453,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(false);
   const GATED_TABS = new Set(['compare', 'estate']);
@@ -843,8 +845,23 @@ export default function App() {
           <a href="/privacy" className="hover:underline">Privacy</a>
           {' '}&middot;{' '}
           <a href="/terms" className="hover:underline">Terms</a>
+          {' '}&middot;{' '}
+          <button
+            type="button"
+            onClick={() => setContactOpen(true)}
+            className="hover:underline"
+          >
+            Contact
+          </button>
         </p>
       </footer>}
+
+      {contactOpen && (
+        <ContactModal
+          userEmail={authUser?.email ?? ''}
+          onClose={() => setContactOpen(false)}
+        />
+      )}
     </div>
   );
 }

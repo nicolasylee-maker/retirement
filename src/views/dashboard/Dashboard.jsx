@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import AiInsight from '../../components/AiInsight';
 import SummaryCards from './SummaryCards';
 import PortfolioChart from './PortfolioChart';
-import FeedbackWidget from './FeedbackWidget';
 import IncomeExpenseChart from './IncomeExpenseChart';
 import WithdrawalChart from './WithdrawalChart';
 import AccountChart from './AccountChart';
@@ -144,7 +143,6 @@ export default function Dashboard({
             <MilestoneCards projectionData={projectionData} scenario={scenario} />
           </div>
 
-          <FeedbackWidget />
         </div>
 
         {/* AI Insights — desktop sticky sidebar */}

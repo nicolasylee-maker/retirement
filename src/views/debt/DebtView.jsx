@@ -126,7 +126,7 @@ export default function DebtView({ scenario, projectionData, onNavigate, aiInsig
               ...(scenario.consumerDebt > 0    ? [{ color: '#f97316', label: 'Consumer Debt' }] : []),
             ]} />
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+              <AreaChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="age" tick={{ fontSize: 12 }} />
                 <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 12 }} />

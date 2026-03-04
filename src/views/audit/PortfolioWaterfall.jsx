@@ -77,26 +77,27 @@ export default function PortfolioWaterfall({ projectionData, startAge, endAge, s
     const items = [];
     let running = 0;
 
-    items.push({ label: 'Starting Portfolio', base: 0, value: startPort, color: BAR_COLORS.start, displayValue: startPort });
+    items.push({ label: 'Starting Portfolio', base: 0, value: startPort, color: BAR_COLORS.start, displayValue: startPort, labelText: formatCurrencyShort(startPort) });
     running = startPort;
 
     if (totalReturns !== 0) {
       const base = totalReturns >= 0 ? running : running + totalReturns;
-      items.push({ label: 'Investment Returns', base, value: Math.abs(totalReturns), color: BAR_COLORS.returns, displayValue: totalReturns });
+      const sign = totalReturns >= 0 ? '+' : '';
+      items.push({ label: 'Investment Returns', base, value: Math.abs(totalReturns), color: BAR_COLORS.returns, displayValue: totalReturns, labelText: `${sign}${formatCurrencyShort(totalReturns)}` });
       running += totalReturns;
     }
 
     if (totalDeposits > 0) {
-      items.push({ label: 'New Deposits', base: running, value: totalDeposits, color: BAR_COLORS.deposits, displayValue: totalDeposits });
+      items.push({ label: 'New Deposits', base: running, value: totalDeposits, color: BAR_COLORS.deposits, displayValue: totalDeposits, labelText: `+${formatCurrencyShort(totalDeposits)}` });
       running += totalDeposits;
     }
 
     if (totalWithdrawals > 0) {
-      items.push({ label: 'Withdrawals', base: running - totalWithdrawals, value: totalWithdrawals, color: BAR_COLORS.withdrawals, displayValue: -totalWithdrawals });
+      items.push({ label: 'Withdrawals', base: running - totalWithdrawals, value: totalWithdrawals, color: BAR_COLORS.withdrawals, displayValue: -totalWithdrawals, labelText: `-${formatCurrencyShort(totalWithdrawals)}` });
       running -= totalWithdrawals;
     }
 
-    items.push({ label: 'Ending Portfolio', base: 0, value: Math.max(0, endPort), color: BAR_COLORS.end, displayValue: endPort });
+    items.push({ label: 'Ending Portfolio', base: 0, value: Math.max(0, endPort), color: BAR_COLORS.end, displayValue: endPort, labelText: formatCurrencyShort(endPort) });
 
     return items;
   }, [projectionData, startAge, endAge, scenario]);
@@ -115,7 +116,7 @@ export default function PortfolioWaterfall({ projectionData, startAge, endAge, s
           <Bar dataKey="base" stackId="a" fill="transparent" isAnimationActive={false} />
           <Bar dataKey="value" stackId="a" isAnimationActive={false} radius={[3, 3, 0, 0]}>
             {bars.map((b, i) => <Cell key={i} fill={b.color} />)}
-            <LabelList dataKey="displayValue" position="top" formatter={v => formatCurrencyShort(v)} style={{ fontSize: 10, fill: '#374151' }} />
+            <LabelList dataKey="labelText" position="top" style={{ fontSize: 10, fill: '#374151', fontWeight: 500 }} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import SankeyDiagram, { buildSankeyData } from './SankeyDiagram';
 import IncomeExpenseBar from './IncomeExpenseBar';
+import PortfolioWaterfall, { computeYearReturns } from './PortfolioWaterfall';
 import MathCard, { MathRow } from './MathCard';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
+import { toTodaysDollars } from '../../utils/inflationHelper';
 
 /**
  * Page 2: Working Years — age currentAge to retirementAge-1.
@@ -30,7 +32,27 @@ export default function PhasePreRetirement({ scenario, projectionData }) {
 
   const sankey = useMemo(() => row ? buildSankeyData(row, s) : { nodes: [], links: [] }, [row, s]);
 
+  // Sankey returns annotation
+  const yearReturns = useMemo(() => {
+    if (!row) return 0;
+    const idx = projectionData.indexOf(row);
+    const prevPort = idx > 0 ? projectionData[idx - 1].totalPortfolio : null;
+    const fallback = (s.rrspBalance || 0) + (s.rrifBalance || 0) + (s.dcPensionBalance || 0)
+      + (s.liraBalance || 0) + (s.tfsaBalance || 0) + (s.nonRegInvestments || 0)
+      + (s.cashSavings || 0) + (s.otherAssets || 0);
+    return computeYearReturns(row, prevPort ?? fallback);
+  }, [row, projectionData, s]);
+
   if (!data.length) return <p className="text-sm text-gray-500 p-4">No pre-retirement years in this scenario.</p>;
+
+  // Danger zone: working-year withdrawals
+  const dangerYears = data.filter(r =>
+    (r.rrspWithdrawal || 0) + (r.tfsaWithdrawal || 0)
+    + (r.nonRegWithdrawal || 0) + (r.otherWithdrawal || 0) > 0
+  );
+
+  // Today's dollars helper
+  const td = (val, age) => toTodaysDollars(val, age - s.currentAge, s.inflationRate || 0);
 
   // Annual deposits = TFSA + non-reg (surplus is zeroed by engine after deposit)
   const totalDeposits = data.reduce((sum, d) => sum + (d.tfsaDeposit || 0) + (d.nonRegDeposit || 0), 0);
@@ -71,11 +93,23 @@ export default function PhasePreRetirement({ scenario, projectionData }) {
         </div>
       </div>
 
+      {dangerYears.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-800">
+          <strong>Warning:</strong> Withdrawing from savings during {dangerYears.length} working
+          year{dangerYears.length > 1 ? 's' : ''}. Expenses exceed after-tax income.
+        </div>
+      )}
+
       {/* Sankey + Math cards */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div className="lg:col-span-3" ref={containerRef}>
           <p className="text-xs text-gray-500 mb-1">Money flow at age {selectedAge}</p>
           <SankeyDiagram nodes={sankey.nodes} links={sankey.links} width={chartW} height={300} />
+          <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#3B7A6B] inline-block" />
+            Investment returns this year: {formatCurrency(Math.round(yearReturns))}
+            <span className="text-gray-400">(stays in portfolio)</span>
+          </p>
         </div>
         <div className="lg:col-span-2 space-y-3">
           {row.employmentIncome > 0 && (
@@ -122,6 +156,8 @@ export default function PhasePreRetirement({ scenario, projectionData }) {
         <IncomeExpenseBar data={data} height={240} lineData={{ key: 'totalPortfolio', label: 'Portfolio', color: '#4ade80' }} />
       </div>
 
+      <PortfolioWaterfall projectionData={projectionData} startAge={s.currentAge} endAge={s.retirementAge - 1} scenario={s} />
+
       {/* KPI strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
@@ -138,6 +174,7 @@ export default function PhasePreRetirement({ scenario, projectionData }) {
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
           <p className="text-xs text-gray-500">Portfolio at Retirement</p>
           <p className="text-lg font-bold text-green-700">{formatCurrency(portfolioAtRet)}</p>
+          <p className="text-xs text-gray-400">({formatCurrency(td(portfolioAtRet, s.retirementAge))} in today's $)</p>
           <p className="text-xs text-gray-500">{formatCurrency(portfolioStart)} → {formatCurrency(portfolioAtRet)}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">

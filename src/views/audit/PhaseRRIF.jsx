@@ -1,9 +1,59 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import SankeyDiagram, { buildSankeyData } from './SankeyDiagram';
 import IncomeExpenseBar from './IncomeExpenseBar';
+import PortfolioWaterfall, { computeYearReturns } from './PortfolioWaterfall';
 import MathCard, { MathRow } from './MathCard';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
+import { toTodaysDollars } from '../../utils/inflationHelper';
 import { RRIF_MIN_RATES } from '../../constants/taxTables';
+
+const SUB_BANDS = [
+  { label: 'Early (72–79)', min: 72, max: 79 },
+  { label: 'Mid (80–85)', min: 80, max: 85 },
+  { label: 'Late (86+)', min: 86, max: 120 },
+];
+
+function SubPhaseTable({ data }) {
+  const bands = SUB_BANDS.map(b => {
+    const rows = data.filter(d => d.age >= b.min && d.age <= b.max);
+    if (rows.length === 0) return null;
+    const avgRate = rows.reduce((s, d) => s + (RRIF_MIN_RATES[d.age] || 0.20), 0) / rows.length;
+    const avgWd = rows.reduce((s, d) => s + (d.rrspWithdrawal || 0), 0) / rows.length;
+    const portStart = rows[0]?.totalPortfolio || 0;
+    const portEnd = rows[rows.length - 1]?.totalPortfolio || 0;
+    return { ...b, avgRate, avgWd, portStart, portEnd };
+  }).filter(Boolean);
+
+  if (bands.length === 0) return null;
+
+  return (
+    <div>
+      <p className="text-sm font-semibold text-gray-700 mb-2">RRIF Acceleration by Sub-Phase</p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs border border-gray-200 rounded-lg">
+          <thead>
+            <tr className="bg-gray-50 text-gray-600">
+              <th className="px-3 py-2 text-left font-medium">Band</th>
+              <th className="px-3 py-2 text-right font-medium">Avg RRIF Rate</th>
+              <th className="px-3 py-2 text-right font-medium">Avg Withdrawal/yr</th>
+              <th className="px-3 py-2 text-right font-medium">Portfolio</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bands.map(b => (
+              <tr key={b.label} className="border-t border-gray-100">
+                <td className="px-3 py-2 font-medium text-gray-700">{b.label}</td>
+                <td className="px-3 py-2 text-right text-gray-600">{formatPercent(b.avgRate)}</td>
+                <td className="px-3 py-2 text-right text-gray-600">{formatCurrency(b.avgWd)}</td>
+                <td className="px-3 py-2 text-right text-gray-600">{formatCurrency(b.portStart)} → {formatCurrency(b.portEnd)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Page 4: Age 72+ — RRIF mandatory withdrawals phase.
@@ -30,6 +80,20 @@ export default function PhaseRRIF({ scenario, projectionData }) {
   }, []);
 
   const sankey = useMemo(() => row ? buildSankeyData(row, s) : { nodes: [], links: [] }, [row, s]);
+
+  // Sankey returns annotation
+  const yearReturns = useMemo(() => {
+    if (!row) return 0;
+    const idx = projectionData.indexOf(row);
+    const prevPort = idx > 0 ? projectionData[idx - 1].totalPortfolio : null;
+    const fallback = (s.rrspBalance || 0) + (s.rrifBalance || 0) + (s.dcPensionBalance || 0)
+      + (s.liraBalance || 0) + (s.tfsaBalance || 0) + (s.nonRegInvestments || 0)
+      + (s.cashSavings || 0) + (s.otherAssets || 0);
+    return computeYearReturns(row, prevPort ?? fallback);
+  }, [row, projectionData, s]);
+
+  // Today's dollars helper
+  const td = (val, age) => toTodaysDollars(val, age - s.currentAge, s.inflationRate || 0);
 
   if (!data.length) return <p className="text-sm text-gray-500 p-4">Life expectancy is before age 72.</p>;
 
@@ -71,6 +135,11 @@ export default function PhaseRRIF({ scenario, projectionData }) {
         <div className="lg:col-span-3" ref={containerRef}>
           <p className="text-xs text-gray-500 mb-1">Money flow at age {selectedAge}</p>
           <SankeyDiagram nodes={sankey.nodes} links={sankey.links} width={chartW} height={300} />
+          <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#3B7A6B] inline-block" />
+            Investment returns this year: {formatCurrency(Math.round(yearReturns))}
+            <span className="text-gray-400">(stays in portfolio)</span>
+          </p>
         </div>
         <div className="lg:col-span-2 space-y-3">
           <MathCard title="RRIF Minimum" summary={`${formatPercent(rrifRate)} of balance at age ${selectedAge}`} icon="📋">
@@ -104,6 +173,10 @@ export default function PhaseRRIF({ scenario, projectionData }) {
         <IncomeExpenseBar data={data} height={240} lineData={{ key: 'totalPortfolio', label: 'Portfolio Balance', color: '#4ade80' }} />
       </div>
 
+      <PortfolioWaterfall projectionData={projectionData} startAge={72} endAge={data[data.length - 1]?.age || s.lifeExpectancy} scenario={s} />
+
+      <SubPhaseTable data={data} />
+
       {/* KPI strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
@@ -111,6 +184,7 @@ export default function PhaseRRIF({ scenario, projectionData }) {
           <p className={`text-lg font-bold ${isDeclining ? 'text-red-700' : 'text-green-700'}`}>
             {formatCurrency(Math.abs(avgAnnualChange))}/yr
           </p>
+          <p className="text-xs text-gray-400">({formatCurrency(td(Math.abs(avgAnnualChange), 80))} in today's $)</p>
           <p className="text-xs text-gray-500">{formatCurrency(portfolioStart)} → {formatCurrency(portfolioEnd)}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">

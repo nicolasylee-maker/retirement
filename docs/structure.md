@@ -182,6 +182,7 @@ retirement/
 │       │   ├── IncomePie.jsx               ← Pie chart: income source breakdown for a phase
 │       │   ├── SankeyDiagram.jsx           ← D3 Sankey: income → expense/tax/saving flow diagram
 │       │   ├── MathCard.jsx                ← Expandable "show me the math" card (title + detail breakdown)
+│       │   ├── PortfolioWaterfall.jsx       ← Reusable waterfall chart: starting portfolio → returns → deposits/withdrawals → ending
 │       │   ├── PhasePreRetirement.jsx      ← Working Years: income vs expenses chart, portfolio line, 3 KPIs
 │       │   ├── PhaseEarlyRetirement.jsx    ← Early Retirement: drawdown chart, portfolio line, 3 KPIs
 │       │   ├── PhaseRRIF.jsx               ← Age 72+: RRIF withdrawals chart, portfolio line, 3 KPIs

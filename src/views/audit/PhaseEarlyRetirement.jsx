@@ -2,8 +2,10 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import SankeyDiagram, { buildSankeyData } from './SankeyDiagram';
 import IncomeExpenseBar from './IncomeExpenseBar';
 import IncomePie from './IncomePie';
+import PortfolioWaterfall, { computeYearReturns } from './PortfolioWaterfall';
 import MathCard, { MathRow } from './MathCard';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
+import { toTodaysDollars } from '../../utils/inflationHelper';
 
 /**
  * Page 3: Early Retirement — retirementAge to 71.
@@ -33,6 +35,20 @@ export default function PhaseEarlyRetirement({ scenario, projectionData }) {
   }, []);
 
   const sankey = useMemo(() => row ? buildSankeyData(row, s) : { nodes: [], links: [] }, [row, s]);
+
+  // Sankey returns annotation
+  const yearReturns = useMemo(() => {
+    if (!row) return 0;
+    const idx = projectionData.indexOf(row);
+    const prevPort = idx > 0 ? projectionData[idx - 1].totalPortfolio : null;
+    const fallback = (s.rrspBalance || 0) + (s.rrifBalance || 0) + (s.dcPensionBalance || 0)
+      + (s.liraBalance || 0) + (s.tfsaBalance || 0) + (s.nonRegInvestments || 0)
+      + (s.cashSavings || 0) + (s.otherAssets || 0);
+    return computeYearReturns(row, prevPort ?? fallback);
+  }, [row, projectionData, s]);
+
+  // Today's dollars helper
+  const td = (val, age) => toTodaysDollars(val, age - s.currentAge, s.inflationRate || 0);
 
   if (!data.length) return <p className="text-sm text-gray-500 p-4">No early retirement years (retirement age ≥ 72).</p>;
 
@@ -70,6 +86,11 @@ export default function PhaseEarlyRetirement({ scenario, projectionData }) {
         <div className="lg:col-span-3" ref={containerRef}>
           <p className="text-xs text-gray-500 mb-1">Money flow at age {selectedAge}</p>
           <SankeyDiagram nodes={sankey.nodes} links={sankey.links} width={chartW} height={300} />
+          <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#3B7A6B] inline-block" />
+            Investment returns this year: {formatCurrency(Math.round(yearReturns))}
+            <span className="text-gray-400">(stays in portfolio)</span>
+          </p>
         </div>
         <div className="lg:col-span-2 space-y-3">
           {(row?.cppIncome || 0) > 0 && (
@@ -114,6 +135,8 @@ export default function PhaseEarlyRetirement({ scenario, projectionData }) {
         </div>
       </div>
 
+      <PortfolioWaterfall projectionData={projectionData} startAge={startAge} endAge={endAge} scenario={s} />
+
       {/* KPI strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
@@ -128,6 +151,7 @@ export default function PhaseEarlyRetirement({ scenario, projectionData }) {
           <p className={`text-lg font-bold ${portfolioChange >= 0 ? 'text-green-700' : 'text-red-700'}`}>
             {portfolioChange >= 0 ? '+' : ''}{formatCurrency(portfolioChange)}
           </p>
+          <p className="text-xs text-gray-400">({formatCurrency(td(Math.abs(portfolioChange), endAge))} in today's $)</p>
           <p className="text-xs text-gray-500">{formatCurrency(portfolioStart)} → {formatCurrency(portfolioEnd)}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
@@ -135,7 +159,10 @@ export default function PhaseEarlyRetirement({ scenario, projectionData }) {
           <p className={`text-lg font-bold ${govCover >= 100 ? 'text-green-700' : 'text-amber-700'}`}>
             {govCover.toFixed(0)}%
           </p>
-          <p className="text-xs text-gray-500">of expenses covered by CPP+OAS+pension</p>
+          <p className="text-xs text-gray-500">
+            {formatCurrency(Math.round(govTotal / data.length))}/yr
+            <span className="text-gray-400"> ({formatCurrency(td(Math.round(govTotal / data.length), Math.round((startAge + endAge) / 2)))} today)</span>
+          </p>
         </div>
       </div>
 

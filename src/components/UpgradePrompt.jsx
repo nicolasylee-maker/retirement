@@ -27,8 +27,10 @@ function CheckIcon() {
 const FEATURES = [
   'Compare multiple scenarios side-by-side',
   'Estate planning & heir distribution',
+  'Deep Dive — phase-by-phase breakdown',
   'Optimize My Plan — 8 ranked strategies',
   'AI-powered retirement insights',
+  'Excel & PDF reports',
 ]
 
 const PRO_FEATURES = [
@@ -57,14 +59,20 @@ const PRO_FEATURES = [
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/><path d="M18 14l.75 2.25L21 17l-2.25.75L18 20l-.75-2.25L15 17l2.25-.75z"/></svg>,
   },
   {
+    name: 'Deep Dive',
+    desc: 'Phase-by-phase breakdown with charts & KPIs',
+    bg: '#f3e8ff',
+    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6"/></svg>,
+  },
+  {
     name: 'Multiple Plans',
     desc: 'Save and switch between unlimited scenarios',
     bg: '#f0fdf4',
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="8" width="14" height="12" rx="2"/><path d="M6 6V4h12a2 2 0 012 2v12" strokeDasharray="2 2"/></svg>,
   },
   {
-    name: 'PDF Report',
-    desc: 'Export a printable professional retirement plan',
+    name: 'PDF & Excel Reports',
+    desc: 'Print-ready PDF and full Excel audit workbook',
     bg: '#fff1f2',
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>,
   },
@@ -229,7 +237,7 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
         <p className="text-xs font-semibold uppercase tracking-widest text-violet-700 mb-3">
           Everything in Pro
         </p>
-        <div className="grid grid-cols-2 gap-2.5 flex-1">
+        <div className="grid grid-cols-2 gap-2 flex-1">
           {PRO_FEATURES.map(f => (
             <div
               key={f.name}

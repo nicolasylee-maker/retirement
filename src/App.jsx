@@ -827,6 +827,7 @@ export default function App() {
               onViewResults={handleChoiceViewResults}
               onEditPlan={handleChoiceEditPlan}
               onCreateNew={handleChoiceCreateNew}
+              onAdmin={isAdmin ? () => setView('admin') : null}
             />
           )}
           {view === 'scenario-picker' && (

@@ -9,15 +9,27 @@ function parseBold(text) {
   })
 }
 
+/** Check if a line is a block boundary (should not be merged with neighbors) */
+function isBlockStart(line) {
+  if (/^#{1,3}\s/.test(line)) return true           // ## Header
+  if (/^\d+[\.\)]/.test(line)) return true           // 1. or 1) list
+  if (/^[-•]/.test(line)) return true                // bullet list
+  if (/^\*\*[^*]+\*\*:?\s*$/.test(line)) return true // **Bold Label:** on its own line
+  if (/^---+$/.test(line)) return true               // horizontal rule
+  return false
+}
+
 export function renderMarkdownText(text) {
   const rawLines = text.split('\n')
+
+  // Merge wrapped continuation lines, but respect block boundaries and blank lines
   const merged = []
   for (const line of rawLines) {
     const trimmed = line.trim()
     if (!trimmed) { merged.push(''); continue }
-    if (/^\d+[\.\)]/.test(trimmed) || /^[-•]/.test(trimmed) || /^Overall/.test(trimmed)) {
+    if (isBlockStart(trimmed)) {
       merged.push(trimmed)
-    } else if (merged.length > 0 && merged[merged.length - 1] !== '') {
+    } else if (merged.length > 0 && merged[merged.length - 1] !== '' && !isBlockStart(merged[merged.length - 1])) {
       merged[merged.length - 1] += ' ' + trimmed
     } else {
       merged.push(trimmed)
@@ -26,6 +38,32 @@ export function renderMarkdownText(text) {
 
   return merged.map((line, i) => {
     if (!line) return null
+
+    // Horizontal rule
+    if (/^---+$/.test(line)) {
+      return <hr key={i} className="my-3 border-gray-200" />
+    }
+
+    // Markdown headers: ## or ###
+    const headerMatch = line.match(/^(#{1,3})\s+(.*)/)
+    if (headerMatch) {
+      const level = headerMatch[1].length
+      const content = headerMatch[2].replace(/\*\*/g, '')
+      const className = level === 1
+        ? 'font-bold text-base text-gray-900 mt-3 mb-2'
+        : level === 2
+          ? 'font-semibold text-sm text-gray-900 mt-3 mb-1.5'
+          : 'font-semibold text-sm text-gray-800 mt-2 mb-1'
+      return <p key={i} className={className}>{content}</p>
+    }
+
+    // Bold-only line (standalone label like **Verdict:**)
+    if (/^\*\*[^*]+\*\*:?\s*$/.test(line)) {
+      const label = line.replace(/^\*\*/, '').replace(/\*\*:?\s*$/, '')
+      return <p key={i} className="font-semibold text-sm text-gray-900 mt-3 mb-1.5">{label}</p>
+    }
+
+    // Numbered list
     const numMatch = line.match(/^(\d+[\.\)])\s*(.*)/)
     if (numMatch) {
       return (
@@ -35,6 +73,8 @@ export function renderMarkdownText(text) {
         </p>
       )
     }
+
+    // Bullet list
     if (/^[-•]/.test(line)) {
       return (
         <p key={i} className="ml-3 mb-1.5 flex gap-2">
@@ -43,6 +83,8 @@ export function renderMarkdownText(text) {
         </p>
       )
     }
+
+    // Regular paragraph
     return <p key={i} className="mb-2 text-sm text-gray-700 leading-relaxed">{parseBold(line)}</p>
   }).filter(Boolean)
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function ReturningHomeView({ userName, onViewResults, onEditPlan, onCreateNew }) {
+export default function ReturningHomeView({ userName, onViewResults, onEditPlan, onCreateNew, onAdmin }) {
   const firstName = userName?.split(' ')[0] || userName || null;
 
   return (
@@ -18,7 +18,7 @@ export default function ReturningHomeView({ userName, onViewResults, onEditPlan,
           Pick up where you left off, or start something new.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className={`grid grid-cols-1 gap-3 ${onAdmin ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
           {/* View Results — primary */}
           <button
             type="button"
@@ -111,6 +111,35 @@ export default function ReturningHomeView({ userName, onViewResults, onEditPlan,
               </svg>
             </div>
           </button>
+          {/* Admin Dashboard — admin only */}
+          {onAdmin && (
+            <button
+              type="button"
+              onClick={onAdmin}
+              className="bg-white border border-gray-200 rounded-xl p-5 text-left shadow-sm
+                         hover:border-purple-300 hover:shadow-md transition-all duration-150 group
+                         focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+            >
+              <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center mb-3">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="#7c3aed" strokeWidth={1.8}
+                     strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 mb-1">Admin Dashboard</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Manage users, subscriptions, AI config, and site settings.
+              </p>
+              <div className="mt-4 flex justify-end">
+                <svg className="w-4 h-4 text-gray-300 group-hover:text-purple-400 group-hover:translate-x-0.5
+                                transition-all duration-150" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </div>
+            </button>
+          )}
         </div>
       </div>
     </div>

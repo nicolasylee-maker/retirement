@@ -114,7 +114,7 @@ function loadSaved() {
 }
 
 export default function App() {
-  const { isPaid, isPastDue, refresh: refreshSubscription } = useSubscription();
+  const { isPaid, isPastDue, refresh: refreshSubscription, simulateFreeUser, setSimulateFreeUser } = useSubscription();
   const { user: authUser, isLoading: authLoading } = useAuth();
 
   const [scenarios, setScenarios] = useState(() => {
@@ -241,6 +241,7 @@ export default function App() {
     [currentScenario, view],
   );
   const isAdmin = authUser?.email === ADMIN_EMAIL;
+  const adminBypass = isAdmin && !simulateFreeUser;
 
   const handleSignIn = useCallback((cloudScenarios, { fetchError } = {}) => {
     if (cloudScenarios.length > 0) {
@@ -642,12 +643,12 @@ export default function App() {
                       <button onClick={menuAction(() => handleRenameScenario())} className="menu-item">Rename Plan</button>
                       <GatedButton featureName="Multiple Plans" onClick={menuAction(handleDuplicateScenario)} className="menu-item w-full text-left">Duplicate Plan</GatedButton>
                       {currentScenario && (
-                        <GatedButton featureName="PDF Export" bypass={isAdmin}
+                        <GatedButton featureName="PDF Export" bypass={adminBypass}
                           onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
                           className="menu-item w-full text-left">PDF Report</GatedButton>
                       )}
                       {currentScenario && (
-                        <GatedButton featureName="Excel Report" bypass={isAdmin}
+                        <GatedButton featureName="Excel Report" bypass={adminBypass}
                           onClick={menuAction(() => downloadExcelAudit(effectiveScenario, projectionData, optimizationResult))}
                           className="menu-item w-full text-left">📊 Excel Report</GatedButton>
                       )}
@@ -675,6 +676,14 @@ export default function App() {
             <input ref={importInputRef} type="file" accept=".json,application/json"
               onChange={handleImport} className="hidden" aria-label="Import scenario file" />
 
+            {isAdmin && (
+              <button type="button" onClick={() => setSimulateFreeUser(v => !v)}
+                className={`hidden md:inline-flex text-xs font-medium px-2 py-0.5 rounded ${
+                  simulateFreeUser ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'
+                }`}>
+                {simulateFreeUser ? 'Free Preview' : 'Pro View'}
+              </button>
+            )}
             <span className="hidden md:inline-flex"><EnvironmentBadge /></span>
             <span className="hidden md:inline-flex"><SubscriptionBadge /></span>
             <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
@@ -805,7 +814,7 @@ export default function App() {
           )}
           {view === 'deep-dive' && currentScenario && (
             <div className="flex-1">
-              {isPaid || isAdmin
+              {isPaid || adminBypass
                 ? <VisualAudit scenario={effectiveScenario} projectionData={projectionData} optimizationResult={optimizationResult} />
                 : <div className="px-4 sm:px-6 lg:px-10 py-4"><UpgradePrompt variant="full" featureName="Deep Dive" /></div>
               }

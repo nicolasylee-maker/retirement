@@ -12,6 +12,7 @@ export function SubscriptionProvider({ children }) {
   const [stripeStatus, setStripeStatus] = useState(null)
   const [trialEnd, setTrialEnd] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [simulateFreeUser, setSimulateFreeUser] = useState(false)
 
   const hasLoadedOnce = useRef(false)
 
@@ -73,10 +74,12 @@ export function SubscriptionProvider({ children }) {
     return () => window.removeEventListener('focus', handleFocus)
   }, [user])
 
-  const isPaid = override != null
-    || stripeStatus === 'active'
-    || stripeStatus === 'trialing'
-    || (!!user && user.email === ADMIN_EMAIL)
+  const isPaid = simulateFreeUser
+    ? false
+    : (override != null
+      || stripeStatus === 'active'
+      || stripeStatus === 'trialing'
+      || (!!user && user.email === ADMIN_EMAIL))
 
   const isOverride = override != null
   const isTrial = !isOverride && stripeStatus === 'trialing'
@@ -98,7 +101,9 @@ export function SubscriptionProvider({ children }) {
       trialEnd,
       trialDaysRemaining,
       isLoading,
-    refresh,
+      refresh,
+      simulateFreeUser,
+      setSimulateFreeUser,
     }}>
       {children}
     </SubscriptionContext.Provider>

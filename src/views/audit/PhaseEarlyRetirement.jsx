@@ -121,7 +121,7 @@ export default function PhaseEarlyRetirement({ scenario, projectionData }) {
           <p className={`text-lg font-bold ${isGrowing ? 'text-green-700' : 'text-red-700'}`}>
             {formatCurrency(Math.abs(avgAnnualChange))}/yr
           </p>
-          <p className="text-xs text-gray-500">{isGrowing ? 'Portfolio still growing' : 'Net drawn from portfolio'}</p>
+          <p className="text-xs text-gray-500">{formatCurrency(portfolioStart)} → {formatCurrency(portfolioEnd)}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
           <p className="text-xs text-gray-500">Portfolio Change</p>

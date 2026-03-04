@@ -111,9 +111,7 @@ export default function PhaseRRIF({ scenario, projectionData }) {
           <p className={`text-lg font-bold ${isDeclining ? 'text-red-700' : 'text-green-700'}`}>
             {formatCurrency(Math.abs(avgAnnualChange))}/yr
           </p>
-          <p className="text-xs text-gray-500">
-            {isDeclining ? 'Net drawn from portfolio' : 'Portfolio still growing'}
-          </p>
+          <p className="text-xs text-gray-500">{formatCurrency(portfolioStart)} → {formatCurrency(portfolioEnd)}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
           <p className="text-xs text-gray-500">Portfolio Runway</p>

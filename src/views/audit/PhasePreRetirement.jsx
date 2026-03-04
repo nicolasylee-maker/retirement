@@ -143,7 +143,7 @@ export default function PhasePreRetirement({ scenario, projectionData }) {
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center">
           <p className="text-xs text-gray-500">Growth from Returns</p>
           <p className="text-lg font-bold text-green-700">{formatCurrency(growthFromReturns)}</p>
-          <p className="text-xs text-gray-500">{compoundPct.toFixed(0)}% of portfolio @ {nominalReturnPct.toFixed(1)}%/yr</p>
+          <p className="text-xs text-gray-500">{formatCurrency(portfolioStart)} → {formatCurrency(portfolioAtRet)} ({compoundPct.toFixed(0)}% from returns)</p>
         </div>
       </div>
 

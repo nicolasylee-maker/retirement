@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, LabelList,
+  ResponsiveContainer, Cell,
 } from 'recharts';
 import { formatCurrency, formatCurrencyShort } from '../../utils/formatters';
 import { WATERFALL_COLORS } from '../dashboard/waterfallChartHelpers';
@@ -104,19 +104,30 @@ export default function PortfolioWaterfall({ projectionData, startAge, endAge, s
 
   if (bars.length === 0) return null;
 
+  // Compute Y domain: max of (base + value) across all bars, with 12% headroom for labels
+  const yMax = useMemo(() => {
+    const maxTop = Math.max(...bars.map(b => b.base + b.value));
+    return Math.ceil(maxTop * 1.12);
+  }, [bars]);
+
   return (
     <div>
       <p className="text-sm font-semibold text-gray-700 mb-1">Portfolio Waterfall</p>
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={220}>
         <BarChart data={bars} barCategoryGap="20%">
           <CartesianGrid strokeDasharray="3 3" stroke={CHART_STYLE.gridColor} vertical={false} />
           <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#6b7280' }} interval={0} />
-          <YAxis tickFormatter={v => formatCurrencyShort(v)} tick={{ fontSize: 10, fill: '#6b7280' }} width={55} />
+          <YAxis tickFormatter={v => formatCurrencyShort(v)} tick={{ fontSize: 10, fill: '#6b7280' }} width={55} domain={[0, yMax]} />
           <Tooltip content={<CustomTooltip />} />
           <Bar dataKey="base" stackId="a" fill="transparent" isAnimationActive={false} />
-          <Bar dataKey="value" stackId="a" isAnimationActive={false} radius={[3, 3, 0, 0]}>
+          <Bar dataKey="value" stackId="a" isAnimationActive={false} radius={[3, 3, 0, 0]}
+            label={({ x, y, width, index }) => (
+              <text key={index} x={x + width / 2} y={y - 6} textAnchor="middle"
+                fontSize={10} fill="#374151" fontWeight={500}>
+                {bars[index]?.labelText}
+              </text>
+            )}>
             {bars.map((b, i) => <Cell key={i} fill={b.color} />)}
-            <LabelList dataKey="labelText" position="top" style={{ fontSize: 10, fill: '#374151', fontWeight: 500 }} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

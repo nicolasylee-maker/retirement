@@ -146,10 +146,13 @@ export default function AiTestingSection() {
     const config = adminConfig.config || {}
     const geminiModel = config['gemini_model'] || 'gemini-2.0-flash'
 
-    const scenario = scenarios.find(s => s.id === selectedScenarioId)
-    const scenario2 = insightType === 'compare'
+    // Admin API returns { id, name, data, created_at } — unwrap .data but preserve name
+    const rawScenario = scenarios.find(s => s.id === selectedScenarioId)
+    const scenario = rawScenario ? { ...rawScenario.data, name: rawScenario.name } : null
+    const rawScenario2 = insightType === 'compare'
       ? scenarios.find(s => s.id === selectedScenarioId2)
       : null
+    const scenario2 = rawScenario2 ? { ...rawScenario2.data, name: rawScenario2.name } : null
     if (!scenario) return
 
     // Build context + resolved prompt (client-side, instant)

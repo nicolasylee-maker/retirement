@@ -226,7 +226,7 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
 
       {/* Right column — Pro feature grid (desktop only) */}
       <div className="hidden sm:flex flex-col flex-1 bg-gradient-to-br from-violet-50 to-indigo-50 p-6">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-violet-700 mb-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-violet-700 mb-3">
           Everything in Pro
         </p>
         <div className="grid grid-cols-2 gap-2.5 flex-1">
@@ -240,12 +240,12 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
                    style={{ background: f.bg }}>
                 {f.icon}
               </div>
-              <p className="text-[11px] font-semibold text-gray-900 mb-0.5">{f.name}</p>
-              <p className="text-[10px] text-gray-500 leading-snug">{f.desc}</p>
+              <p className="text-xs font-semibold text-gray-900 mb-0.5">{f.name}</p>
+              <p className="text-xs text-gray-500 leading-snug">{f.desc}</p>
             </div>
           ))}
         </div>
-        <p className="text-center text-[10px] text-violet-600 font-medium mt-3">
+        <p className="text-center text-xs text-violet-600 font-medium mt-3">
           All features · $3.67/mo billed annually
         </p>
       </div>

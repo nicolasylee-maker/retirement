@@ -30,7 +30,7 @@ function PhaseCard({ label, ageRange, summary, metric, onClick }) {
 /**
  * Page 1: Executive summary — 4 big numbers + phase navigation cards.
  */
-export default function AuditSummaryPage({ scenario, projectionData, onNavigate }) {
+export default function AuditSummaryPage({ scenario, projectionData, onNavigate, phases }) {
   const [showAssumptions, setShowAssumptions] = useState(false);
   const s = scenario;
   const data = projectionData;
@@ -58,11 +58,14 @@ export default function AuditSummaryPage({ scenario, projectionData, onNavigate 
   const earlyRetData = data.filter(d => d.age >= retAge && d.age <= 71);
   const rrifData = data.filter(d => d.age >= 72);
 
-  const totalSaved = preRetData.reduce((s, d) => s + Math.max(0, d.surplus || 0), 0);
+  const totalSaved = preRetData.reduce((s, d) => s + (d.tfsaDeposit || 0) + (d.nonRegDeposit || 0), 0);
+  const portfolioAtRet = preRetData.length ? preRetData[preRetData.length - 1]?.totalPortfolio || 0 : data[0]?.totalPortfolio || 0;
   const govBenefitsCover = earlyRetData.length
     ? earlyRetData.reduce((s, d) => s + (d.cppIncome || 0) + (d.oasIncome || 0) + (d.pensionIncome || 0), 0) /
       Math.max(1, earlyRetData.reduce((s, d) => s + (d.expenses || 0), 0)) * 100
     : 0;
+
+  const hasPhase = (id) => phases?.some(p => p.id === id);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -79,36 +82,44 @@ export default function AuditSummaryPage({ scenario, projectionData, onNavigate 
         <BigStat emoji="❤️" label="Net to heirs" value={formatCurrencyShort(netEstate)} color="bg-pink-100" />
       </div>
 
-      {/* Phase cards */}
+      {/* Phase cards — only show phases that have data */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <PhaseCard
-          label="Working Years"
-          ageRange={`Age ${s.currentAge} – ${retAge - 1}`}
-          summary="Building your nest egg through savings and compound growth."
-          metric={`${formatCurrencyShort(totalSaved)} total saved`}
-          onClick={() => onNavigate(1)}
-        />
-        <PhaseCard
-          label="Early Retirement"
-          ageRange={`Age ${retAge} – 71`}
-          summary="Living on benefits + tax-free withdrawals before forced RRIF."
-          metric={`${govBenefitsCover.toFixed(0)}% from gov't`}
-          onClick={() => onNavigate(2)}
-        />
-        <PhaseCard
-          label="Age 72+"
-          ageRange="Age 72 – life expectancy"
-          summary="Mandatory RRIF withdrawals, OAS clawback territory."
-          metric={rrifData.length ? `${rrifData.length} years` : 'N/A'}
-          onClick={() => onNavigate(3)}
-        />
-        <PhaseCard
-          label="Estate"
-          ageRange={`At age ${s.lifeExpectancy}`}
-          summary="What's left for heirs after tax and probate."
-          metric={formatCurrencyShort(netEstate)}
-          onClick={() => onNavigate(4)}
-        />
+        {hasPhase('working') && (
+          <PhaseCard
+            label="Working Years"
+            ageRange={`Age ${s.currentAge} – ${retAge - 1}`}
+            summary="Building your nest egg through savings and compound growth."
+            metric={totalSaved > 0 ? `${formatCurrencyShort(totalSaved)} saved` : `${formatCurrencyShort(portfolioAtRet)} portfolio`}
+            onClick={() => onNavigate('working')}
+          />
+        )}
+        {hasPhase('early-ret') && (
+          <PhaseCard
+            label="Early Retirement"
+            ageRange={`Age ${retAge} – 71`}
+            summary="Living on benefits + tax-free withdrawals before forced RRIF."
+            metric={`${govBenefitsCover.toFixed(0)}% from gov't`}
+            onClick={() => onNavigate('early-ret')}
+          />
+        )}
+        {hasPhase('rrif') && (
+          <PhaseCard
+            label="Age 72+"
+            ageRange="Age 72 – life expectancy"
+            summary="Mandatory RRIF withdrawals, OAS clawback territory."
+            metric={rrifData.length ? `${rrifData.length} years` : 'N/A'}
+            onClick={() => onNavigate('rrif')}
+          />
+        )}
+        {hasPhase('estate') && (
+          <PhaseCard
+            label="Estate"
+            ageRange={`At age ${s.lifeExpectancy}`}
+            summary="What's left for heirs after tax and probate."
+            metric={formatCurrencyShort(netEstate)}
+            onClick={() => onNavigate('estate')}
+          />
+        )}
       </div>
 
       {/* Assumptions strip */}

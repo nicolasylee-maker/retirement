@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import PhaseTimeline from './PhaseTimeline';
 import AuditSummaryPage from './AuditSummaryPage';
 import PhasePreRetirement from './PhasePreRetirement';
@@ -7,7 +7,7 @@ import PhaseRRIF from './PhaseRRIF';
 import PhaseEstate from './PhaseEstate';
 import PhaseOptimizer from './PhaseOptimizer';
 
-const PHASES = [
+const ALL_PHASES = [
   { id: 'summary', label: 'Summary', shortLabel: 'Sum', icon: '📋' },
   { id: 'working', label: 'Working Years', shortLabel: 'Work', icon: '💼' },
   { id: 'early-ret', label: 'Early Retirement', shortLabel: 'Retire', icon: '🌅' },
@@ -21,7 +21,25 @@ const PHASES = [
  * with Sankey diagrams, charts, and expandable math cards.
  */
 export default function VisualAudit({ scenario, projectionData, optimizationResult, onClose }) {
-  const [activePage, setActivePage] = useState(0);
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  // Filter phases based on scenario — only show phases that have data
+  const phases = useMemo(() => {
+    if (!scenario) return ALL_PHASES;
+    const s = scenario;
+    return ALL_PHASES.filter(p => {
+      if (p.id === 'working') return s.currentAge < s.retirementAge;
+      if (p.id === 'early-ret') return s.retirementAge <= 71 && s.retirementAge < s.lifeExpectancy;
+      if (p.id === 'rrif') return s.lifeExpectancy >= 72;
+      return true; // summary, estate, optimize always show
+    });
+  }, [scenario]);
+
+  // Navigate by phase ID (used by AuditSummaryPage)
+  const navigateToId = (id) => {
+    const idx = phases.findIndex(p => p.id === id);
+    if (idx >= 0) setActiveIdx(idx);
+  };
 
   if (!scenario || !projectionData?.length) {
     return (
@@ -31,14 +49,16 @@ export default function VisualAudit({ scenario, projectionData, optimizationResu
     );
   }
 
+  const activePhase = phases[activeIdx]?.id;
+
   const renderPage = () => {
-    switch (activePage) {
-      case 0: return <AuditSummaryPage scenario={scenario} projectionData={projectionData} onNavigate={setActivePage} />;
-      case 1: return <PhasePreRetirement scenario={scenario} projectionData={projectionData} />;
-      case 2: return <PhaseEarlyRetirement scenario={scenario} projectionData={projectionData} />;
-      case 3: return <PhaseRRIF scenario={scenario} projectionData={projectionData} />;
-      case 4: return <PhaseEstate scenario={scenario} projectionData={projectionData} />;
-      case 5: return <PhaseOptimizer scenario={scenario} optimizationResult={optimizationResult} />;
+    switch (activePhase) {
+      case 'summary': return <AuditSummaryPage scenario={scenario} projectionData={projectionData} onNavigate={navigateToId} phases={phases} />;
+      case 'working': return <PhasePreRetirement scenario={scenario} projectionData={projectionData} />;
+      case 'early-ret': return <PhaseEarlyRetirement scenario={scenario} projectionData={projectionData} />;
+      case 'rrif': return <PhaseRRIF scenario={scenario} projectionData={projectionData} />;
+      case 'estate': return <PhaseEstate scenario={scenario} projectionData={projectionData} />;
+      case 'optimize': return <PhaseOptimizer scenario={scenario} optimizationResult={optimizationResult} />;
       default: return null;
     }
   };
@@ -63,7 +83,7 @@ export default function VisualAudit({ scenario, projectionData, optimizationResu
       </div>
 
       {/* Phase timeline */}
-      <PhaseTimeline phases={PHASES} activePage={activePage} onNavigate={setActivePage} />
+      <PhaseTimeline phases={phases} activePage={activeIdx} onNavigate={setActiveIdx} />
 
       {/* Page content */}
       <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">

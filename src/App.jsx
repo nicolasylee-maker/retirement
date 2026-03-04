@@ -883,6 +883,7 @@ export default function App() {
         <VisualAudit
           scenario={effectiveScenario}
           projectionData={projectionData}
+          optimizationResult={optimizationResult}
           onClose={() => setVisualAuditOpen(false)}
         />
       )}

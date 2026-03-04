@@ -4,6 +4,7 @@ import Card from '../../components/Card';
 import QuickFillPills from '../../components/QuickFillPills';
 import SliderControl from '../../components/SliderControl';
 import { EXPENSE_PRESETS, RETURN_PRESETS } from '../../constants/defaults';
+import { PulsingDot } from '../../components/PulsingDot';
 
 const expensePresetList = Object.entries(EXPENSE_PRESETS).map(([key, p]) => ({
   key,
@@ -34,7 +35,7 @@ function findReturnPreset(scenario) {
   return null;
 }
 
-export default function ExpensesStep({ scenario, onChange }) {
+export default function ExpensesStep({ scenario, onChange, dismissedDots, dismissDot }) {
   const handleExpensePreset = (key) => {
     const preset = EXPENSE_PRESETS[key];
     if (preset) onChange({ monthlyExpenses: preset.monthlyExpenses });
@@ -70,7 +71,7 @@ export default function ExpensesStep({ scenario, onChange }) {
           />
         </div>
         <FormField
-          label="Monthly Expenses"
+          label={<>Monthly Expenses <PulsingDot id="monthlyExpenses" dismissed={dismissedDots?.has('monthlyExpenses')} onDismiss={dismissDot} /></>}
           name="monthlyExpenses"
           type="number"
           value={scenario.monthlyExpenses}

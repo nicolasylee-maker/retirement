@@ -1,8 +1,9 @@
 import React from 'react';
 import FormField from '../../components/FormField';
 import Card from '../../components/Card';
+import { PulsingDot } from '../../components/PulsingDot';
 
-export default function SavingsStep({ scenario, onChange }) {
+export default function SavingsStep({ scenario, onChange, dismissedDots, dismissDot }) {
   const handleChange = (field) => (value) => {
     onChange({ [field]: value });
   };
@@ -26,7 +27,7 @@ export default function SavingsStep({ scenario, onChange }) {
         </p>
         <div className="grid sm:grid-cols-2 gap-4">
           <FormField
-            label="RRSP Balance"
+            label={<>RRSP Balance <PulsingDot id="rrspBalance" dismissed={dismissedDots?.has('rrspBalance')} onDismiss={dismissDot} /></>}
             name="rrspBalance"
             type="number"
             value={scenario.rrspBalance}
@@ -58,7 +59,7 @@ export default function SavingsStep({ scenario, onChange }) {
         </p>
         <div className="grid sm:grid-cols-2 gap-4">
           <FormField
-            label="TFSA Balance"
+            label={<>TFSA Balance <PulsingDot id="tfsaBalance" dismissed={dismissedDots?.has('tfsaBalance')} onDismiss={dismissDot} /></>}
             name="tfsaBalance"
             type="number"
             value={scenario.tfsaBalance}

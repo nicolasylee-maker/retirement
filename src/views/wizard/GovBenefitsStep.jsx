@@ -4,6 +4,7 @@ import Card from '../../components/Card';
 import QuickFillPills from '../../components/QuickFillPills';
 import HelpIcon from '../../components/HelpIcon';
 import { GOV_BENEFIT_PRESETS } from '../../constants/defaults';
+import { PulsingDot } from '../../components/PulsingDot';
 
 const presetList = Object.entries(GOV_BENEFIT_PRESETS).map(([key, preset]) => ({
   key,
@@ -34,7 +35,7 @@ function findActiveSpousePreset(scenario) {
   return null;
 }
 
-export default function GovBenefitsStep({ scenario, onChange }) {
+export default function GovBenefitsStep({ scenario, onChange, dismissedDots, dismissDot }) {
   const handleChange = (field) => (value) => {
     onChange({ [field]: value });
   };
@@ -94,7 +95,7 @@ export default function GovBenefitsStep({ scenario, onChange }) {
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <FormField
-            label="Monthly CPP (at age 65)"
+            label={<>Monthly CPP (at age 65) <PulsingDot id="cppMonthly" dismissed={dismissedDots?.has('cppMonthly')} onDismiss={dismissDot} /></>}
             name="cppMonthly"
             type="number"
             value={scenario.cppMonthly}
@@ -128,7 +129,7 @@ export default function GovBenefitsStep({ scenario, onChange }) {
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <FormField
-            label="Monthly OAS (at age 65)"
+            label={<>Monthly OAS (at age 65) <PulsingDot id="oasMonthly" dismissed={dismissedDots?.has('oasMonthly')} onDismiss={dismissDot} /></>}
             name="oasMonthly"
             type="number"
             value={scenario.oasMonthly}

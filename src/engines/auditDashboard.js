@@ -77,8 +77,10 @@ export function auditDashboardSummary(scenario, projectionData) {
 
   // --- TAX ---
   md += `### TAX (first year of retirement, age ${s.retirementAge})\n\n`;
-  const effRate = retRow.totalIncome > 0 ? retRow.totalTax / retRow.totalIncome : 0;
+  const taxableIncome = retRow.totalTaxableIncome || 0;
+  const effRate = taxableIncome > 0 ? retRow.totalTax / taxableIncome : 0;
   const taxRows = [
+    ['Taxable Income', $(taxableIncome)],
     ['Gross Income (all sources)', $(retRow.totalIncome)],
     ['**Total Tax**', `**${$(retRow.totalTax)}**`],
     ['Effective Tax Rate', formatPercent(effRate)],

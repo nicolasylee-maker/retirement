@@ -40,7 +40,7 @@ PORTFOLIO (liquid investments only — does NOT include real estate):
 - Net worth at retirement: ${netWorthAtRetirement} (portfolio + real estate — real estate cannot fund withdrawals)
 - Portfolio at life expectancy: ${portfolioAtEnd}
 - Portfolio depleted: {portfolioDepleted}, at age {depletionAge}
-- After depletion, income: ${postDepletionIncome}/yr, expenses: ${postDepletionExpenses}/yr
+- After depletion, income: ${postDepletionIncome}/yr (${postDepletionIncomeToday}/mo today), expenses: ${postDepletionExpenses}/yr (${postDepletionExpensesToday}/mo today)
 
 INCOME AT RETIREMENT:
 - Annual retirement income: ${annualIncome}, Tax: ${annualTax}

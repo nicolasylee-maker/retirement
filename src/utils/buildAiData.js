@@ -30,6 +30,11 @@ export function buildDashboardAiData(scenario, projectionData) {
       + (depletionRow.gisIncome || 0) + (depletionRow.pensionIncome || 0))
     : null;
   const postDepExpenses = depletionRow ? Math.round(depletionRow.expenses) : null;
+  const depYears = depletionRow ? depletionRow.age - scenario.currentAge : 0;
+  const postDepIncomeToday = postDepIncome != null
+    ? Math.round(toTodaysDollars(postDepIncome, depYears, inf) / 12) : null;
+  const postDepExpensesToday = postDepExpenses != null
+    ? Math.round(toTodaysDollars(postDepExpenses, depYears, inf) / 12) : null;
 
   // Bug 4: Working-years financial health
   const workingYears = projectionData.filter(r => r.age >= scenario.currentAge && r.age < scenario.retirementAge);
@@ -75,7 +80,9 @@ export function buildDashboardAiData(scenario, projectionData) {
     depletionAge: depletionAge || 'never',
     portfolioDepleted: portfolioDepleted ? 'Yes' : 'No',
     postDepletionIncome: postDepIncome,
+    postDepletionIncomeToday: postDepIncomeToday,
     postDepletionExpenses: postDepExpenses,
+    postDepletionExpensesToday: postDepExpensesToday,
     // Working-years health (Bug 4)
     yearsToRetirement: yearsToRet,
     workingYearsWithWithdrawals,

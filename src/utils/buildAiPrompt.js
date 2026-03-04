@@ -108,3 +108,9 @@ export function buildAiPrompt(type, context, config) {
 
   return `${base}\n\n${body}`
 }
+
+export function getPromptTemplate(type, config) {
+  const base = config['prompt_base'] ?? ''
+  const template = config[`prompt_${type}`] ?? ''
+  return `${base}\n\n${template}`
+}

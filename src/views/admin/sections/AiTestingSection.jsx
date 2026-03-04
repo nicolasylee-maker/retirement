@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { adminApi } from '../../../services/adminService'
-import { buildAiPrompt } from '../../../utils/buildAiPrompt'
+import { buildAiPrompt, getPromptTemplate } from '../../../utils/buildAiPrompt'
 import {
   buildDashboardAiData,
   buildDebtAiData,
@@ -70,6 +70,7 @@ export default function AiTestingSection() {
   const [geminiText, setGeminiText] = useState('')
   const [rivalText, setRivalText] = useState('')
   const [resolvedPrompt, setResolvedPrompt] = useState('')
+  const [rawTemplate, setRawTemplate] = useState('')
   const [geminiLoading, setGeminiLoading] = useState(false)
   const [rivalLoading, setRivalLoading] = useState(false)
   const [geminiError, setGeminiError] = useState(null)
@@ -162,6 +163,7 @@ export default function AiTestingSection() {
     }
     const prompt = buildAiPrompt(insightType, context, config)
     setResolvedPrompt(prompt)
+    setRawTemplate(getPromptTemplate(insightType, config))
 
     // Reset result state
     setGeminiText(''); setRivalText('')
@@ -235,6 +237,7 @@ export default function AiTestingSection() {
         geminiText={geminiText}
         rivalText={rivalText}
         resolvedPrompt={resolvedPrompt}
+        rawTemplate={rawTemplate}
         geminiLoading={geminiLoading}
         rivalLoading={rivalLoading}
         geminiError={geminiError}

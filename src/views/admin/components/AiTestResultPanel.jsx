@@ -1,4 +1,5 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useState } from 'react'
+import { renderMarkdownText } from '../../../utils/renderMarkdownText.jsx'
 
 function Spinner() {
   return (
@@ -12,7 +13,29 @@ function Spinner() {
   )
 }
 
-function ResultColumn({ header, text, loading, error }) {
+function CopyButton({ text }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = useCallback(() => {
+    if (!text) return
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    }).catch(() => {})
+  }, [text])
+
+  if (!text) return null
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md transition-colors"
+    >
+      {copied ? 'Copied!' : 'Copy'}
+    </button>
+  )
+}
+
+function AiResultColumn({ header, text, loading, error }) {
   if (!text && !loading && !error) return null
 
   return (
@@ -24,8 +47,8 @@ function ResultColumn({ header, text, loading, error }) {
         </div>
       )}
       {text && (
-        <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
-          {text}
+        <div className="bg-gray-50 rounded-lg p-4 leading-relaxed">
+          {renderMarkdownText(text)}
         </div>
       )}
     </div>
@@ -39,19 +62,16 @@ export default function AiTestResultPanel({
   geminiText,
   rivalText,
   resolvedPrompt,
+  rawTemplate,
   geminiLoading,
   rivalLoading,
   geminiError,
   rivalError,
 }) {
+  const [promptView, setPromptView] = useState('full')
+
   const idle = !geminiText && !rivalText && !resolvedPrompt &&
     !geminiLoading && !rivalLoading && !geminiError && !rivalError
-
-  const handleCopy = useCallback(() => {
-    if (resolvedPrompt) {
-      navigator.clipboard.writeText(resolvedPrompt).catch(() => {})
-    }
-  }, [resolvedPrompt])
 
   if (idle) {
     return (
@@ -65,14 +85,19 @@ export default function AiTestResultPanel({
     ? rivalProvider.charAt(0).toUpperCase() + rivalProvider.slice(1)
     : 'Rival'
 
+  const activePromptText = promptView === 'raw' ? rawTemplate : resolvedPrompt
+
   return (
     <div className="grid grid-cols-3 gap-4">
       {/* Column 1: Gemini */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <h3 className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide">
-          Gemini — {geminiModel || '…'}
-        </h3>
-        <ResultColumn
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Gemini — {geminiModel || '…'}
+          </h3>
+          <CopyButton text={geminiText} />
+        </div>
+        <AiResultColumn
           text={geminiText}
           loading={geminiLoading}
           error={geminiError}
@@ -84,10 +109,13 @@ export default function AiTestResultPanel({
 
       {/* Column 2: Rival */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <h3 className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide">
-          {providerLabel} — {rivalModel || '…'}
-        </h3>
-        <ResultColumn
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            {providerLabel} — {rivalModel || '…'}
+          </h3>
+          <CopyButton text={rivalText} />
+        </div>
+        <AiResultColumn
           text={rivalText}
           loading={rivalLoading}
           error={rivalError}
@@ -97,24 +125,39 @@ export default function AiTestResultPanel({
         )}
       </div>
 
-      {/* Column 3: Raw prompt */}
+      {/* Column 3: Prompt viewer */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Raw Prompt</h3>
-          {resolvedPrompt && (
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={handleCopy}
-              className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md transition-colors"
+              onClick={() => setPromptView('full')}
+              className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                promptView === 'full'
+                  ? 'bg-purple-100 text-purple-700 font-medium'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
             >
-              Copy
+              Full Prompt
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => setPromptView('raw')}
+              className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                promptView === 'raw'
+                  ? 'bg-purple-100 text-purple-700 font-medium'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              Raw Prompt
+            </button>
+          </div>
+          <CopyButton text={activePromptText} />
         </div>
-        {resolvedPrompt ? (
+        {activePromptText ? (
           <div className="overflow-y-auto max-h-[70vh]">
             <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">
-              {resolvedPrompt}
+              {activePromptText}
             </pre>
           </div>
         ) : (

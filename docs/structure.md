@@ -73,7 +73,8 @@ retirement/
 │   │   ├── analytics.js                    ← Plausible custom event helper (no-ops if window.plausible absent)
 │   │   ├── buildAiData.js                  ← Builds structured AI context payloads per view (dashboard, debt, compare, estate, optimize)
 │   │   ├── compareAnalysis.js              ← Pure comparison utilities: diff drivers, phase ranges, phase summaries, monthly snapshots
-│   │   ├── buildAiPrompt.js                ← Client-side port of gemini-proxy buildPrompt(); resolves {variables} for all 5 insight types
+│   │   ├── buildAiPrompt.js                ← Client-side port of gemini-proxy buildPrompt(); resolves {variables} for all 5 insight types; exports getPromptTemplate() for unresolved template
+│   │   ├── renderMarkdownText.jsx          ← Shared markdown renderer (bold, numbered lists, bullets) extracted from AiInsight.jsx; used by AiTestResultPanel
 │   │   ├── debtCalc.js                     ← calcDebtSchedule: debt amortization schedule (balance, interest, principal per year)
 │   │   ├── downloadAudit.js                ← Audit report assembler + Markdown download trigger
 │   │   ├── formatters.js                   ← Currency, percent, UUID, math utilities

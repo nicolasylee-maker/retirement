@@ -20,6 +20,7 @@ export function auditInputSnapshot(scenario) {
     ['Current age', s.currentAge],
     ['Retirement age', s.retirementAge],
     ['Life expectancy', s.lifeExpectancy],
+    ['Province', s.province || 'ON'],
   ];
 
   if (s.isCouple) {
@@ -73,8 +74,11 @@ export function auditInputSnapshot(scenario) {
 
   rows.push(['TFSA balance', $(s.tfsaBalance)]);
   if (s.isCouple) {
+    if (s.spouseRrspBalance > 0) rows.push(['Spouse RRSP balance', $(s.spouseRrspBalance)]);
+    if (s.spouseRrifBalance > 0) rows.push(['Spouse RRIF balance', $(s.spouseRrifBalance)]);
+    if (s.spouseDcPensionBalance > 0) rows.push(['Spouse DC pension balance', $(s.spouseDcPensionBalance)]);
     const spouseRrspPool = (s.spouseRrspBalance || 0) + (s.spouseRrifBalance || 0) + (s.spouseDcPensionBalance || 0);
-    if (spouseRrspPool > 0) rows.push(['Spouse RRSP pool', $(spouseRrspPool)]);
+    if (spouseRrspPool > 0) rows.push(['**Spouse RRSP pool**', `**${$(spouseRrspPool)}**`]);
     if (s.spouseTfsaBalance > 0) rows.push(['Spouse TFSA', $(s.spouseTfsaBalance)]);
   }
 
@@ -82,6 +86,7 @@ export function auditInputSnapshot(scenario) {
   rows.push(
     ['Cash savings', $(s.cashSavings)],
     ['Non-reg investments', $(s.nonRegInvestments)],
+    ['Non-reg cost basis', $(s.nonRegCostBasis ?? nonRegPool)],
     ['**Combined non-reg**', `**${$(nonRegPool)}**`],
   );
 
@@ -98,7 +103,9 @@ export function auditInputSnapshot(scenario) {
     rows.push(['Consumer debt', `${$(s.consumerDebt)} @ ${pct(s.consumerDebtRate)}`]);
     rows.push(['Consumer debt payoff age', `${payoffAge}`]);
   }
-  if (s.otherDebt > 0) rows.push(['Other debt', $(s.otherDebt)]);
+  if (s.otherDebt > 0) {
+    rows.push(['Other debt', `${$(s.otherDebt)} @ ${pct(s.otherDebtRate || 0.05)}, payoff age ${s.otherDebtPayoffAge || 70}`]);
+  }
 
   rows.push(
     ['Monthly expenses', $(s.monthlyExpenses)],
@@ -121,6 +128,9 @@ export function auditInputSnapshot(scenario) {
   );
   if (s.numberOfChildren > 0) rows.push(['Number of children', s.numberOfChildren]);
   if (s.realEstateValue > 0) rows.push(['Real estate in estate', s.includeRealEstateInEstate ? 'Yes' : 'No']);
+  if (s.realEstateValue > 0 && !s.realEstateIsPrimary && s.estimatedCostBasis != null) {
+    rows.push(['Real estate cost basis', $(s.estimatedCostBasis)]);
+  }
 
   return '## 1. Input Snapshot\n\n' + mdTable(['Field', 'Value'], rows);
 }

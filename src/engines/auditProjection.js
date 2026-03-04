@@ -21,29 +21,45 @@ export function auditProjectionTable(scenario, projectionData) {
 
   // --- Pre-retirement rows ---
   const preRows = projectionData.filter((r) => r.age < retAge);
-  const preHeaders = ['Age', 'Year', 'Emp Inc', 'RRSP Wd', 'Expenses', 'Debt Pmt', 'Tax', 'Surplus', 'RRSP Bal', 'TFSA Bal', 'Portfolio', 'Net Worth'];
+  const preHeaders = ['Age', 'Year', 'Emp Inc', 'Pension', 'NonTaxed', 'RRSP Wd', 'Expenses', 'Debt Pmt', 'Tax', 'After-Tax', 'Surplus', 'RRSP Bal', 'TFSA Bal', 'NonReg Bal', 'Portfolio', 'Net Worth'];
 
   const fmtPreRow = (r) => [
-    r.age, r.year, $(r.employmentIncome), $(r.rrspWithdrawal),
-    $(r.expenses), $(r.debtPayments), $(r.totalTax), $(r.surplus),
-    $(r.rrspBalance), $(r.tfsaBalance), $(r.totalPortfolio), $(r.netWorth),
+    r.age, r.year, $(r.employmentIncome), $(r.pensionIncome), $(r.nonTaxedIncome),
+    $(r.rrspWithdrawal),
+    $(r.expenses), $(r.debtPayments), $(r.totalTax), $(r.afterTaxIncome), $(r.surplus),
+    $(r.rrspBalance), $(r.tfsaBalance), $(r.nonRegBalance), $(r.totalPortfolio), $(r.netWorth),
   ];
 
   // --- Post-retirement rows ---
   const postRows = projectionData.filter((r) => r.age >= retAge);
-  const postHeaders = ['Age', 'Year', 'CPP', 'OAS', 'RRSP Wd', 'TFSA Wd', 'NonReg Wd', 'Expenses', 'Debt Pmt', 'Tax', 'Surplus', 'RRSP Bal', 'Portfolio', 'Net Worth'];
+  const postHeaders = ['Age', 'Year', 'CPP', 'OAS', 'Pension', 'GIS', 'GAINS', 'NonTaxed', 'RRSP Wd', 'TFSA Wd', 'NonReg Wd', 'Other Wd', 'Expenses', 'Debt Pmt', 'Tax', 'After-Tax', 'Surplus', 'RRSP Bal', 'TFSA Bal', 'NonReg Bal', 'Portfolio', 'Net Worth'];
 
   const fmtPostRow = (r) => [
-    r.age, r.year, $(r.cppIncome), $(r.oasIncome),
-    $(r.rrspWithdrawal), $(r.tfsaWithdrawal), $(r.nonRegWithdrawal),
-    $(r.expenses), $(r.debtPayments), $(r.totalTax), $(r.surplus),
-    $(r.rrspBalance), $(r.totalPortfolio), $(r.netWorth),
+    r.age, r.year, $(r.cppIncome), $(r.oasIncome), $(r.pensionIncome),
+    $(r.gisIncome), $(r.gainsIncome), $(r.nonTaxedIncome),
+    $(r.rrspWithdrawal), $(r.tfsaWithdrawal), $(r.nonRegWithdrawal), $(r.otherWithdrawal),
+    $(r.expenses), $(r.debtPayments), $(r.totalTax), $(r.afterTaxIncome), $(r.surplus),
+    $(r.rrspBalance), $(r.tfsaBalance), $(r.nonRegBalance), $(r.totalPortfolio), $(r.netWorth),
   ];
 
   // Find depletion age (first age where portfolio <= 0 past current age)
   const depleted = projectionData.find((r) => r.age > s.currentAge && r.totalPortfolio <= 0);
 
   let md = '## 2. Year-by-Year Projection\n\n';
+
+  // DC/LIRA preamble note
+  const hasDc = (s.dcPensionBalance || 0) > 0;
+  const hasLira = (s.liraBalance || 0) > 0;
+  const hasSpouseDc = s.isCouple && (s.spouseDcPensionBalance || 0) > 0;
+  if (hasDc || hasLira || hasSpouseDc) {
+    md += '> **Note:** ';
+    const parts = [];
+    if (hasDc) parts.push(`DC pension (${$(s.dcPensionBalance)})`);
+    if (hasLira) parts.push(`LIRA (${$(s.liraBalance)})`);
+    if (hasSpouseDc) parts.push(`Spouse DC pension (${$(s.spouseDcPensionBalance)})`);
+    md += parts.join(', ') + ' merged into the RRSP pool at the start. ';
+    md += 'The same real return rate applies. LIRA locked-in restrictions are not modeled.\n\n';
+  }
 
   if (preRows.length > 0) {
     md += '### Pre-Retirement (Ages ' + preRows[0].age + '–' + preRows[preRows.length - 1].age + ')\n\n';
@@ -57,6 +73,20 @@ export function auditProjectionTable(scenario, projectionData) {
 
   if (depleted) {
     md += `**Portfolio depleted at age ${depleted.age}.**\n\n`;
+  }
+
+  // Couple supplement table
+  if (s.isCouple) {
+    md += '### Spouse Detail\n\n';
+    const coupleHeaders = ['Age', 'Sp Age', 'Sp Emp', 'Sp CPP', 'Sp OAS', 'Sp Pension', 'Sp RRSP Wd', 'Sp TFSA Wd', 'Sp RRSP Bal', 'Sp TFSA Bal'];
+    const ageDiff = (s.spouseAge || 0) - s.currentAge;
+    const fmtCoupleRow = (r) => [
+      r.age, r.age + ageDiff,
+      $(r.spouseEmploymentIncome || 0), $(r.spouseCppIncome || 0), $(r.spouseOasIncome || 0),
+      $(r.spousePensionIncome || 0), $(r.spouseRrspWithdrawal || 0), $(r.spouseTfsaWithdrawal || 0),
+      $(r.spouseRrspBalance || 0), $(r.spouseTfsaBalance || 0),
+    ];
+    md += mdTable(coupleHeaders, projectionData.map(fmtCoupleRow)) + '\n\n';
   }
 
   return md;

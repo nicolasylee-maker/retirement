@@ -7,8 +7,8 @@
 
 import { formatCurrency, formatPercent, mdTable } from '../utils/formatters.js';
 import {
-  FEDERAL_BRACKETS, ONTARIO_BRACKETS, ONTARIO_SURTAX,
-  FEDERAL_CREDITS, ONTARIO_CREDITS,
+  FEDERAL_BRACKETS, FEDERAL_CREDITS,
+  PROVINCE_DATA, PROVINCE_NAMES,
 } from '../constants/taxTables.js';
 import { calcTotalTax } from './taxEngine.js';
 
@@ -21,6 +21,8 @@ const pct = (v, d = 1) => formatPercent(v, d);
 
 export function auditTaxVerification(scenario, projectionData) {
   const s = scenario;
+  const province = s.province || 'ON';
+  const provName = PROVINCE_NAMES[province] || province;
 
   // Pick two worked examples:
   // 1) Retirement-age income
@@ -31,7 +33,7 @@ export function auditTaxVerification(scenario, projectionData) {
   const exampleRows = [retRow];
   if (maxRow && maxRow.age !== retRow?.age) exampleRows.push(maxRow);
 
-  let md = '## 4. Tax Verification\n\n';
+  let md = '## 4. Tax Verification (' + provName + ')\n\n';
 
   for (const row of exampleRows) {
     if (!row) continue;
@@ -40,13 +42,13 @@ export function auditTaxVerification(scenario, projectionData) {
     const hasPension = (row.pensionIncome > 0) || (age >= 72 && row.rrspWithdrawal > 0);
 
     md += `### Worked Example: ${$(income)} taxable income, age ${age}${hasPension ? ', pension income' : ''}\n\n`;
-    md += workedTaxExample(income, age, hasPension);
+    md += workedTaxExample(income, age, hasPension, province);
     md += '\n';
 
     // Verify against engine
-    const engineTax = calcTotalTax(income, age, hasPension);
+    const engineTax = calcTotalTax(income, age, hasPension, province);
     const projTax = row.totalTax;
-    md += `**Engine verification**: calcTotalTax(${$(income)}, ${age}, ${hasPension}) = ${$(engineTax)}\n`;
+    md += `**Engine verification**: calcTotalTax(${$(income)}, ${age}, ${hasPension}, '${province}') = ${$(engineTax)}\n`;
     md += `**Projection row tax**: ${$(projTax)}\n`;
     if (Math.abs(engineTax - projTax) > 2) {
       md += `**MISMATCH** — delta ${$(Math.abs(engineTax - projTax))} (may be due to rounding in iterative gross-up)\n`;
@@ -60,8 +62,8 @@ export function auditTaxVerification(scenario, projectionData) {
   const retAge = s.retirementAge;
   const taxRows = incomes.map((inc) => [
     $(inc),
-    $(calcTotalTax(inc, retAge, true)),
-    $(calcTotalTax(inc, 50, false)),
+    $(calcTotalTax(inc, retAge, true, province)),
+    $(calcTotalTax(inc, 50, false, province)),
   ]);
   md += mdTable(['Taxable Income', `Age ${retAge} Tax`, 'Age 50 Tax'], taxRows);
   md += '\n\n';
@@ -69,9 +71,11 @@ export function auditTaxVerification(scenario, projectionData) {
   return md;
 }
 
-function workedTaxExample(income, age, hasPension) {
+function workedTaxExample(income, age, hasPension, province) {
   const fc = FEDERAL_CREDITS;
-  const oc = ONTARIO_CREDITS;
+  const provData = PROVINCE_DATA[province] || PROVINCE_DATA.ON;
+  const provName = PROVINCE_NAMES[province] || province;
+  const pc = provData.credits;
   let md = '';
 
   // Federal
@@ -107,47 +111,49 @@ function workedTaxExample(income, age, hasPension) {
   md += `Federal tax:             ${$(fedFinal)}\n`;
   md += '```\n\n';
 
-  // Ontario
-  md += '**Ontario Tax**:\n```\n';
-  let ontTax = 0;
-  for (const b of ONTARIO_BRACKETS) {
+  // Provincial
+  md += '**' + provName + ' Tax**:\n```\n';
+  let provBracketTax = 0;
+  for (const b of provData.brackets) {
     if (income <= b.min) break;
     const taxable = Math.min(income, b.max) - b.min;
     const tax = taxable * b.rate;
-    ontTax += tax;
+    provBracketTax += tax;
     md += `  ${$(b.min)}–${b.max === Infinity ? '...' : $(b.max)}: ${$(taxable)} x ${(b.rate * 100).toFixed(2)}% = ${$(tax)}\n`;
   }
-  md += `Bracket tax:             ${$(ontTax)}\n`;
+  md += `Bracket tax:             ${$(provBracketTax)}\n`;
 
-  let ontCreditable = oc.basicPersonal;
-  md += `Basic personal credit:   ${$(oc.basicPersonal)} x ${(oc.creditRate * 100).toFixed(2)}% = -${$(oc.basicPersonal * oc.creditRate)}\n`;
+  let provCreditable = pc.basicPersonal;
+  md += `Basic personal credit:   ${$(pc.basicPersonal)} x ${(pc.creditRate * 100).toFixed(2)}% = -${$(pc.basicPersonal * pc.creditRate)}\n`;
 
   if (age >= 65) {
-    const reduction = Math.max(0, income - oc.ageIncomeThreshold) * oc.ageClawbackRate;
-    const ageAmt = Math.max(0, oc.ageAmount - reduction);
-    ontCreditable += ageAmt;
-    md += `Age amount:              ${$(oc.ageAmount)}`;
+    const reduction = Math.max(0, income - (pc.ageIncomeThreshold ?? 0)) * (pc.ageClawbackRate ?? 0);
+    const ageAmt = Math.max(0, (pc.ageAmount || 0) - reduction);
+    provCreditable += ageAmt;
+    md += ('Age amount:').padEnd(25) + $(pc.ageAmount || 0);
     if (reduction > 0) md += ` - ${$(reduction)} clawback = ${$(ageAmt)}`;
-    md += ` x ${(oc.creditRate * 100).toFixed(2)}% = -${$(ageAmt * oc.creditRate)}\n`;
+    md += ` x ${(pc.creditRate * 100).toFixed(2)}% = -${$(ageAmt * pc.creditRate)}\n`;
   }
 
   if (hasPension) {
-    ontCreditable += oc.pensionCredit;
-    md += `Pension credit:          ${$(oc.pensionCredit)} x ${(oc.creditRate * 100).toFixed(2)}% = -${$(oc.pensionCredit * oc.creditRate)}\n`;
+    provCreditable += pc.pensionCredit;
+    md += `Pension credit:          ${$(pc.pensionCredit)} x ${(pc.creditRate * 100).toFixed(2)}% = -${$(pc.pensionCredit * pc.creditRate)}\n`;
   }
 
-  const ontBasic = Math.max(0, ontTax - ontCreditable * oc.creditRate);
-  md += `Basic Ontario tax:       ${$(ontBasic)}\n`;
+  const provBasicTax = Math.max(0, provBracketTax - provCreditable * pc.creditRate);
+  md += ('Basic ' + provName + ' tax:').padEnd(25) + $(provBasicTax) + '\n';
 
-  const st = ONTARIO_SURTAX;
+  const st = provData.surtax;
   let surtax = 0;
-  if (ontBasic > st.threshold1) surtax += (ontBasic - st.threshold1) * st.rate1;
-  if (ontBasic > st.threshold2) surtax += (ontBasic - st.threshold2) * st.rate2;
-  md += `Surtax:                  ${$(surtax)}${surtax === 0 ? ` (basic tax ${$(ontBasic)} < ${$(st.threshold1)} threshold)` : ''}\n`;
-  md += `Ontario tax:             ${$(ontBasic + surtax)}\n`;
+  if (st) {
+    if (provBasicTax > st.threshold1) surtax += (provBasicTax - st.threshold1) * st.rate1;
+    if (provBasicTax > st.threshold2) surtax += (provBasicTax - st.threshold2) * st.rate2;
+    md += `Surtax:                  ${$(surtax)}${surtax === 0 ? ` (basic tax ${$(provBasicTax)} < ${$(st.threshold1)} threshold)` : ''}\n`;
+  }
+  md += (provName + ' tax:').padEnd(25) + $(provBasicTax + surtax) + '\n';
   md += '```\n\n';
 
-  md += `**Total**: ${$(fedFinal)} + ${$(ontBasic + surtax)} = **${$(fedFinal + ontBasic + surtax)}** (effective rate: ${((fedFinal + ontBasic + surtax) / income * 100).toFixed(1)}%)\n\n`;
+  md += `**Total**: ${$(fedFinal)} + ${$(provBasicTax + surtax)} = **${$(fedFinal + provBasicTax + surtax)}** (effective rate: ${((fedFinal + provBasicTax + surtax) / income * 100).toFixed(1)}%)\n\n`;
 
   return md;
 }

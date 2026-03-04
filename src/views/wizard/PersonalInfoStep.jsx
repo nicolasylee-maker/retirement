@@ -2,8 +2,9 @@ import React from 'react';
 import FormField from '../../components/FormField';
 import Card from '../../components/Card';
 import { PROVINCE_NAMES, PROVINCE_CODES } from '../../constants/taxTables.js';
+import { PulsingDot } from '../../components/PulsingDot';
 
-export default function PersonalInfoStep({ scenario, onChange }) {
+export default function PersonalInfoStep({ scenario, onChange, dismissedDots, dismissDot }) {
   const handleChange = (field) => (value) => {
     onChange({ [field]: value });
   };
@@ -44,7 +45,7 @@ export default function PersonalInfoStep({ scenario, onChange }) {
         </div>
         <div className="grid sm:grid-cols-3 gap-4">
           <FormField
-            label="Current Age"
+            label={<>Current Age <PulsingDot id="currentAge" dismissed={dismissedDots?.has('currentAge')} onDismiss={dismissDot} /></>}
             name="currentAge"
             type="number"
             value={scenario.currentAge}
@@ -54,7 +55,7 @@ export default function PersonalInfoStep({ scenario, onChange }) {
             helper="Your age today"
           />
           <FormField
-            label="Retirement Age"
+            label={<>Retirement Age <PulsingDot id="retirementAge" dismissed={dismissedDots?.has('retirementAge')} onDismiss={dismissDot} /></>}
             name="retirementAge"
             type="number"
             value={scenario.retirementAge}
@@ -64,7 +65,7 @@ export default function PersonalInfoStep({ scenario, onChange }) {
             helper="When you plan to stop working"
           />
           <FormField
-            label="Life Expectancy"
+            label={<>Life Expectancy <PulsingDot id="lifeExpectancy" dismissed={dismissedDots?.has('lifeExpectancy')} onDismiss={dismissDot} /></>}
             name="lifeExpectancy"
             type="number"
             value={scenario.lifeExpectancy}

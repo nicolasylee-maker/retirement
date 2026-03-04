@@ -97,6 +97,7 @@ export default function WizardSidePanel({
   onBack,
   onComplete,
   nextDisabled,
+  viewResultsDisabled,
 }) {
   const stepConfig = STEP_SUMMARY[currentStep] ?? STEP_SUMMARY[0];
 
@@ -151,7 +152,7 @@ export default function WizardSidePanel({
         <Button
           variant="secondary"
           onClick={onComplete}
-          disabled={nextDisabled}
+          disabled={viewResultsDisabled}
           className="w-full text-sm"
         >
           View Results

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
 import WizardSidePanel from './WizardSidePanel';
 import { STEP_LABELS, WIZARD_STEPS } from '../../constants/defaults';
@@ -38,6 +38,12 @@ export default function WizardShell({
   const isLastStep = currentStep === WIZARD_STEPS - 1;
   const StepComponent = STEP_COMPONENTS[currentStep];
 
+  const [dismissedDots, setDismissedDots] = useState(new Set());
+  const dismissDot = (id) => setDismissedDots(prev => new Set([...prev, id]));
+
+  const [visitedSteps, setVisitedSteps] = useState(new Set([currentStep]));
+  const allStepsVisited = visitedSteps.size >= WIZARD_STEPS;
+
   const stepErrors = useMemo(() => {
     if (currentStep === 5) return validateLiabilities(scenario);
     return null;
@@ -57,10 +63,13 @@ export default function WizardShell({
     if (isLastStep) {
       localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
       trackEvent('wizard_completed');
+      setVisitedSteps(prev => new Set([...prev, currentStep]));
       onComplete();
     } else {
-      trackEvent('wizard_step_completed', { step: currentStep + 1 });
-      onStepChange(currentStep + 1);
+      const nextStep = currentStep + 1;
+      trackEvent('wizard_step_completed', { step: nextStep });
+      setVisitedSteps(prev => new Set([...prev, nextStep]));
+      onStepChange(nextStep);
     }
   };
 
@@ -175,6 +184,8 @@ export default function WizardShell({
           <StepComponent
             scenario={scenario}
             onChange={onChange}
+            dismissedDots={dismissedDots}
+            dismissDot={dismissDot}
           />
         </div>
 
@@ -192,6 +203,7 @@ export default function WizardShell({
         onBack={handleBack}
         onComplete={onComplete}
         nextDisabled={hasStepErrors}
+        viewResultsDisabled={!allStepsVisited}
       />
 
       {/* Mobile sticky footer — hidden on desktop */}
@@ -212,7 +224,7 @@ export default function WizardShell({
             {isLastStep ? 'Finish' : 'Next'}
           </Button>
         </div>
-        <Button variant="secondary" onClick={onComplete} disabled={hasStepErrors} className="w-full min-h-[44px] text-sm">
+        <Button variant="secondary" onClick={onComplete} disabled={!allStepsVisited} className="w-full min-h-[44px] text-sm">
           View Results
         </Button>
       </div>

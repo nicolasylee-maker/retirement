@@ -523,6 +523,7 @@ export default function App() {
       setUpgradeModalOpen(true);
       return;
     }
+    window.scrollTo(0, 0);
     setView(tabKey);
   }, [isPaid]); // eslint-disable-line react-hooks/exhaustive-deps
   const menuRef = useRef(null);

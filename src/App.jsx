@@ -342,18 +342,9 @@ export default function App() {
 
   const handleChoiceEditPlan = useCallback(() => {
     sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
-    const { skip, scenarioId } = getPickerTarget(scenarios);
-    if (skip) {
-      setCurrentScenarioId(scenarioId);
-      setWizardStep(0);
-      setWhatIfOverrides({});
-      setWizardIsNew(false);
-      setView('wizard');
-    } else {
-      setPickerAction('edit');
-      setView('scenario-picker');
-    }
-  }, [scenarios]);
+    setPickerAction('edit');
+    setView('scenario-picker');
+  }, []);
 
   const handleChoiceCreateNew = useCallback(() => {
     sessionStorage.setItem(CHOICE_SEEN_KEY, '1');

@@ -64,7 +64,7 @@ function CustomTooltip({ active, payload }) {
   );
 }
 
-export default function IncomeExpenseChart({ projectionData }) {
+export default function IncomeExpenseChart({ projectionData, scenario }) {
   if (!projectionData || projectionData.length === 0) return null;
 
   // Determine which income sources have non-zero values
@@ -156,6 +156,26 @@ export default function IncomeExpenseChart({ projectionData }) {
           )}
         </ComposedChart>
       </ResponsiveContainer>
+
+      {/* Key assumptions */}
+      {scenario && (
+        <div className="mt-4 pt-3 border-t border-gray-100">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            Key Assumptions
+          </p>
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600">
+            <span>Return: <strong className="text-gray-900">{(scenario.realReturn * 100).toFixed(1)}%</strong></span>
+            <span>Inflation: <strong className="text-gray-900">{(scenario.inflationRate * 100).toFixed(1)}%</strong></span>
+            <span>Expenses: <strong className="text-gray-900">${scenario.monthlyExpenses?.toLocaleString()}/mo</strong></span>
+            <span>CPP: <strong className="text-gray-900">${scenario.cppMonthly?.toLocaleString()}/mo @ {scenario.cppStartAge}</strong></span>
+            <span>OAS: <strong className="text-gray-900">${scenario.oasMonthly?.toLocaleString()}/mo @ {scenario.oasStartAge}</strong></span>
+            {scenario.pensionType === 'db' && scenario.dbPensionAnnual > 0 && (
+              <span>Pension: <strong className="text-gray-900">${scenario.dbPensionAnnual.toLocaleString()}/yr</strong></span>
+            )}
+            <span>Tax tables: <strong className="text-gray-900">2025 federal + provincial</strong></span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

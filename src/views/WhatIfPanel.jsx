@@ -95,11 +95,18 @@ export default function WhatIfPanel({ scenario, overrides, onOverrideChange, onR
                      hover:bg-gray-50 transition-colors duration-150 focus:outline-none
                      focus:ring-2 focus:ring-sunset-400 focus:ring-inset"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="w-8 h-8 rounded-full bg-sunset-100 flex items-center justify-center">
               {panelIcon}
             </div>
-            <span className="text-lg font-semibold text-gray-900">What If?</span>
+            <div>
+              <span className="text-lg font-semibold text-gray-900">What If?</span>
+              {!expanded && (
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Adjust return, inflation, expenses &amp; life expectancy to stress-test your plan
+                </p>
+              )}
+            </div>
             <svg
               className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}

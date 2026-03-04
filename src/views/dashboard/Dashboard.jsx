@@ -126,7 +126,7 @@ export default function Dashboard({
           </div>
 
           <div id="income-chart">
-            <IncomeExpenseChart projectionData={projectionData} />
+            <IncomeExpenseChart projectionData={projectionData} scenario={scenario} />
           </div>
 
           <div id="withdrawal-chart">
@@ -134,7 +134,7 @@ export default function Dashboard({
           </div>
 
           <div id="account-chart">
-            <AccountChart projectionData={projectionData} />
+            <AccountChart projectionData={projectionData} scenario={scenario} />
           </div>
 
           <div id="milestones">

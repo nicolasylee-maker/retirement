@@ -461,6 +461,9 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') === 'cancelled') {
       history.replaceState(null, '', window.location.pathname);
+      // ANON_SESSION_KEY may cause view initializer to land on wizard even for
+      // authenticated users; anyone reaching Stripe checkout should go to dashboard.
+      setView(v => v === 'wizard' ? 'dashboard' : v);
     } else if (params.get('checkout') === 'success') {
       setCheckoutSuccess(true);
       setCheckoutPending(true);

@@ -3,9 +3,11 @@ import Dashboard from '../../dashboard/Dashboard'
 import EstateView from '../../estate/EstateView'
 import DebtView from '../../debt/DebtView'
 import CompareView from '../../compare/CompareView'
+import VisualAudit from '../../audit/VisualAudit'
 import { projectScenario } from '../../../engines/projectionEngine'
 import { openPrintReport } from '../../../utils/openPrintReport'
 import { downloadAudit } from '../../../utils/downloadAudit'
+import { downloadExcelAudit } from '../../../utils/excel/index.js'
 
 const TABS = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -17,6 +19,7 @@ const TABS = [
 export default function ScenarioPreviewModal({ scenario, userEmail, onClose }) {
   const [tab, setTab] = useState('dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [visualAuditOpen, setVisualAuditOpen] = useState(false)
   const menuRef = useRef(null)
   const projectionData = useMemo(() => projectScenario(scenario), [scenario])
 
@@ -81,6 +84,19 @@ export default function ScenarioPreviewModal({ scenario, userEmail, onClose }) {
                   className="menu-item w-full text-left"
                 >
                   Calculation Audit
+                </button>
+                <div className="border-t border-gray-100 my-1.5 mx-3" />
+                <button
+                  onClick={() => { downloadExcelAudit(scenario, projectionData); setMenuOpen(false) }}
+                  className="menu-item w-full text-left"
+                >
+                  📊 Excel Audit
+                </button>
+                <button
+                  onClick={() => { setVisualAuditOpen(true); setMenuOpen(false) }}
+                  className="menu-item w-full text-left"
+                >
+                  📊 Visual Audit Report
                 </button>
                 <div className="border-t border-gray-100 my-1.5 mx-3" />
                 <button onClick={handleExport} className="menu-item w-full text-left">
@@ -155,6 +171,14 @@ export default function ScenarioPreviewModal({ scenario, userEmail, onClose }) {
           />
         )}
       </div>
+
+      {visualAuditOpen && (
+        <VisualAudit
+          scenario={scenario}
+          projectionData={projectionData}
+          onClose={() => setVisualAuditOpen(false)}
+        />
+      )}
     </div>
   )
 }

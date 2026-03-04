@@ -4,6 +4,8 @@ import { createDefaultScenario } from './constants/defaults';
 import { projectScenario } from './engines/projectionEngine';
 import { openPrintReport } from './utils/openPrintReport';
 import { downloadAudit } from './utils/downloadAudit';
+import { downloadExcelAudit } from './utils/excel/index.js';
+import VisualAudit from './views/audit/VisualAudit';
 import { openBillingPortal } from './services/stripeService';
 import WizardShell from './views/wizard/WizardShell';
 import Dashboard from './views/dashboard/Dashboard';
@@ -453,6 +455,7 @@ export default function App() {
   const [signInOpen, setSignInOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [visualAuditOpen, setVisualAuditOpen] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(false);
   const GATED_TABS = new Set(['compare', 'estate']);
@@ -643,7 +646,16 @@ export default function App() {
                         <button onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData, optimizationResult))}
                           className="menu-item">Calculation Audit</button>
                       )}
-                      <div className="border-t border-gray-100 my-1.5 mx-3" />
+                      {isAdmin && currentScenario && (
+                        <>
+                          <div className="border-t border-gray-100 my-1.5 mx-3" />
+                          <button onClick={menuAction(() => downloadExcelAudit(effectiveScenario, projectionData, optimizationResult))}
+                            className="menu-item">📊 Excel Audit</button>
+                          <button onClick={menuAction(() => setVisualAuditOpen(true))}
+                            className="menu-item">📊 Visual Audit Report</button>
+                          <div className="border-t border-gray-100 my-1.5 mx-3" />
+                        </>
+                      )}
                       <button onClick={menuAction(handleExport)} className="menu-item">Export</button>
                       <GatedButton featureName="Multiple Plans" onClick={menuAction(() => importInputRef.current?.click())} className="menu-item w-full text-left">Import</GatedButton>
                       <div className="border-t border-gray-100 my-1.5 mx-3" />
@@ -864,6 +876,14 @@ export default function App() {
         <ContactModal
           userEmail={authUser?.email ?? ''}
           onClose={() => setContactOpen(false)}
+        />
+      )}
+
+      {visualAuditOpen && currentScenario && (
+        <VisualAudit
+          scenario={effectiveScenario}
+          projectionData={projectionData}
+          onClose={() => setVisualAuditOpen(false)}
         />
       )}
     </div>

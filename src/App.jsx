@@ -36,6 +36,13 @@ import { buildDashboardAiData, buildDebtAiData, buildCompareAiData, buildEstateA
 const WIZARD_CHECKPOINT_KEY = 'rp-wizard-step';
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
 
+function uniqueName(base, existingNames) {
+  if (!existingNames.includes(base)) return base;
+  let i = 2;
+  while (existingNames.includes(`${base} ${i}`)) i++;
+  return `${base} ${i}`;
+}
+
 const NAV_TABS = [
   { key: 'dashboard', label: 'Dashboard', icon: (
     <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -47,11 +54,6 @@ const NAV_TABS = [
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
     </svg>
   )},
-  { key: 'recommendations', label: 'Optimize', icon: (
-    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
-    </svg>
-  )},
   { key: 'compare', label: 'Compare', icon: (
     <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -60,6 +62,11 @@ const NAV_TABS = [
   { key: 'estate', label: 'Estate', icon: (
     <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  )},
+  { key: 'recommendations', label: 'Optimize', special: true, icon: (
+    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
     </svg>
   )},
 ];
@@ -253,17 +260,20 @@ export default function App() {
     let name = typeof newName === 'string' ? newName : null;
     if (!name) name = prompt('Rename scenario:', currentScenario?.name || '');
     if (!name?.trim() || name.trim() === currentScenario?.name) return;
-    const renamed = { ...currentScenario, name: name.trim() };
+    const otherNames = scenarios.filter(s => s.id !== currentScenarioId).map(s => s.name);
+    const finalName = uniqueName(name.trim(), otherNames);
+    const renamed = { ...currentScenario, name: finalName };
     setScenarios((prev) => prev.map((s) => (s.id === currentScenarioId ? renamed : s)));
     if (authUser) {
       saveScenario(authUser.id, renamed).catch((err) =>
         console.error('[rename] cloud save failed:', err)
       );
     }
-  }, [currentScenario, currentScenarioId, authUser]);
+  }, [currentScenario, currentScenarioId, authUser, scenarios]);
 
   const handleStartNew = useCallback(() => {
-    const newScenario = createDefaultScenario('My Plan');
+    const name = uniqueName('My Plan', scenarios.map(s => s.name));
+    const newScenario = createDefaultScenario(name);
     setScenarios((prev) => [...prev, newScenario]);
     setCurrentScenarioId(newScenario.id);
     setWizardStep(0);
@@ -275,7 +285,7 @@ export default function App() {
         console.error('[start-new] cloud save failed:', err)
       );
     }
-  }, [authUser]);
+  }, [authUser, scenarios]);
 
   const handleLoadScenario = useCallback(async (jsonData) => {
     let loaded = [];
@@ -388,7 +398,8 @@ export default function App() {
   }, []);
 
   const handleDuplicateScenario = useCallback(() => {
-    const copy = { ...currentScenario, id: uid(), name: `${currentScenario.name} (copy)`, createdAt: new Date().toISOString() };
+    const copyName = uniqueName(`${currentScenario.name} (copy)`, scenarios.map(s => s.name));
+    const copy = { ...currentScenario, id: uid(), name: copyName, createdAt: new Date().toISOString() };
     setScenarios((prev) => [...prev, copy]);
     setCurrentScenarioId(copy.id);
     setWhatIfOverrides({});
@@ -397,7 +408,7 @@ export default function App() {
         console.error('[duplicate] cloud save failed:', err)
       );
     }
-  }, [currentScenario, authUser]);
+  }, [currentScenario, authUser, scenarios]);
 
   const handleDeleteScenario = useCallback((id) => {
     setScenarios((prev) => {
@@ -663,13 +674,15 @@ export default function App() {
           )}
         </div>{/* end header inner */}
 
-        <nav className="px-4 sm:px-6 lg:px-10 pb-2 flex gap-0.5 sm:gap-1">
+        <nav className="px-4 sm:px-6 lg:px-10 pb-2 flex gap-0.5 sm:gap-1 overflow-x-auto scrollbar-hide">
           {NAV_TABS.map((tab) => (
             <button key={tab.key} type="button" onClick={() => handleTabClick(tab.key)}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
-                view === tab.key ? 'bg-sunset-50 text-sunset-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 whitespace-nowrap ${
+                tab.special
+                  ? (view === tab.key ? 'bg-purple-50 text-purple-700' : 'text-purple-400 hover:text-purple-600 hover:bg-purple-50')
+                  : (view === tab.key ? 'bg-sunset-50 text-sunset-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100')
               }`}>
-              {tab.icon}
+              <span className="hidden sm:inline">{tab.icon}</span>
               {tab.label}
             </button>
           ))}

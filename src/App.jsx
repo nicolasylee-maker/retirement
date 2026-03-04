@@ -232,6 +232,7 @@ export default function App() {
     const fallback = createDefaultScenario('My Plan');
     setScenarios(prev => prev.length > 0 ? prev : [fallback]);
     setCurrentScenarioId(prev => prev || fallback.id);
+    sessionStorage.setItem(CHOICE_SEEN_KEY, '1'); // skip returning-home for new users
     setView(prev => prev === 'landing' ? 'wizard' : prev);
   }, []);
 
@@ -623,9 +624,6 @@ export default function App() {
                       <div className="border-t border-gray-100 my-1.5 mx-3" />
                     </>
                   )}
-
-                  <button onClick={menuAction(() => { if (confirm('Clear everything and start over?')) { localStorage.clear(); location.reload(); } })}
-                    className="menu-item text-gray-400 hover:!text-gray-600">Start Over</button>
 
                   {authUser && scenarios.length > 1 && (
                     <>

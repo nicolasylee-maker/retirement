@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { adminApi } from '../../../services/adminService'
+import ScenarioPreviewModal from './ScenarioPreviewModal'
 
 export default function UserScenariosPanel({ userId, userEmail, onClose }) {
   const [scenarios, setScenarios] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [previewScenario, setPreviewScenario] = useState(null)
 
   useEffect(() => {
     setLoading(true)
@@ -37,13 +39,26 @@ export default function UserScenariosPanel({ userId, userEmail, onClose }) {
             <p className="text-sm text-gray-400">No scenarios.</p>
           )}
           {scenarios.map(s => (
-            <div key={s.id} className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <button
+              key={s.id}
+              onClick={() => setPreviewScenario({ id: s.id, name: s.name, ...s.data })}
+              className="w-full text-left mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200
+                         hover:border-purple-300 hover:bg-purple-50/40 transition-colors cursor-pointer"
+            >
               <p className="font-medium text-gray-800 text-sm mb-1">{s.name}</p>
               <p className="text-xs text-gray-400">{new Date(s.created_at).toLocaleDateString('en-CA')}</p>
-            </div>
+              <p className="text-xs text-purple-500 mt-1">Click to preview →</p>
+            </button>
           ))}
         </div>
       </div>
+      {previewScenario && (
+        <ScenarioPreviewModal
+          scenario={previewScenario}
+          userEmail={userEmail}
+          onClose={() => setPreviewScenario(null)}
+        />
+      )}
     </div>
   )
 }

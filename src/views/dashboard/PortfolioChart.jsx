@@ -238,13 +238,11 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
     <ReferenceLine
       key="retire-sep" x={scenario.retirementAge}
       stroke={COLORS.gray[200]} strokeDasharray="2 3" strokeWidth={1}
-      label={<PhaseLabel label="Retired" />}
     />,
     ...(depletionRow ? [
       <ReferenceLine
         key="deplete-sep" x={depletionRow.age}
         stroke={COLORS.danger} strokeDasharray="2 3" strokeWidth={1} opacity={0.4}
-        label={<PhaseLabel label="Benefits only" />}
       />,
     ] : []),
   ] : [];
@@ -460,8 +458,8 @@ export default function PortfolioChart({ projectionData, scenario, forceView, ch
           <span>Return: <strong className="text-gray-900">{(scenario.realReturn * 100).toFixed(1)}%</strong></span>
           <span>Inflation: <strong className="text-gray-900">{(scenario.inflationRate * 100).toFixed(1)}%</strong></span>
           <span>Expenses: <strong className="text-gray-900">${scenario.monthlyExpenses?.toLocaleString()}/mo</strong></span>
-          <span>CPP: <strong className="text-gray-900">${scenario.cppMonthly}/mo @ {scenario.cppStartAge}</strong></span>
-          <span>OAS: <strong className="text-gray-900">${scenario.oasMonthly}/mo @ {scenario.oasStartAge}</strong></span>
+          <span>CPP: <strong className="text-gray-900">${scenario.cppMonthly?.toLocaleString()}/mo @ {scenario.cppStartAge}</strong></span>
+          <span>OAS: <strong className="text-gray-900">${scenario.oasMonthly?.toLocaleString()}/mo @ {scenario.oasStartAge}</strong></span>
           {scenario.pensionType === 'db' && scenario.dbPensionAnnual > 0 && (
             <span>Pension: <strong className="text-gray-900">${scenario.dbPensionAnnual.toLocaleString()}/yr</strong></span>
           )}

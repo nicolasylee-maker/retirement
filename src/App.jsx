@@ -724,18 +724,15 @@ export default function App() {
           )}
           {view === 'dashboard' && currentScenario && (
             <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4 pb-20 md:pb-4">
-              {isPaid
-                ? <WhatIfPanel scenario={currentScenario} overrides={whatIfOverrides}
-                    onOverrideChange={handleOverrideChange} onReset={handleResetOverrides}
-                    expanded={whatIfExpanded} onToggle={() => {
-                      setWhatIfExpanded(v => {
-                        const next = !v;
-                        if (authUser) localStorage.setItem(`whatif-expanded:${authUser.id}`, String(next));
-                        return next;
-                      });
-                    }} />
-                : <UpgradePrompt variant="compact" featureName="What-If Analysis" onUpgrade={() => setUpgradeModalOpen(true)} />
-              }
+              <WhatIfPanel scenario={currentScenario} overrides={whatIfOverrides}
+                onOverrideChange={handleOverrideChange} onReset={handleResetOverrides}
+                expanded={whatIfExpanded} onToggle={() => {
+                  setWhatIfExpanded(v => {
+                    const next = !v;
+                    if (authUser) localStorage.setItem(`whatif-expanded:${authUser.id}`, String(next));
+                    return next;
+                  });
+                }} />
               <Dashboard scenario={effectiveScenario} projectionData={projectionData}
                 onScenarioChange={handleScenarioChange} isPaid={isPaid}
                 aiInsights={effectiveScenario.aiInsights} onSaveInsight={handleSaveInsight} />

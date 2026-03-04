@@ -40,7 +40,7 @@ function CustomTooltip({ active, payload }) {
   );
 }
 
-export default function AccountChart({ projectionData }) {
+export default function AccountChart({ projectionData, scenario }) {
   if (!projectionData || projectionData.length === 0) return null;
 
   return (
@@ -88,6 +88,28 @@ export default function AccountChart({ projectionData }) {
           ))}
         </AreaChart>
       </ResponsiveContainer>
+
+      {/* Key assumptions */}
+      {scenario && (
+        <div className="mt-4 pt-3 border-t border-gray-100">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            Key Assumptions
+          </p>
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600">
+            <span>Return: <strong className="text-gray-900">{(scenario.realReturn * 100).toFixed(1)}%</strong></span>
+            <span>Inflation: <strong className="text-gray-900">{(scenario.inflationRate * 100).toFixed(1)}%</strong></span>
+            <span>Expenses: <strong className="text-gray-900">${scenario.monthlyExpenses?.toLocaleString()}/mo</strong></span>
+            <span>
+              Order: <strong className="text-gray-900">
+                {(scenario.withdrawalOrder || ['tfsa', 'nonReg', 'rrsp', 'other'])
+                  .map(k => ({ tfsa: 'TFSA', nonReg: 'Non-Reg', rrsp: 'RRSP', other: 'Other' }[k]))
+                  .join(' → ')}
+              </strong>
+            </span>
+            <span>Tax tables: <strong className="text-gray-900">2025 federal + provincial</strong></span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

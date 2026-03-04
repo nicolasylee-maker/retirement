@@ -129,10 +129,10 @@ export default function WithdrawalChart({ projectionData, scenario }) {
             Expenses: <strong className="text-gray-900">${scenario.monthlyExpenses?.toLocaleString()}/mo</strong>
           </span>
           <span>
-            CPP: <strong className="text-gray-900">${scenario.cppMonthly}/mo @ {scenario.cppStartAge}</strong>
+            CPP: <strong className="text-gray-900">${scenario.cppMonthly?.toLocaleString()}/mo @ {scenario.cppStartAge}</strong>
           </span>
           <span>
-            OAS: <strong className="text-gray-900">${scenario.oasMonthly}/mo @ {scenario.oasStartAge}</strong>
+            OAS: <strong className="text-gray-900">${scenario.oasMonthly?.toLocaleString()}/mo @ {scenario.oasStartAge}</strong>
           </span>
           {scenario.pensionType === 'db' && scenario.dbPensionAnnual > 0 && (
             <span>

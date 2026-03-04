@@ -646,17 +646,14 @@ export default function App() {
                           onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
                           className="menu-item w-full text-left">PDF Report</GatedButton>
                       )}
+                      {currentScenario && (
+                        <GatedButton featureName="Excel Report" bypass={isAdmin}
+                          onClick={menuAction(() => downloadExcelAudit(effectiveScenario, projectionData, optimizationResult))}
+                          className="menu-item w-full text-left">📊 Excel Report</GatedButton>
+                      )}
                       {isAdmin && currentScenario && (
                         <button onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData, optimizationResult))}
                           className="menu-item">Calculation Audit</button>
-                      )}
-                      {isAdmin && currentScenario && (
-                        <>
-                          <div className="border-t border-gray-100 my-1.5 mx-3" />
-                          <button onClick={menuAction(() => downloadExcelAudit(effectiveScenario, projectionData, optimizationResult))}
-                            className="menu-item">📊 Excel Audit</button>
-                          <div className="border-t border-gray-100 my-1.5 mx-3" />
-                        </>
                       )}
                       <button onClick={menuAction(handleExport)} className="menu-item">Export</button>
                       <GatedButton featureName="Multiple Plans" onClick={menuAction(() => importInputRef.current?.click())} className="menu-item w-full text-left">Import</GatedButton>

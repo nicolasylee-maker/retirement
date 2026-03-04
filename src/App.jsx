@@ -113,7 +113,10 @@ export default function App() {
   });
   const [view, setView] = useState(() => {
     const saved = loadSaved();
-    if (saved?.scenarios?.length > 0) return 'dashboard';
+    if (saved?.scenarios?.length > 0) {
+      if (sessionStorage.getItem(ANON_SESSION_KEY)) return 'wizard'; // anonymous: never start at dashboard
+      return 'dashboard';
+    }
     return 'landing';
   });
   const [wizardStep, setWizardStep] = useState(() => {

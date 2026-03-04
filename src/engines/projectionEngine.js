@@ -11,7 +11,7 @@ export function projectScenario(scenario, overrides = {}) {
   let rrsp = (s.rrspBalance || 0) + (s.rrifBalance || 0) + (s.dcPensionBalance || 0) + (s.liraBalance || 0);
   let tfsa = s.tfsaBalance || 0;
   let nonReg = (s.nonRegInvestments || 0) + (s.cashSavings || 0);
-  let other = s.otherAssets || 0;
+  let other = (s.otherAssets || 0) + (s.otherRegisteredBalance || 0);
   let nonRegCostBasis = s.nonRegCostBasis || nonReg;
   let mortgage = s.mortgageBalance || 0;
   let consumer = s.consumerDebt || 0;
@@ -41,7 +41,7 @@ export function projectScenario(scenario, overrides = {}) {
     if (age >= 72 && !rrifConverted) rrifConverted = true;
 
     let baseExpenses = (s.monthlyExpenses ?? 4000) * 12;
-    if (retired) {
+    if (retired && s.retirementAge > s.currentAge) {
       baseExpenses *= (1 - (s.expenseReductionAtRetirement || 0));
     }
     const expenses = baseExpenses * inflationFactor;

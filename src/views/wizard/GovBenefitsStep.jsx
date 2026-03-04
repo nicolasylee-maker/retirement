@@ -174,6 +174,11 @@ export default function GovBenefitsStep({ scenario, onChange, dismissedDots, dis
               <p className="text-xs text-gray-500 mt-0.5">
                 Extra monthly money for seniors with limited retirement income (income under ~$21K single / ~$28K couple)
               </p>
+              {scenario.gisEligible && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 mt-1.5">
+                  GIS is for low-income retirees. It's reduced if your total annual income (excluding OAS) is above ~$21,000 (single) or ~$28,000 (couple). Most people with significant RRSP or pension income won't qualify.
+                </p>
+              )}
             </div>
           </label>
 
@@ -193,6 +198,11 @@ export default function GovBenefitsStep({ scenario, onChange, dismissedDots, dis
                 <p className="text-xs text-gray-500 mt-0.5">
                   Ontario-only top-up for seniors already receiving GIS — provides a bit more each month
                 </p>
+                {scenario.gainsEligible && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 mt-1.5">
+                    GAINS is for Ontario residents with annual income under ~$16,500 (single) or ~$23,000 (couple).
+                  </p>
+                )}
               </div>
             </label>
           )}

@@ -44,7 +44,7 @@ export default function SavingsStep({ scenario, onChange, dismissedDots, dismiss
             onChange={handleChange('rrspContributionRoom')}
             prefix="$"
             min={0}
-            helper="How much more you can still put in — listed on your CRA Notice of Assessment or My Account"
+            helper="How much more you can still put in — listed on your CRA Notice of Assessment or My Account. For reference only — catch-up RRSP contributions are not modeled in projections."
           />
         </div>
       </Card>
@@ -148,16 +148,6 @@ export default function SavingsStep({ scenario, onChange, dismissedDots, dismiss
               prefix="$"
               min={0}
               helper="Spouse's TFSA balance today"
-            />
-            <FormField
-              label="Spouse TFSA Contribution Room"
-              name="spouseTfsaContributionRoom"
-              type="number"
-              value={scenario.spouseTfsaContributionRoom}
-              onChange={handleChange('spouseTfsaContributionRoom')}
-              prefix="$"
-              min={0}
-              helper="How much more your spouse can contribute to their TFSA"
             />
           </div>
         </Card>

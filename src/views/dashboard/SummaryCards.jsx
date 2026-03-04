@@ -16,7 +16,25 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
 
   if (!retirementRow) return null;
 
-  const surplus = retirementRow.afterTaxIncome - retirementRow.expenses - retirementRow.debtPayments;
+  // Real income = sources that aren't drawing down savings
+  const realIncome = (retirementRow.employmentIncome || 0)
+    + retirementRow.cppIncome + retirementRow.oasIncome
+    + (retirementRow.gisIncome || 0) + (retirementRow.gainsIncome || 0)
+    + (retirementRow.pensionIncome || 0)
+    + (retirementRow.spouseEmploymentIncome || 0)
+    + (retirementRow.spouseCppIncome || 0) + (retirementRow.spouseOasIncome || 0)
+    + (retirementRow.spousePensionIncome || 0);
+
+  const totalWithdrawals = (retirementRow.rrspWithdrawal || 0)
+    + (retirementRow.tfsaWithdrawal || 0)
+    + (retirementRow.nonRegWithdrawal || 0)
+    + (retirementRow.otherWithdrawal || 0)
+    + (retirementRow.spouseRrspWithdrawal || 0)
+    + (retirementRow.spouseTfsaWithdrawal || 0);
+
+  const engineSurplus = retirementRow.afterTaxIncome - retirementRow.expenses - retirementRow.debtPayments;
+  // If withdrawals are needed, that IS the shortfall
+  const surplus = totalWithdrawals > 0 ? -totalWithdrawals : engineSurplus;
   const surplusPositive = surplus >= 0;
   const effTaxRate = retirementRow.totalTaxableIncome > 0
     ? ((retirementRow.totalTax / retirementRow.totalTaxableIncome) * 100).toFixed(1)
@@ -159,10 +177,10 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
   const retExpPct = ((1 - scenario.expenseReductionAtRetirement) * 100).toFixed(0);
 
   const surplusHelp = {
-    title: surplusPositive ? 'Annual Surplus' : 'Annual Deficit',
+    title: surplusPositive ? 'Annual Surplus' : 'Annual Shortfall',
     subtitle: surplusPositive
       ? 'Good news — your income covers your expenses with room to spare.'
-      : 'Your expenses exceed your income — you\'ll need to draw down savings to cover the gap.',
+      : `Your real income doesn't cover expenses — ${formatCurrency(totalWithdrawals)}/yr is drawn from savings.`,
     sections: [
       {
         heading: 'The math',
@@ -178,7 +196,7 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
       {
         heading: 'Result',
         items: [
-          { label: surplusPositive ? 'Annual Surplus' : 'Annual Deficit', value: surplus,
+          { label: surplusPositive ? 'Annual Surplus' : 'Annual Shortfall', value: surplus,
             negative: !surplusPositive,
             color: surplusPositive ? '#22c55e' : '#ef4444',
             sub: surplusPositive
@@ -249,22 +267,24 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
       />
       <SummaryCard
         label="Income"
-        value={formatCurrency(retirementRow.totalIncome)}
-        subtitle="Annual, first year"
+        value={formatCurrency(realIncome)}
+        subtitle={`Annual, age ${scenario.retirementAge}`}
         richHelp={incomeHelp}
         color="lake"
+        secondaryValue={totalWithdrawals > 0 ? formatCurrency(totalWithdrawals) : null}
+        secondaryLabel={totalWithdrawals > 0 ? 'from savings' : null}
       />
       <SummaryCard
         label="Tax"
         value={formatCurrency(retirementRow.totalTax)}
-        subtitle="Annual, first year"
+        subtitle={`Annual, age ${scenario.retirementAge}`}
         richHelp={taxHelp}
         color="danger"
       />
       <SummaryCard
-        label={surplusPositive ? 'Surplus' : 'Deficit'}
-        value={formatCurrency(Math.abs(surplus))}
-        subtitle={surplusPositive ? 'Income > expenses' : 'Expenses > income'}
+        label={surplusPositive ? 'Surplus' : 'Shortfall'}
+        value={`${surplusPositive ? '' : '-'}${formatCurrency(Math.abs(surplus))}/yr`}
+        subtitle={surplusPositive ? 'Income > expenses' : 'Funded from savings'}
         richHelp={surplusHelp}
         color={surplusPositive ? 'forest' : 'danger'}
       />

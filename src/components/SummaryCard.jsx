@@ -9,7 +9,7 @@ const accentColors = {
   danger: 'bg-red-500',
 };
 
-export default function SummaryCard({ label, value, subtitle, color = 'sunset', help, richHelp, pulse = false }) {
+export default function SummaryCard({ label, value, subtitle, color = 'sunset', help, richHelp, pulse = false, secondaryValue, secondaryLabel }) {
   const accent = accentColors[color] || accentColors.sunset;
 
   return (
@@ -21,6 +21,9 @@ export default function SummaryCard({ label, value, subtitle, color = 'sunset', 
           {richHelp ? <span className="hidden sm:inline-flex items-center"><RichTooltip {...richHelp} pulse={pulse} /></span> : help && <HelpIcon text={help} />}
         </p>
         <p className="text-base sm:text-xl lg:text-2xl font-bold text-gray-900 mt-1 tabular-nums leading-tight truncate">{value}</p>
+        {secondaryValue && (
+          <p className="text-[11px] text-gray-400 italic mt-0.5 truncate">+ {secondaryValue} {secondaryLabel}</p>
+        )}
         {subtitle && (
           <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
         )}

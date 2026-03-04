@@ -5,20 +5,29 @@
 import {
   FONTS, COLORS, FMT,
   styleHeaderRow, styleSectionRow, setColWidths,
+  addPurposeRows, addDocCell,
 } from './styles.js';
 import { PROVINCE_DATA, PROBATE } from '../../constants/taxTables.js';
+import { FIRST_DATA as PROJ_FIRST_DATA } from './sheetProjection.js';
 
 const SHEET_NAME = 'Estate';
+const PURPOSE_ROWS = 3; // rows 1-2 purpose + row 3 blank
 
 export function buildEstateSheet(wb, scenario, projectionData) {
   const ws = wb.addWorksheet(SHEET_NAME, { properties: { tabColor: { argb: 'FF7030A0' } } });
   setColWidths(ws, [[1, 28], [2, 18], [3, 18]]);
 
+  // Purpose rows (1-2)
+  addPurposeRows(ws,
+    'What happens to your money when you die. This shows how much your heirs actually receive ' +
+    'after the government takes its share in taxes and probate fees.',
+    1, 3);
+
   const lastAge = scenario.lifeExpectancy;
   const numYears = lastAge - scenario.currentAge + 1;
-  const lastProjRow = 2 + numYears; // row in Projection sheet
+  const lastProjRow = PROJ_FIRST_DATA + numYears - 1; // last data row in Projection
 
-  let r = 1;
+  let r = PURPOSE_ROWS + 1; // start at row 4
 
   // Title
   const titleRow = ws.getRow(r);
@@ -189,6 +198,29 @@ export function buildEstateSheet(wb, scenario, projectionData) {
   ws.getRow(r).getCell(2).value = { formula: `${totalPortCell}+${realEstCell}-${mortBalCell}-${totalTaxCell}-${probateFeeCell}` };
   ws.getRow(r).getCell(2).numFmt = FMT.currency;
   ws.getRow(r).getCell(2).font = { ...FONTS.bold, size: 13 };
+  r += 2;
+
+  // === Dictionary ===
+  const dictHdr = ws.getRow(r);
+  dictHdr.getCell(1).value = 'COLUMN DICTIONARY';
+  dictHdr.getCell(1).font = { ...FONTS.bold, size: 12 };
+  r++;
+
+  const dictEntries = [
+    ['RRSP/RRIF at Death',  'Full balance is treated as income in your final tax return'],
+    ['Deemed Income Tax',   'Tax owed on RRSP + capital gains as if you sold everything at death'],
+    ['Capital Gains',       'Taxable gain on non-reg investments and investment real estate (50% inclusion)'],
+    ['Probate Estate',      'Assets that go through probate (portfolio + real estate - TFSA - mortgage)'],
+    ['Probate Fees',        'Provincial fee for validating your will (varies by province)'],
+    ['Net to Heirs',        'What your beneficiaries actually receive after all deductions'],
+  ];
+
+  for (const [term, desc] of dictEntries) {
+    addDocCell(ws, r, 1, term);
+    ws.getRow(r).getCell(1).font = { ...FONTS.small, bold: true };
+    addDocCell(ws, r, 2, desc);
+    r++;
+  }
 
   return ws;
 }

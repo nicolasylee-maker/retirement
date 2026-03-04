@@ -5,11 +5,13 @@
 import {
   FONTS, COLORS, FMT,
   styleHeaderRow, freezeRows, setColWidths,
+  addPurposeRows, addDocCell,
 } from './styles.js';
 
 const SHEET_NAME = 'Projection';
-const HDR_ROW = 2;
-const FIRST_DATA = 3; // row 3 = first year
+const PURPOSE_ROWS = 3; // rows 1-2 purpose + row 3 blank
+const HDR_ROW = PURPOSE_ROWS + 2; // row 5
+export const FIRST_DATA = PURPOSE_ROWS + 3; // row 6 = first year
 
 // Column letters (A=1)
 const C = {
@@ -30,6 +32,7 @@ const C = {
   tfsaDeposit: 'AK',
   rrspBal: 'AL', tfsaBal: 'AM', nonRegBal: 'AN', otherBal: 'AO',
   mortgageBal: 'AP', totalPortfolio: 'AQ', netWorth: 'AR',
+  nonRegCostBasis: 'AS',
 };
 
 const HEADERS = [
@@ -49,7 +52,7 @@ const HEADERS = [
    'After-Tax Income','Surplus',
    'TFSA Deposit',
    'RRSP Bal','TFSA Bal','NonReg Bal','Other Bal',
-   'Mortgage Bal','Total Portfolio','Net Worth'],
+   'Mortgage Bal','Total Portfolio','Net Worth','NonReg Cost Basis'],
 ];
 
 /** Tax SUMPRODUCT formula for a bracket set. */
@@ -86,8 +89,15 @@ export function buildProjectionSheet(wb, scenario) {
   const currentYear = new Date().getFullYear();
   const numYears = scenario.lifeExpectancy - scenario.currentAge + 1;
 
+  // Purpose rows (1-2)
+  addPurposeRows(ws,
+    'This is your complete financial life, one row per year from today until life expectancy. ' +
+    'Every number is a formula \u2014 change an assumption and watch your entire future recalculate. ' +
+    'Green surplus = saving money. Red = drawing down. Portfolio hits $0 = trouble.',
+    1, HEADERS[0].length);
+
   // Title row
-  const titleRow = ws.getRow(1);
+  const titleRow = ws.getRow(PURPOSE_ROWS + 1);
   titleRow.getCell(1).value = 'YEAR-BY-YEAR PROJECTION';
   titleRow.getCell(1).font = { ...FONTS.header, color: { argb: COLORS.headerBg } };
 
@@ -104,7 +114,7 @@ export function buildProjectionSheet(wb, scenario) {
     [32,12],[33,12],[34,12],
     [35,14],[36,12],[37,12],
     [38,14],[39,14],[40,14],[41,14],
-    [42,14],[43,14],[44,14],
+    [42,14],[43,14],[44,14],[45,14],
   ];
   setColWidths(ws, widths);
 
@@ -258,9 +268,10 @@ export function buildProjectionSheet(wb, scenario) {
     row.getCell(29).numFmt = FMT.currency;
 
     // AD: NonReg Taxable Gain (50% inclusion on gains portion of withdrawal)
+    // Year 1 uses initial cost basis; Year 2+ uses tracked cost basis from AS column
     const costBasisRatio = isFirst
       ? `IF(Assumptions_NonRegBalance>0, MAX(0,1-Assumptions_NonRegCostBasis/Assumptions_NonRegBalance), 0)`
-      : `IF(AN${prevR}>0, MAX(0,1-Assumptions_NonRegCostBasis/Assumptions_NonRegBalance), 0)`;
+      : `IF(AN${prevR}>0, MAX(0,1-AS${prevR}/AN${prevR}), 0)`;
     row.getCell(30).value = { formula: `V${r}*${costBasisRatio}*Assumptions_CapGainsRate` };
     row.getCell(30).numFmt = FMT.currency;
 
@@ -320,6 +331,16 @@ export function buildProjectionSheet(wb, scenario) {
     // AR: Net Worth
     row.getCell(44).value = { formula: `AQ${r}+Assumptions_RealEstateValue-AP${r}` };
     row.getCell(44).numFmt = FMT.currency;
+
+    // AS: NonReg Cost Basis (tracks year-over-year as withdrawals/deposits change ratio)
+    // After withdrawal: reduce cost basis proportionally (costBasis * (balance - withdrawal) / balance)
+    // After deposit: increase cost basis dollar-for-dollar (+ overflow surplus)
+    const prevCostBasis = isFirst ? 'Assumptions_NonRegCostBasis' : `AS${prevR}`;
+    const cbPrevBal = isFirst ? 'Assumptions_NonRegBalance' : `AN${prevR}`;
+    const overflowDeposit = `MAX(0,AJ${r}-AK${r})`;
+    row.getCell(45).value = { formula:
+      `MAX(0,${prevCostBasis}*MAX(0,${cbPrevBal}-V${r})/IF(${cbPrevBal}>0,${cbPrevBal},1))+${overflowDeposit}` };
+    row.getCell(45).numFmt = FMT.currency;
   }
 
   // Conditional formatting: red fill when portfolio <= 0
@@ -342,6 +363,68 @@ export function buildProjectionSheet(wb, scenario) {
       style: { font: { color: { argb: COLORS.greenFont } } },
     }],
   });
+
+  // Dictionary section below data
+  let dr = lastDataRow + 2;
+  const dictHdr = ws.getRow(dr);
+  dictHdr.getCell(1).value = 'COLUMN DICTIONARY';
+  dictHdr.getCell(1).font = { ...FONTS.bold, size: 12 };
+  dr++;
+
+  const dictEntries = [
+    ['Age',               'Your age in this projection year'],
+    ['Year',              'Calendar year'],
+    ['Retired?',          '1 = retired (no employment income), 0 = still working'],
+    ['Inflation Factor',  'Cumulative inflation multiplier since today (compounds annually)'],
+    ['Employment',        'Gross salary, inflation-adjusted. Drops to $0 at retirement age'],
+    ['CPP',               'Canada Pension Plan income, adjusted for early/late start age'],
+    ['OAS Gross',         'Old Age Security before clawback, adjusted for deferral bonus'],
+    ['Pension',           'Defined-benefit pension income (if applicable)'],
+    ['RRIF Min',          'Mandatory minimum RRSP/RRIF withdrawal after age 71 (CRA rates)'],
+    ['Meltdown',          'Voluntary RRSP drawdown to reduce future forced RRIF withdrawals'],
+    ['Base RRSP Wd',      'Greater of RRIF minimum or meltdown amount, capped at RRSP balance'],
+    ['Taxable Before Grossup', 'Sum of all taxable income sources before extra RRSP withdrawals'],
+    ['Expenses',          'Annual living expenses, inflation-adjusted, reduced in retirement'],
+    ['Mortgage Pmt',      'Annual mortgage payment (principal + interest)'],
+    ['Debt Pmt',          'Annual consumer + other debt payments'],
+    ['Total Need',        'Expenses + mortgage + debt payments'],
+    ['Tax on Known',      'Estimated tax on known taxable income (before RRSP grossup)'],
+    ['After-Tax Known',   'Known income minus estimated tax'],
+    ['Shortfall',         'How much more cash you need beyond known income'],
+    ['TFSA Wd',           'Withdrawal from TFSA to cover shortfall (tax-free)'],
+    ['After TFSA',        'Remaining shortfall after TFSA withdrawal'],
+    ['NonReg Wd',         'Withdrawal from non-registered accounts'],
+    ['After NonReg',      'Remaining shortfall after non-reg withdrawal'],
+    ['Marginal Rate',     'Combined federal + provincial marginal tax rate on next dollar'],
+    ['RRSP Grossup',      'Extra RRSP withdrawal grossed up for tax to cover remaining shortfall'],
+    ['Total RRSP Wd',     'Base RRSP withdrawal + grossup amount'],
+    ['Other Wd',          'Withdrawal from other assets if RRSP still not enough'],
+    ['OAS Clawback',      'OAS repayment if total income exceeds clawback threshold'],
+    ['OAS Net',           'OAS after clawback deduction'],
+    ['NonReg Gain',       'Taxable capital gain on non-reg withdrawal (gains portion \u00D7 50%)'],
+    ['Total Taxable',     'All taxable income including RRSP withdrawals and capital gains'],
+    ['Federal Tax',       'Federal income tax with personal, age, and pension credits'],
+    ['Provincial Tax',    'Provincial income tax with credits + surtax (if applicable)'],
+    ['Total Tax',         'Federal + provincial tax combined'],
+    ['After-Tax Income',  'Total cash received after all taxes'],
+    ['Surplus',           'After-tax income minus total spending needs (negative = shortfall)'],
+    ['TFSA Deposit',      'Surplus deposited into TFSA (up to annual limit)'],
+    ['RRSP Bal',          'End-of-year RRSP balance after withdrawals + investment returns'],
+    ['TFSA Bal',          'End-of-year TFSA balance after withdrawals/deposits + returns'],
+    ['NonReg Bal',        'End-of-year non-reg balance after withdrawals + overflow deposits + returns'],
+    ['Other Bal',         'End-of-year other assets balance'],
+    ['Mortgage Bal',      'Remaining mortgage principal'],
+    ['Total Portfolio',   'RRSP + TFSA + NonReg + Other (all investment accounts)'],
+    ['Net Worth',         'Total portfolio + real estate - mortgage balance'],
+    ['NonReg Cost Basis', 'Tracks what you originally paid into non-reg accounts, adjusted for withdrawals/deposits. Used to calculate capital gains tax.'],
+  ];
+
+  for (const [col, desc] of dictEntries) {
+    addDocCell(ws, dr, 1, col);
+    addDocCell(ws, dr, 2, desc);
+    ws.getRow(dr).getCell(1).font = { ...FONTS.small, bold: true };
+    dr++;
+  }
 
   return ws;
 }

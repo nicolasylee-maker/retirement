@@ -6,9 +6,11 @@
 import {
   FONTS, COLORS, FMT,
   styleHeaderRow, styleSectionRow, setColWidths, freezeRows,
+  addPurposeRows, addDocCell,
 } from './styles.js';
 
 const SHEET_NAME = 'Optimizer';
+const PURPOSE_ROWS = 3; // rows 1-2 purpose + row 3 blank
 
 const DIM_LABELS = {
   cpp: 'CPP Timing', oas: 'OAS Timing', withdrawalOrder: 'Withdrawal Order',
@@ -20,7 +22,14 @@ export function buildOptimizerSheet(wb, scenario, optimizationResult) {
   const ws = wb.addWorksheet(SHEET_NAME, { properties: { tabColor: { argb: 'FFED7D31' } } });
   setColWidths(ws, [[1, 24], [2, 20], [3, 18], [4, 18], [5, 18], [6, 18]]);
 
-  let r = 1;
+  // Purpose rows (1-2)
+  addPurposeRows(ws,
+    'Side-by-side comparison of your current plan vs what the optimizer recommends. ' +
+    'Each row shows a different strategy dimension \u2014 CPP timing, OAS timing, withdrawal order, ' +
+    'or meltdown approach.',
+    1, 6);
+
+  let r = PURPOSE_ROWS + 1; // start at row 4
 
   // Title
   ws.getRow(r).getCell(1).value = 'OPTIMIZER RESULTS';
@@ -28,7 +37,7 @@ export function buildOptimizerSheet(wb, scenario, optimizationResult) {
   r += 2;
 
   if (!optimizationResult) {
-    ws.getRow(r).getCell(1).value = 'Optimizer not yet run — navigate to the Optimize tab first.';
+    ws.getRow(r).getCell(1).value = 'Optimizer not yet run \u2014 navigate to the Optimize tab first.';
     ws.getRow(r).getCell(1).font = FONTS.small;
     return ws;
   }
@@ -96,6 +105,29 @@ export function buildOptimizerSheet(wb, scenario, optimizationResult) {
   r++;
   ws.getRow(r).getCell(1).value = 'Note: Each dimension optimized independently. Combined results may differ.';
   ws.getRow(r).getCell(1).font = FONTS.small;
+  r += 2;
+
+  // === Dictionary ===
+  const dictHdr = ws.getRow(r);
+  dictHdr.getCell(1).value = 'COLUMN DICTIONARY';
+  dictHdr.getCell(1).font = { ...FONTS.bold, size: 12 };
+  r++;
+
+  const dictEntries = [
+    ['Dimension',     'The strategy lever being tested (CPP timing, withdrawal order, etc.)'],
+    ['Status',        '"Already Optimal" = your current choice is best; otherwise shows the recommendation'],
+    ['Before',        'Your current setting for this dimension'],
+    ['After',         'The optimizer\'s recommended setting'],
+    ['Years Gained',  'How many more years your portfolio lasts with the recommended change'],
+    ['Income Gained', 'Additional lifetime after-tax income from the recommended change'],
+  ];
+
+  for (const [term, desc] of dictEntries) {
+    addDocCell(ws, r, 1, term);
+    ws.getRow(r).getCell(1).font = { ...FONTS.small, bold: true };
+    addDocCell(ws, r, 2, desc);
+    r++;
+  }
 
   return ws;
 }

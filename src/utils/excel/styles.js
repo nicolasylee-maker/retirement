@@ -86,3 +86,28 @@ export function setColWidths(ws, widths) {
 export function addNamedRange(wb, name, sheetName, cellRef) {
   wb.definedNames.add(`'${sheetName}'!$${cellRef}`, name);
 }
+
+// ---------- Documentation styles ----------
+
+export const DOC_FONT = { name: 'Calibri', size: 9, italic: true, color: { argb: 'FF444444' } };
+export const DOC_BG = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+export const PURPOSE_FONT = { name: 'Calibri', size: 11, italic: true, color: { argb: 'FF333333' } };
+
+/** Add a merged purpose block spanning rows startRow to startRow+1, columns 1 to endCol. */
+export function addPurposeRows(ws, text, startRow, endCol) {
+  ws.mergeCells(startRow, 1, startRow + 1, endCol);
+  const cell = ws.getRow(startRow).getCell(1);
+  cell.value = text;
+  cell.font = PURPOSE_FONT;
+  cell.fill = DOC_BG;
+  cell.alignment = { wrapText: true, vertical: 'top' };
+}
+
+/** Style a single cell as documentation (small italic gray on light bg). */
+export function addDocCell(ws, row, col, text) {
+  const cell = ws.getRow(row).getCell(col);
+  cell.value = text;
+  cell.font = DOC_FONT;
+  cell.fill = DOC_BG;
+  cell.alignment = { wrapText: true, vertical: 'top' };
+}

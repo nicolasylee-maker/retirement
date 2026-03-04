@@ -9,18 +9,26 @@ import {
 import {
   FONTS, FMT,
   styleHeaderRow, styleSectionRow, setColWidths, freezeRows,
+  addPurposeRows, addDocCell,
 } from './styles.js';
 
 const SHEET_NAME = 'Tax Engine';
+const PURPOSE_ROWS = 3; // rows 1-2 purpose + row 3 blank
 
 export function buildTaxEngineSheet(wb, province) {
   const ws = wb.addWorksheet(SHEET_NAME, { properties: { tabColor: { argb: 'FFC00000' } } });
   setColWidths(ws, [[1, 18], [2, 16], [3, 14], [4, 6], [5, 18], [6, 16], [7, 14]]);
 
+  // Purpose rows (1-2)
+  addPurposeRows(ws,
+    'This is how Canadian income tax works, bracket by bracket. You pay a low rate on your first ' +
+    'dollars of income, and higher rates on additional income. Credits reduce the tax you owe.',
+    1, 3);
+
   const provData = PROVINCE_DATA[province] || PROVINCE_DATA.ON;
   const fc = FEDERAL_CREDITS;
   const pc = provData.credits;
-  let r = 1;
+  let r = PURPOSE_ROWS + 1; // start at row 4
 
   // ===== FEDERAL BRACKETS =====
   const fedHdr = ws.getRow(r);
@@ -110,12 +118,12 @@ export function buildTaxEngineSheet(wb, province) {
   r++; // blank row
 
   // ===== SURTAX (if applicable) =====
-  const st = provData.surtax;
   const surtaxHdr = ws.getRow(r);
   surtaxHdr.getCell(1).value = `${province} Surtax`;
   styleHeaderRow(surtaxHdr, 3);
   r++;
 
+  const st = provData.surtax;
   if (st) {
     const surtaxRows = [
       ['Surtax Threshold 1', st.threshold1, 'SurtaxThreshold1', FMT.currency],
@@ -133,18 +141,24 @@ export function buildTaxEngineSheet(wb, province) {
       r++;
     }
   } else {
+    // No surtax — separate threshold and rate into distinct cells
     const row = ws.getRow(r);
     row.getCell(1).value = 'No surtax for this province';
     row.getCell(1).font = FONTS.small;
-    // Define surtax names as 0 so formulas don't error
     row.getCell(2).value = 0;
+    row.getCell(2).numFmt = FMT.currency;
     wb.definedNames.add(`'${SHEET_NAME}'!$B$${r}`, 'SurtaxThreshold1');
-    wb.definedNames.add(`'${SHEET_NAME}'!$B$${r}`, 'SurtaxRate1');
+    row.getCell(3).value = 0;
+    row.getCell(3).numFmt = FMT.pct;
+    wb.definedNames.add(`'${SHEET_NAME}'!$C$${r}`, 'SurtaxRate1');
     r++;
     const row2 = ws.getRow(r);
     row2.getCell(2).value = 0;
+    row2.getCell(2).numFmt = FMT.currency;
     wb.definedNames.add(`'${SHEET_NAME}'!$B$${r}`, 'SurtaxThreshold2');
-    wb.definedNames.add(`'${SHEET_NAME}'!$B$${r}`, 'SurtaxRate2');
+    row2.getCell(3).value = 0;
+    row2.getCell(3).numFmt = FMT.pct;
+    wb.definedNames.add(`'${SHEET_NAME}'!$C$${r}`, 'SurtaxRate2');
     r++;
   }
 
@@ -174,7 +188,35 @@ export function buildTaxEngineSheet(wb, province) {
     r++;
   }
 
-  freezeRows(ws, 1);
+  r++; // blank
+
+  // ===== DICTIONARY =====
+  const dictHdr = ws.getRow(r);
+  dictHdr.getCell(1).value = 'COLUMN DICTIONARY';
+  dictHdr.getCell(1).font = { ...FONTS.bold, size: 12 };
+  r++;
+
+  const dictEntries = [
+    ['Bracket Min',       'The income threshold where this tax bracket begins'],
+    ['Bracket Max',       'The income threshold where this tax bracket ends'],
+    ['Rate',              'Tax rate applied to income within this bracket'],
+    ['Basic Personal',    'Income amount everyone can earn tax-free (non-refundable credit)'],
+    ['Age Amount',        'Extra tax credit available at age 65+ (income-tested)'],
+    ['Age Income Thresh.','Income level where the age amount starts being clawed back'],
+    ['Pension Credit',    'Tax credit on first $2,000 of eligible pension/RRIF income'],
+    ['Credit Rate',       'Lowest bracket rate used to convert credits to tax savings'],
+    ['Surtax',            'Additional tax some provinces charge on top of basic provincial tax'],
+    ['Effective Rate',    'Your actual overall tax rate (total tax / total income)'],
+  ];
+
+  for (const [term, desc] of dictEntries) {
+    addDocCell(ws, r, 1, term);
+    ws.getRow(r).getCell(1).font = { ...FONTS.small, bold: true };
+    addDocCell(ws, r, 2, desc);
+    r++;
+  }
+
+  freezeRows(ws, PURPOSE_ROWS + 1);
   return ws;
 }
 

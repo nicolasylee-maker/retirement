@@ -4,9 +4,9 @@ import React from 'react';
  * Horizontal phase timeline navigation bar.
  * Each phase is a clickable node with a connecting line.
  */
-export default function PhaseTimeline({ phases, activePage, onNavigate }) {
+export default function PhaseTimeline({ phases, activePage, onNavigate, isModal }) {
   return (
-    <div className="sticky top-12 z-10 flex items-center gap-0 px-4 py-2 bg-gray-50 border-b border-gray-200 overflow-x-auto">
+    <div className={`sticky ${isModal ? 'top-0' : 'top-[var(--header-h,5.5rem)]'} z-10 flex items-center gap-0 px-4 py-2 bg-gray-50 border-b border-gray-200 overflow-x-auto`}>
       {phases.map((phase, i) => {
         const isActive = activePage === i;
         return (

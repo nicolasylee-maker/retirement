@@ -545,6 +545,7 @@ export default function App() {
     setView(tabKey);
   }, [isPaid]); // eslint-disable-line react-hooks/exhaustive-deps
   const menuRef = useRef(null);
+  const headerRef = useRef(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -552,6 +553,17 @@ export default function App() {
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [menuOpen]);
+
+  // Track header height for sticky sub-navs (Deep Dive phase timeline)
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const update = () => document.documentElement.style.setProperty('--header-h', `${el.offsetHeight}px`);
+    update();
+    const obs = new ResizeObserver(update);
+    obs.observe(el);
+    return () => obs.disconnect();
+  });
 
   const menuAction = (fn) => () => { setMenuOpen(false); fn(); };
 
@@ -591,7 +603,7 @@ export default function App() {
       )}
       {view !== 'wizard' && view !== 'save-nudge' && view !== 'landing' && view !== 'admin'
         && view !== 'returning-home' && view !== 'scenario-picker' && (
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
+      <header ref={headerRef} className="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div className="px-4 sm:px-6 lg:px-10 py-3">
           {/* Row 1: logo + actions (all screen sizes) */}
           <div className="flex items-center justify-between gap-3">

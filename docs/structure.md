@@ -25,7 +25,8 @@ retirement/
 │
 ├── scripts/
 │   ├── update-tax-data.js                  ← Annual update checklist (data freshness + CRA links)
-│   └── check-canlii.js                     ← CanLII amendment monitor for probate/intestacy acts
+│   ├── check-canlii.js                     ← CanLII amendment monitor for probate/intestacy acts
+│   └── update-compare-prompt.sql           ← SQL upsert for prompt_compare in admin_config (one-off)
 │
 ├── src/
 │   ├── main.jsx                            ← React root render (StrictMode → App)
@@ -70,7 +71,8 @@ retirement/
 │   │
 │   ├── utils/
 │   │   ├── analytics.js                    ← Plausible custom event helper (no-ops if window.plausible absent)
-│   │   ├── buildAiData.js                  ← Builds structured AI context payloads per view (dashboard, debt, compare, estate)
+│   │   ├── buildAiData.js                  ← Builds structured AI context payloads per view (dashboard, debt, compare, estate, optimize)
+│   │   ├── compareAnalysis.js              ← Pure comparison utilities: diff drivers, phase ranges, phase summaries, monthly snapshots
 │   │   ├── buildAiPrompt.js                ← Client-side port of gemini-proxy buildPrompt(); resolves {variables} for all 5 insight types
 │   │   ├── debtCalc.js                     ← calcDebtSchedule: debt amortization schedule (balance, interest, principal per year)
 │   │   ├── downloadAudit.js                ← Audit report assembler + Markdown download trigger
@@ -148,7 +150,10 @@ retirement/
 │       │   └── MilestoneCards.jsx           ← Portfolio milestone achievements
 │       │
 │       ├── compare/                        ← Scenario comparison view (premium)
-│       │   ├── CompareView.jsx             ← Scenario selector + controls
+│       │   ├── CompareView.jsx             ← Scenario selector + controls + analytical sections
+│       │   ├── DifferenceDrivers.jsx       ← Input diff table: shows what changed between 2 scenarios
+│       │   ├── PhaseComparison.jsx         ← Life phase cards: side-by-side phase health (green/yellow/red)
+│       │   ├── MonthlyReality.jsx          ← Monthly cash flow snapshots at key ages (65/72/80/85)
 │       │   ├── CompareChart.jsx            ← Multi-line portfolio comparison chart
 │       │   └── CompareTable.jsx            ← Year-by-year comparison table
 │       │
@@ -220,6 +225,7 @@ retirement/
 │   ├── returningUserFlow.test.js           ← Sign-in routing, picker target
 │   ├── mobilePolish.test.js                ← Mobile-specific UI helpers
 │   ├── optimizerEngine.test.js             ← All 8 optimization dimensions
+│   ├── compareAnalysis.test.js             ← Diff drivers, phase ranges, phase summaries, monthly snapshots
 │   └── golden/                             ← Committed JSON snapshots (npm run generate:golden)
 │
 ├── dist/                                   ← Production build output (Vite)
@@ -248,6 +254,9 @@ Dashboard
     ↓ "Compare" tab
 CompareView (select up to 3 scenarios)
     ↓
+DifferenceDrivers (2 scenarios only: input diffs sorted by impact)
+PhaseComparison (2–3 scenarios: side-by-side phase health cards)
+MonthlyReality (2–3 scenarios: income/expenses/surplus at ages 65/72/80/85)
 CompareChart (side-by-side portfolio lines)
 CompareTable (year-by-year numbers)
 ```

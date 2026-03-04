@@ -31,6 +31,36 @@ export function buildAiPrompt(type, context, config) {
       )
       .join('\n')
     template = template.replace('{scenarioLines}', scenarioLines)
+
+    // Diff lines
+    const diffs = ctx['diffs'] || []
+    const diffLines = diffs.length
+      ? diffs.map(d => `- ${d['label']}: ${d['fmtA']} → ${d['fmtB']}`).join('\n')
+      : 'No input differences'
+    template = template.replace('{diffLines}', diffLines)
+
+    // Phase lines
+    const phaseSummaries = ctx['phaseSummaries'] || []
+    const phaseLines = scenarios.map((s, i) => {
+      const phases = phaseSummaries[i] || []
+      const header = `Scenario ${i + 1} "${s['name']}":`
+      const body = phases.map(p =>
+        `  ${p['phase']} (${p['ages']}): Portfolio $${Math.round(p['portfolioStart'])} → $${Math.round(p['portfolioEnd'])}, Status: ${p['status']}${p['events']?.length ? ', Events: ' + p['events'].join('; ') : ''}`
+      ).join('\n')
+      return `${header}\n${body}`
+    }).join('\n')
+    template = template.replace('{phaseLines}', phaseLines)
+
+    // Monthly lines
+    const monthlySnapshots = ctx['monthlySnapshots'] || []
+    const monthlyLines = monthlySnapshots.map(ms => {
+      const header = `${ms['name']}:`
+      const body = (ms['snapshots'] || []).map(snap =>
+        `  Age ${snap['age']}: Income $${snap['monthlyIncome']}/mo, Expenses $${snap['monthlyExpenses']}/mo, ${snap['monthlySurplus'] >= 0 ? 'Surplus' : 'Shortfall'} $${Math.abs(snap['monthlySurplus'])}/mo, Portfolio $${snap['portfolioBalance']}`
+      ).join('\n')
+      return `${header}\n${body}`
+    }).join('\n')
+    template = template.replace('{monthlyLines}', monthlyLines)
   }
 
   if (type === 'estate') {

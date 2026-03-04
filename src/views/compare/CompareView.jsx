@@ -6,6 +6,9 @@ import { buildCompareAiData } from '../../utils/buildAiData';
 import { SCENARIO_COLORS } from '../../constants/designTokens';
 import CompareChart from './CompareChart';
 import CompareTable from './CompareTable';
+import DifferenceDrivers from './DifferenceDrivers';
+import PhaseComparison from './PhaseComparison';
+import MonthlyReality from './MonthlyReality';
 
 const MAX_COMPARE = 3;
 
@@ -57,8 +60,8 @@ export default function CompareView({ scenarios, onNavigate, aiInsights, onSaveI
   }
 
   const aiData = useMemo(
-    () => buildCompareAiData(selectedScenarios),
-    [selectedScenarios],
+    () => buildCompareAiData(selectedScenarios, projections),
+    [selectedScenarios, projections],
   );
 
   return (
@@ -121,6 +124,15 @@ export default function CompareView({ scenarios, onNavigate, aiInsights, onSaveI
               )}
             </div>
           </div>
+
+          {/* Difference Drivers (2 scenarios only) */}
+          <DifferenceDrivers selectedScenarios={selectedScenarios} projections={projections} />
+
+          {/* Phase Comparison */}
+          <PhaseComparison selectedScenarios={selectedScenarios} projections={projections} />
+
+          {/* Monthly Reality Check */}
+          <MonthlyReality selectedScenarios={selectedScenarios} projections={projections} />
 
           {/* Chart */}
           {projections.length > 0 && (

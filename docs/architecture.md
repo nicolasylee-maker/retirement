@@ -166,6 +166,7 @@ tests/yourModuleEngine.test.js    ← Unit tests for engine functions
 | `src/services/geminiService.js` | Sends `{type, context}` to gemini-proxy; in-memory cache |
 | `src/services/adminService.js` | `adminApi` — all admin edge function calls |
 | `src/utils/buildAiData.js` | Builds structured AI context payloads per view |
+| `src/utils/compareAnalysis.js` | Pure comparison utilities: diff drivers, phase ranges/summaries, monthly snapshots |
 | `src/utils/debtCalc.js` | Debt amortization schedule calculator |
 | `src/utils/formatters.js` | Currency/percent formatting, UUID generation |
 | `src/utils/openPrintReport.js` | Opens new window + renders PrintReportView for PDF |
@@ -247,3 +248,4 @@ See `docs/learned-rules.md` → Edge Function Deployment for machine-specific de
 | 2026-03-04 | Deep Dive tab: visual audit views (src/views/audit/) with ComposedChart dual-axis bars + portfolio line overlay, 3 KPI cards per phase, dynamic phase filtering by scenario ages, premium-gated tab; Excel Report available to paid users; UpgradePrompt feature grid updated |
 | 2026-03-04 | Docs restructure: AGENTS.md → CLAUDE.md at project root; architecture.md split into architecture.md + structure.md; DOCUMENTATION RULES section added to enforce doc updates |
 | 2026-03-04 | AI Testing admin tab: ai-test-proxy edge function (passthrough for 6 providers: Gemini/OpenAI/Anthropic/OpenRouter/xAI/Kimi), buildAiPrompt.js (client-side prompt resolver), AiTestingSection + AiTestConfigPanel + AiTestResultPanel (3-column side-by-side comparison UI with raw prompt column) |
+| 2026-03-04 | Compare tab analytical sections: DifferenceDrivers (input diff table), PhaseComparison (life phase health cards), MonthlyReality (cash flow at key ages); compareAnalysis.js pure utility; enriched Gemini compare prompt with diffLines/phaseLines/monthlyLines |

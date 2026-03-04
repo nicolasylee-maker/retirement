@@ -2,6 +2,7 @@ import { calcSustainableWithdrawal } from '../engines/withdrawalCalc';
 import { calcDebtSchedule } from './debtCalc';
 import { projectScenario } from '../engines/projectionEngine';
 import { calcEstateImpact } from '../engines/estateEngine';
+import { computeDiffDrivers, getPhaseRanges, computePhaseSummary, computePhaseStatus, computeMonthlySnapshots } from './compareAnalysis';
 
 export function buildDashboardAiData(scenario, projectionData) {
   const retirementRow = projectionData.find(r => r.age === scenario.retirementAge);
@@ -65,24 +66,62 @@ export function buildDebtAiData(scenario, projectionData) {
   };
 }
 
-export function buildCompareAiData(selectedScenarios) {
+export function buildCompareAiData(selectedScenarios, projections) {
   if (!selectedScenarios || selectedScenarios.length < 2) return null;
 
-  return {
-    scenarios: selectedScenarios.map(s => {
-      const proj = projectScenario(s);
-      const retRow = proj?.find(r => r.age === s.retirementAge);
-      const lastRow = proj?.[proj.length - 1];
-      const sw = calcSustainableWithdrawal(s);
+  // Use passed-in projections instead of re-running projectScenario
+  const projs = projections || selectedScenarios.map(s => projectScenario(s));
+
+  const scenarioData = selectedScenarios.map((s, i) => {
+    const proj = projs[i];
+    const retRow = proj?.find(r => r.age === s.retirementAge);
+    const lastRow = proj?.[proj.length - 1];
+    const sw = calcSustainableWithdrawal(s);
+    return {
+      name: s.name || 'Unnamed',
+      netWorthAtRetirement: retRow?.netWorth || 0,
+      sustainableMonthly: sw.sustainableMonthly,
+      annualTax: retRow?.totalTax || 0,
+      portfolioAtEnd: lastRow?.totalPortfolio || 0,
+      lifeExpectancy: s.lifeExpectancy,
+    };
+  });
+
+  // Diff drivers (only for 2 scenarios, capped at 10)
+  let diffs = [];
+  if (selectedScenarios.length === 2) {
+    const allDiffs = computeDiffDrivers(selectedScenarios[0], selectedScenarios[1]);
+    diffs = allDiffs.slice(0, 10);
+  }
+
+  // Phase summaries per scenario
+  const phaseSummaries = selectedScenarios.map((s, i) => {
+    const phases = getPhaseRanges(s);
+    return phases.map(phase => {
+      const summary = computePhaseSummary(projs[i], phase);
+      const status = computePhaseStatus(summary);
       return {
-        name: s.name || 'Unnamed',
-        netWorthAtRetirement: retRow?.netWorth || 0,
-        sustainableMonthly: sw.sustainableMonthly,
-        annualTax: retRow?.totalTax || 0,
-        portfolioAtEnd: lastRow?.totalPortfolio || 0,
-        lifeExpectancy: s.lifeExpectancy,
+        phase: phase.label,
+        ages: `${phase.startAge}–${phase.endAge}`,
+        portfolioStart: summary?.portfolioStart ?? 0,
+        portfolioEnd: summary?.portfolioEnd ?? 0,
+        status,
+        events: summary?.events?.map(e => `${e.label} @ ${e.age}`) || [],
       };
-    }),
+    });
+  });
+
+  // Monthly snapshots per scenario
+  const monthlySnapshots = selectedScenarios.map((s, i) => ({
+    name: s.name || 'Unnamed',
+    snapshots: computeMonthlySnapshots(projs[i]),
+  }));
+
+  return {
+    scenarios: scenarioData,
+    diffs,
+    phaseSummaries,
+    monthlySnapshots,
   };
 }
 

@@ -1,7 +1,7 @@
 /**
  * Tests for AI insights persistence + staleness logic.
  * These test the computeHash utility and the scenario aiInsights shape.
- * Component behaviour is tested manually per AGENTS.md.
+ * Component behaviour is tested manually per CLAUDE.md.
  */
 import { describe, it, expect } from 'vitest'
 import { createDefaultScenario } from '../src/constants/defaults.js'

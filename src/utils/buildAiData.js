@@ -5,6 +5,7 @@ import { calcEstateImpact } from '../engines/estateEngine';
 import { computeDiffDrivers, getPhaseRanges, computePhaseSummary, computePhaseStatus, computeMonthlySnapshots } from './compareAnalysis';
 import { toTodaysDollars } from './inflationHelper';
 import { splitCoupleIncome } from './coupleHelpers';
+import { calcOasBenefit } from '../engines/incomeHelpers';
 import { OAS_PARAMS } from '../constants/taxTables';
 
 export function buildDashboardAiData(scenario, projectionData) {
@@ -61,6 +62,7 @@ export function buildDashboardAiData(scenario, projectionData) {
     expensesAtRetirement: expensesAtRet,
     expensesMonthlyToday: tdMonthly(expensesAtRet),
     portfolioAtRetirement: portfolioAtRet,
+    portfolioAtRetirementToday: Math.round(toTodaysDollars(portfolioAtRet, yearsToRet, inf)),
     netWorthAtRetirement: retirementRow?.netWorth || 0,
     annualIncome: retirementRow?.totalIncome || 0,
     annualTax: retirementRow?.totalTax || 0,
@@ -69,6 +71,7 @@ export function buildDashboardAiData(scenario, projectionData) {
     sustainableMonthly,
     sustainableMonthlyToday: sustainableMonthly, // already today's dollars — no deflation
     portfolioAtEnd: lastRow?.totalPortfolio || 0,
+    portfolioAtEndToday: Math.round(toTodaysDollars(lastRow?.totalPortfolio || 0, scenario.lifeExpectancy - scenario.currentAge, inf)),
     rrspBalance: scenario.rrspBalance,
     tfsaBalance: scenario.tfsaBalance,
     nonRegBalance: scenario.nonRegInvestments,
@@ -93,24 +96,37 @@ export function buildDashboardAiData(scenario, projectionData) {
     yearsToRetirement: yearsToRet,
     workingYearsWithWithdrawals,
     tfsaDepletedWhileWorking: tfsaDepletedWhileWorking ? 'Yes' : 'No',
-    // OAS clawback status
+    // Per-person OAS at retirement with clawback amounts
     ...((() => {
-      const oasStart = scenario.oasStartAge || 65;
+      const retAge = scenario.retirementAge;
+      const infFactor = Math.pow(1 + inf, yearsToRet);
+
       if (isCouple) {
-        const ageDiff = (scenario.spouseAge || scenario.currentAge) - scenario.currentAge;
-        const spouseOasStart = scenario.spouseOasStartAge || 65;
-        const { primaryTaxable: pInc } = retirementRow ? splitCoupleIncome(retirementRow, scenario) : { primaryTaxable: 0 };
-        const { spouseTaxable: sInc } = retirementRow ? splitCoupleIncome(retirementRow, scenario) : { spouseTaxable: 0 };
-        const primaryOasYears = projectionData.filter(r => r.age >= oasStart);
-        const spouseOasYears = projectionData.filter(r => (r.age + ageDiff) >= spouseOasStart);
+        // Primary OAS: gross (inflation-adjusted) vs received (post-clawback)
+        const primaryOasGross = calcOasBenefit(scenario.oasMonthly || 0, scenario.oasStartAge || 65, retAge) * infFactor;
+        const primaryOasReceived = retirementRow?.oasIncome || 0;
+        const primaryOasClawback = Math.round(Math.max(0, primaryOasGross - primaryOasReceived));
+
+        // Spouse OAS
+        const spouseAgeAtRet = retAge + ((scenario.spouseAge || scenario.currentAge) - scenario.currentAge);
+        const spouseOasGross = calcOasBenefit(scenario.spouseOasMonthly || 0, scenario.spouseOasStartAge || 65, spouseAgeAtRet) * infFactor;
+        const spouseOasReceived = retirementRow?.spouseOasIncome || 0;
+        const spouseOasClawback = Math.round(Math.max(0, spouseOasGross - spouseOasReceived));
+
         return {
-          primaryOasClawbackTriggered: primaryOasYears.some(r => splitCoupleIncome(r, scenario).primaryTaxable > OAS_PARAMS.clawbackStart) ? 'Yes' : 'No',
-          spouseOasClawbackTriggered: spouseOasYears.some(r => splitCoupleIncome(r, scenario).spouseTaxable > OAS_PARAMS.clawbackStart) ? 'Yes' : 'No',
+          primaryOasAtRetirement: Math.round(primaryOasReceived),
+          primaryOasClawbackAmount: primaryOasClawback,
+          spouseOasAtRetirement: Math.round(spouseOasReceived),
+          spouseOasClawbackAmount: spouseOasClawback,
         };
       }
-      const oasYears = projectionData.filter(r => r.age >= oasStart);
+
+      // Single: same logic
+      const oasGross = calcOasBenefit(scenario.oasMonthly || 0, scenario.oasStartAge || 65, retAge) * infFactor;
+      const oasReceived = retirementRow?.oasIncome || 0;
       return {
-        oasClawbackTriggered: oasYears.some(r => (r.totalTaxableIncome || 0) > OAS_PARAMS.clawbackStart) ? 'Yes' : 'No',
+        primaryOasAtRetirement: Math.round(oasReceived),
+        primaryOasClawbackAmount: Math.round(Math.max(0, oasGross - oasReceived)),
       };
     })()),
     // Couple context
@@ -242,6 +258,12 @@ export function buildEstateAiData(scenario, projectionData, ageAtDeath) {
     grossEstate: estateResult.grossEstate,
     grossEstateToday: tdAnnual(estateResult.grossEstate),
     totalTax: estateResult.totalEstateTax,
+    deemedIncomeTax: estateResult.deemedIncomeTax,
+    capitalGainsTax: estateResult.capitalGainsTax,
+    probateFees: estateResult.probateFees,
+    deemedIncomeTaxToday: tdAnnual(estateResult.deemedIncomeTax),
+    capitalGainsTaxToday: tdAnnual(estateResult.capitalGainsTax),
+    probateFeesToday: tdAnnual(estateResult.probateFees),
     netToHeirs: estateResult.netToHeirs,
     netToHeirsToday: tdAnnual(estateResult.netToHeirs),
     hasWill: scenario.hasWill ?? true,

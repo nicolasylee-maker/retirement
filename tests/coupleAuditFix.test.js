@@ -9,7 +9,7 @@ import { createDefaultScenario } from '../src/constants/defaults.js';
 import { auditTaxVerification } from '../src/engines/auditTaxDebt.js';
 import { auditDashboardSummary } from '../src/engines/auditDashboard.js';
 import { auditCppOasVerification } from '../src/engines/auditProjection.js';
-import { buildDashboardAiData } from '../src/utils/buildAiData.js';
+import { buildDashboardAiData, buildEstateAiData } from '../src/utils/buildAiData.js';
 
 // -- Couple persona -----------------------------------------------------------
 
@@ -191,19 +191,88 @@ describe('Issue 5: AI context per-person income and clawback', () => {
     expect(sumPerPerson).toBeCloseTo(retRow.totalTaxableIncome, -1);
   });
 
-  it('includes OAS clawback flags for couple', () => {
+  it('includes OAS clawback amounts for couple (not old triggered flags)', () => {
     const s = coupleScenario();
     const proj = projectScenario(s);
     const data = buildDashboardAiData(s, proj);
-    expect(data).toHaveProperty('primaryOasClawbackTriggered');
-    expect(data).toHaveProperty('spouseOasClawbackTriggered');
+    expect(data).toHaveProperty('primaryOasClawbackAmount');
+    expect(data).toHaveProperty('spouseOasClawbackAmount');
+    expect(data).toHaveProperty('primaryOasAtRetirement');
+    expect(data).toHaveProperty('spouseOasAtRetirement');
+    expect(typeof data.primaryOasClawbackAmount).toBe('number');
+    expect(typeof data.spouseOasClawbackAmount).toBe('number');
+    // Old lifetime flags must be gone
+    expect(data).not.toHaveProperty('primaryOasClawbackTriggered');
+    expect(data).not.toHaveProperty('spouseOasClawbackTriggered');
+    expect(data).not.toHaveProperty('oasClawbackTriggered');
   });
 
-  it('includes OAS clawback flag for single', () => {
+  it('includes OAS clawback amount for single (not old triggered flag)', () => {
     const s = surplusScenario();
     const proj = projectScenario(s);
     const data = buildDashboardAiData(s, proj);
-    expect(data).toHaveProperty('oasClawbackTriggered');
-    expect(data).not.toHaveProperty('primaryOasClawbackTriggered');
+    expect(data).toHaveProperty('primaryOasAtRetirement');
+    expect(data).toHaveProperty('primaryOasClawbackAmount');
+    expect(data).not.toHaveProperty('oasClawbackTriggered');
+    expect(data).not.toHaveProperty('spouseOasClawbackAmount');
+  });
+});
+
+// -- Issue 6: Today's-dollar portfolio values and estate tax breakdown ---------
+
+describe('Issue 6: Today\'s-dollar portfolio values in AI context', () => {
+  it('includes portfolioAtRetirementToday and portfolioAtEndToday', () => {
+    const s = coupleScenario();
+    const proj = projectScenario(s);
+    const data = buildDashboardAiData(s, proj);
+    expect(data).toHaveProperty('portfolioAtRetirementToday');
+    expect(data).toHaveProperty('portfolioAtEndToday');
+    expect(typeof data.portfolioAtRetirementToday).toBe('number');
+    expect(typeof data.portfolioAtEndToday).toBe('number');
+    // Today's dollars should be less than future dollars (positive inflation)
+    expect(data.portfolioAtRetirementToday).toBeLessThanOrEqual(data.portfolioAtRetirement);
+    expect(data.portfolioAtEndToday).toBeLessThanOrEqual(data.portfolioAtEnd);
+  });
+
+  it('today\'s-dollar values are correctly deflated', () => {
+    const s = coupleScenario();
+    const proj = projectScenario(s);
+    const data = buildDashboardAiData(s, proj);
+    const yearsToRet = s.retirementAge - s.currentAge;
+    const inf = s.inflationRate;
+    const expected = Math.round(data.portfolioAtRetirement / Math.pow(1 + inf, yearsToRet));
+    expect(data.portfolioAtRetirementToday).toBe(expected);
+  });
+});
+
+describe('Issue 7: Estate AI context includes tax breakdown', () => {
+  it('includes deemedIncomeTax, capitalGainsTax, probateFees', () => {
+    const s = coupleScenario();
+    const proj = projectScenario(s);
+    const data = buildEstateAiData(s, proj);
+    expect(data).toHaveProperty('deemedIncomeTax');
+    expect(data).toHaveProperty('capitalGainsTax');
+    expect(data).toHaveProperty('probateFees');
+    expect(data).toHaveProperty('deemedIncomeTaxToday');
+    expect(data).toHaveProperty('capitalGainsTaxToday');
+    expect(data).toHaveProperty('probateFeesToday');
+  });
+
+  it('deemedIncomeTax is 0 with spousal rollover', () => {
+    const s = coupleScenario();
+    // Couple scenario has primaryBeneficiary: 'spouse' → spousal rollover
+    expect(s.primaryBeneficiary).toBe('spouse');
+    const proj = projectScenario(s);
+    const data = buildEstateAiData(s, proj);
+    expect(data.deemedIncomeTax).toBe(0);
+  });
+
+  it('tax breakdown sums to approximately totalTax', () => {
+    const s = coupleScenario();
+    const proj = projectScenario(s);
+    const data = buildEstateAiData(s, proj);
+    const sum = data.deemedIncomeTax + data.capitalGainsTax + data.probateFees;
+    // Each component is independently rounded, so allow ±1 rounding difference
+    expect(Math.abs(sum - data.totalTax)).toBeLessThanOrEqual(1);
   });
 });

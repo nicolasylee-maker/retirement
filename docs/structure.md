@@ -27,7 +27,8 @@ retirement/
 │   ├── update-tax-data.js                  ← Annual update checklist (data freshness + CRA links)
 │   ├── check-canlii.js                     ← CanLII amendment monitor for probate/intestacy acts
 │   ├── update-compare-prompt.sql           ← SQL upsert for prompt_compare in admin_config (one-off)
-│   └── update-prompts-todays-dollars.sql  ← SQL upsert for all prompt templates with today's-dollars variables
+│   ├── update-prompts-todays-dollars.sql  ← SQL upsert for all prompt templates with today's-dollars variables
+│   └── update-prompts-couple-aware.sql   ← SQL upsert for couple-aware prompts, today's-dollar portfolio, estate breakdown
 │
 ├── src/
 │   ├── main.jsx                            ← React root render (StrictMode → App)

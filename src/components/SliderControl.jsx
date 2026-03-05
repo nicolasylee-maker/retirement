@@ -16,6 +16,7 @@ export default function SliderControl({
   step = 1,
   format = 'currency',
   helper,
+  subtitle,
 }) {
   const fmt = formatters[format] || formatters.number;
 
@@ -38,6 +39,10 @@ export default function SliderControl({
           {fmt(value)}
         </span>
       </div>
+
+      {subtitle && (
+        <p className="text-xs text-gray-400 -mt-1">{subtitle}</p>
+      )}
 
       <div className="relative">
         <input

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import SliderControl from '../components/SliderControl';
 import Button from '../components/Button';
+import { formatCurrency } from '../utils/formatters';
 
 const WHAT_IF_SLIDERS = [
   {
@@ -48,6 +49,16 @@ function SliderList({ scenario, overrides, onOverrideChange, onReset, onEditAssu
         {WHAT_IF_SLIDERS.map((slider) => {
           const raw = overrides[slider.key] ?? scenario[slider.key];
           const displayVal = slider.isRate ? raw * 100 : raw;
+          let subtitle;
+          if (slider.key === 'monthlyExpenses') {
+            const reduction = scenario.expenseReductionAtRetirement || 0;
+            const isPreRetirement = scenario.currentAge < scenario.retirementAge;
+            if (isPreRetirement && reduction > 0) {
+              const reduced = Math.round(raw * (1 - reduction));
+              const pct = Math.round(reduction * 100);
+              subtitle = `${formatCurrency(reduced)}/mo after ${pct}% retirement reduction`;
+            }
+          }
           return (
             <SliderControl
               key={slider.key}
@@ -58,6 +69,7 @@ function SliderList({ scenario, overrides, onOverrideChange, onReset, onEditAssu
               max={slider.max}
               step={slider.step}
               format={slider.format}
+              subtitle={subtitle}
             />
           );
         })}

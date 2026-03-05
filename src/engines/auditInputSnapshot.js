@@ -6,6 +6,7 @@
  */
 
 import { formatCurrency, formatPercent, mdTable } from '../utils/formatters.js';
+import { calcTotalMonthlyDebt } from '../utils/debtCalc.js';
 
 const $ = (v) => formatCurrency(v);
 const pct = (v, d = 1) => formatPercent(v, d);
@@ -109,6 +110,15 @@ export function auditInputSnapshot(scenario) {
 
   rows.push(
     ['Monthly expenses', $(s.monthlyExpenses)],
+  );
+  if (s.expensesIncludeDebt) {
+    const debt = calcTotalMonthlyDebt(s);
+    rows.push(
+      ['Expenses include debt payments', 'Yes'],
+      ['Adjusted non-debt expenses', `${$(Math.max(0, s.monthlyExpenses - debt.totalMonthly))}/mo`],
+    );
+  }
+  rows.push(
     ['Expense reduction at retirement', pct(s.expenseReductionAtRetirement)],
     ['Inflation rate', pct(s.inflationRate)],
     ['Real return (RRSP)', pct(s.realReturn)],

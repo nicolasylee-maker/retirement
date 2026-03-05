@@ -1,4 +1,45 @@
 /**
+ * Calculate the annual payment for a loan using the standard PMT formula.
+ * Returns 0 if balance or years are non-positive.
+ */
+export function calcAnnualPayment(balance, rate, years) {
+  if (!balance || balance <= 0 || years <= 0) return 0;
+  if (rate === 0) return balance / years;
+  return balance * (rate * Math.pow(1 + rate, years)) / (Math.pow(1 + rate, years) - 1);
+}
+
+/**
+ * Compute monthly debt payments for a scenario, broken out by type.
+ */
+export function calcTotalMonthlyDebt(scenario) {
+  const s = scenario;
+  let mortgageAnnual = 0;
+  let consumerAnnual = 0;
+  let otherAnnual = 0;
+
+  if ((s.mortgageBalance || 0) > 0 && (s.mortgageYearsLeft || 0) > 0) {
+    mortgageAnnual = calcAnnualPayment(s.mortgageBalance, s.mortgageRate || 0.05, s.mortgageYearsLeft);
+  }
+  if ((s.consumerDebt || 0) > 0) {
+    const years = Math.max(1, (s.consumerDebtPayoffAge || (s.currentAge + 10)) - s.currentAge);
+    consumerAnnual = calcAnnualPayment(s.consumerDebt, s.consumerDebtRate || 0.08, years);
+  }
+  if ((s.otherDebt || 0) > 0) {
+    const years = Math.max(1, (s.otherDebtPayoffAge || 70) - s.currentAge);
+    otherAnnual = calcAnnualPayment(s.otherDebt, s.otherDebtRate || 0.05, years);
+  }
+
+  const totalAnnual = mortgageAnnual + consumerAnnual + otherAnnual;
+  return {
+    mortgage: Math.round(mortgageAnnual / 12),
+    consumer: Math.round(consumerAnnual / 12),
+    other: Math.round(otherAnnual / 12),
+    totalMonthly: Math.round(totalAnnual / 12),
+    totalAnnual,
+  };
+}
+
+/**
  * Calculate a debt amortization schedule from current age to payoff age.
  * Returns an array of yearly rows with balance, interest, principal, and payment.
  */

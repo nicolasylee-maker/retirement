@@ -78,7 +78,7 @@ retirement/
 │   │   ├── compareAnalysis.js              ← Pure comparison utilities: diff drivers, phase ranges, phase summaries, monthly snapshots
 │   │   ├── buildAiPrompt.js                ← Client-side port of gemini-proxy buildPrompt(); resolves {variables} for all 5 insight types; exports getPromptTemplate() for unresolved template
 │   │   ├── renderMarkdownText.jsx          ← Shared markdown renderer (bold, numbered lists, bullets) extracted from AiInsight.jsx; used by AiTestResultPanel
-│   │   ├── debtCalc.js                     ← calcDebtSchedule: debt amortization schedule (balance, interest, principal per year)
+│   │   ├── debtCalc.js                     ← calcAnnualPayment, calcTotalMonthlyDebt, calcDebtSchedule: debt helpers
 │   │   ├── downloadAudit.js                ← Audit report assembler + Markdown download trigger
 │   │   ├── formatters.js                   ← Currency, percent, UUID, math utilities
 │   │   ├── inflationHelper.js              ← Today's-dollars conversion helpers (toTodaysDollars, labels, compact)
@@ -216,9 +216,10 @@ retirement/
 │               ├── AiTestConfigPanel.jsx   ← AI Testing config UI (insight type, user/scenario search, provider/model)
 │               └── AiTestResultPanel.jsx   ← AI Testing 3-column result display (Gemini | Rival | Raw Prompt)
 │
-├── tests/                                  ← Vitest test files (14 files, run: npm test)
+├── tests/                                  ← Vitest test files (15 files, run: npm test)
 │   ├── taxEngine.test.js                   ← Federal/provincial tax, OAS clawback, RRIF mins
 │   ├── projectionEngine.test.js            ← Year-by-year projections with persona scenarios
+│   ├── debtCalc.test.js                    ← calcAnnualPayment + calcTotalMonthlyDebt unit tests
 │   ├── estateEngine.test.js                ← Death tax, probate, intestacy distribution
 │   ├── withdrawalCalc.test.js              ← Sustainable withdrawal, overrides, monotonicity
 │   ├── multiProvinceEngine.test.js         ← Province-aware tax/probate/intestacy (all provinces)

@@ -1,6 +1,7 @@
 import { TFSA_PARAMS } from '../constants/taxTables.js';
 import { calcTotalTax, calcOasClawback, calcRrifMinimum } from './taxEngine.js';
 import { calcCppBenefit, calcOasBenefit, calcGisBenefit, calcGainsBenefit, calcTaxableCapitalGain } from './incomeHelpers.js';
+import { calcAnnualPayment } from '../utils/debtCalc.js';
 
 /** Project a full retirement scenario year-by-year. */
 export function projectScenario(scenario, overrides = {}) {
@@ -23,6 +24,23 @@ export function projectScenario(scenario, overrides = {}) {
   const nonRegReturn = s.nonRegReturn || realReturn;
   const inflation = s.inflationRate || 0.025;
 
+  // Expense-debt overlap adjustment: when user's monthlyExpenses already includes
+  // debt payments, subtract them so the engine doesn't double-count.
+  let debtExpenseAdjust = 0;
+  if (s.expensesIncludeDebt) {
+    if (mortgage > 0 && s.mortgageYearsLeft > 0) {
+      debtExpenseAdjust += calcAnnualPayment(mortgage, s.mortgageRate || 0.05, s.mortgageYearsLeft);
+    }
+    if (consumer > 0) {
+      const cYears = Math.max(1, (s.consumerDebtPayoffAge || (s.currentAge + 10)) - s.currentAge);
+      debtExpenseAdjust += calcAnnualPayment(consumer, s.consumerDebtRate || 0.08, cYears);
+    }
+    if (otherDebt > 0) {
+      const oYears = Math.max(1, (s.otherDebtPayoffAge || 70) - s.currentAge);
+      debtExpenseAdjust += calcAnnualPayment(otherDebt, s.otherDebtRate || 0.05, oYears);
+    }
+  }
+
   // Spouse account pools (only meaningful when isCouple)
   let spouseRrsp = s.isCouple ? (s.spouseRrspBalance || 0) + (s.spouseRrifBalance || 0) + (s.spouseDcPensionBalance || 0) : 0;
   let spouseTfsa = s.isCouple ? (s.spouseTfsaBalance || 0) : 0;
@@ -40,7 +58,7 @@ export function projectScenario(scenario, overrides = {}) {
 
     if (age >= 72 && !rrifConverted) rrifConverted = true;
 
-    let baseExpenses = (s.monthlyExpenses ?? 4000) * 12;
+    let baseExpenses = Math.max(0, ((s.monthlyExpenses ?? 4000) * 12) - debtExpenseAdjust);
     if (retired && s.retirementAge > s.currentAge) {
       baseExpenses *= (1 - (s.expenseReductionAtRetirement || 0));
     }

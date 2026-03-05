@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { projectScenario } from '../src/engines/projectionEngine.js';
+import { calcSustainableWithdrawal } from '../src/engines/withdrawalCalc.js';
 import { createDefaultScenario } from '../src/constants/defaults.js';
 
 // -- Persona factories -------------------------------------------------------
@@ -578,5 +579,152 @@ describe('couple support', () => {
       expect(row.spouseOasIncome).toBeUndefined();
       expect(row.spouseRrspBalance).toBeUndefined();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// expensesIncludeDebt flag
+// ---------------------------------------------------------------------------
+describe('expensesIncludeDebt flag', () => {
+  function debtScenario(overrides = {}) {
+    return {
+      ...createDefaultScenario('DebtTest'),
+      currentAge: 55,
+      retirementAge: 65,
+      lifeExpectancy: 90,
+      monthlyExpenses: 5000,
+      mortgageBalance: 300000,
+      mortgageRate: 0.05,
+      mortgageYearsLeft: 20,
+      consumerDebt: 15000,
+      consumerDebtRate: 0.08,
+      consumerDebtPayoffAge: 65,
+      otherDebt: 0,
+      rrspBalance: 200000,
+      tfsaBalance: 50000,
+      cashSavings: 0,
+      nonRegInvestments: 0,
+      realReturn: 0.04,
+      inflationRate: 0.025,
+      expenseReductionAtRetirement: 0.10,
+      ...overrides,
+    };
+  }
+
+  it('flag=false (default): expenses and debt are additive', () => {
+    const s = debtScenario({ expensesIncludeDebt: false });
+    const res = projectScenario(s);
+    const first = res[0];
+    // Expenses should be the full monthlyExpenses * 12
+    expect(first.expenses).toBe(5000 * 12);
+    // Debt payments are additive on top
+    expect(first.debtPayments).toBeGreaterThan(0);
+  });
+
+  it('flag=true with mortgage only: expenses reduced', () => {
+    const s = debtScenario({
+      expensesIncludeDebt: true,
+      consumerDebt: 0,
+      otherDebt: 0,
+    });
+    const res = projectScenario(s);
+    const first = res[0];
+    // Expenses should be less than 5000 * 12
+    expect(first.expenses).toBeLessThan(5000 * 12);
+    // Debt payments are still tracked separately
+    expect(first.debtPayments).toBeGreaterThan(0);
+  });
+
+  it('flag=true with all three debt types: cumulative subtraction', () => {
+    const s = debtScenario({
+      expensesIncludeDebt: true,
+      otherDebt: 10000,
+      otherDebtRate: 0.05,
+      otherDebtPayoffAge: 70,
+    });
+    const sOff = debtScenario({
+      expensesIncludeDebt: false,
+      otherDebt: 10000,
+      otherDebtRate: 0.05,
+      otherDebtPayoffAge: 70,
+    });
+    const resOn = projectScenario(s);
+    const resOff = projectScenario(sOff);
+    // With flag on, expenses should be lower
+    expect(resOn[0].expenses).toBeLessThan(resOff[0].expenses);
+    // Debt payments should be the same
+    expect(resOn[0].debtPayments).toBe(resOff[0].debtPayments);
+  });
+
+  it('after debt payoff: expenses stay low, debtPayments drop to 0, surplus increases', () => {
+    const s = debtScenario({
+      expensesIncludeDebt: true,
+      mortgageBalance: 0,
+      mortgageYearsLeft: 0,
+      consumerDebt: 10000,
+      consumerDebtRate: 0.08,
+      consumerDebtPayoffAge: 60,
+    });
+    const res = projectScenario(s);
+    // After payoff age, debt payments should be 0
+    const afterPayoff = res.find(r => r.age === 62);
+    expect(afterPayoff.debtPayments).toBe(0);
+    // Expenses remain at the adjusted (lower) level before inflation
+    // The adjustment was permanent from the start
+    const firstExpenses = res[0].expenses;
+    expect(firstExpenses).toBeLessThan(5000 * 12);
+  });
+
+  it('flag=true with zero debt: no-op', () => {
+    const s = debtScenario({
+      expensesIncludeDebt: true,
+      mortgageBalance: 0,
+      mortgageYearsLeft: 0,
+      consumerDebt: 0,
+      otherDebt: 0,
+    });
+    const sOff = debtScenario({
+      expensesIncludeDebt: false,
+      mortgageBalance: 0,
+      mortgageYearsLeft: 0,
+      consumerDebt: 0,
+      otherDebt: 0,
+    });
+    const resOn = projectScenario(s);
+    const resOff = projectScenario(sOff);
+    expect(resOn[0].expenses).toBe(resOff[0].expenses);
+  });
+
+  it('expenses < total debt payments: clamped to 0', () => {
+    const s = debtScenario({
+      expensesIncludeDebt: true,
+      monthlyExpenses: 500, // Very low
+      mortgageBalance: 500000,
+      mortgageRate: 0.05,
+      mortgageYearsLeft: 10,
+    });
+    const res = projectScenario(s);
+    // Expenses should be 0, not negative
+    expect(res[0].expenses).toBe(0);
+  });
+
+  it('withdrawalCalc: sustainable spend is higher with flag=true', () => {
+    const sOff = debtScenario({ expensesIncludeDebt: false });
+    const sOn = debtScenario({ expensesIncludeDebt: true });
+    const swOff = calcSustainableWithdrawal(sOff);
+    const swOn = calcSustainableWithdrawal(sOn);
+    // With flag on, more of the "expenses" budget is freed up since engine
+    // subtracts debt from expenses, so sustainable monthly should be higher
+    expect(swOn.sustainableMonthly).toBeGreaterThanOrEqual(swOff.sustainableMonthly);
+  });
+
+  it('backward compat: scenario without expensesIncludeDebt behaves as false', () => {
+    const s = debtScenario();
+    delete s.expensesIncludeDebt;
+    const sExplicit = debtScenario({ expensesIncludeDebt: false });
+    const res = projectScenario(s);
+    const resExplicit = projectScenario(sExplicit);
+    expect(res[0].expenses).toBe(resExplicit[0].expenses);
+    expect(res[0].debtPayments).toBe(resExplicit[0].debtPayments);
   });
 });

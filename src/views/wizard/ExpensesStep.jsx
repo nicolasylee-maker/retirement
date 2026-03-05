@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import FormField from '../../components/FormField';
 import Card from '../../components/Card';
 import QuickFillPills from '../../components/QuickFillPills';
 import SliderControl from '../../components/SliderControl';
 import { EXPENSE_PRESETS, RETURN_PRESETS } from '../../constants/defaults';
 import { PulsingDot } from '../../components/PulsingDot';
+import { calcTotalMonthlyDebt } from '../../utils/debtCalc';
 
 const expensePresetList = Object.entries(EXPENSE_PRESETS).map(([key, p]) => ({
   key,
@@ -36,6 +37,19 @@ function findReturnPreset(scenario) {
 }
 
 export default function ExpensesStep({ scenario, onChange, dismissedDots, dismissDot }) {
+  const alreadyRetired = scenario.currentAge >= scenario.retirementAge;
+
+  const debtInfo = useMemo(() => calcTotalMonthlyDebt(scenario), [
+    scenario.mortgageBalance, scenario.mortgageRate, scenario.mortgageYearsLeft,
+    scenario.consumerDebt, scenario.consumerDebtRate, scenario.consumerDebtPayoffAge,
+    scenario.otherDebt, scenario.otherDebtRate, scenario.otherDebtPayoffAge,
+    scenario.currentAge,
+  ]);
+  const hasDebt = debtInfo.totalMonthly > 0;
+  const adjustedMonthly = hasDebt && scenario.expensesIncludeDebt
+    ? scenario.monthlyExpenses - debtInfo.totalMonthly
+    : null;
+
   const handleExpensePreset = (key) => {
     const preset = EXPENSE_PRESETS[key];
     if (preset) onChange({ monthlyExpenses: preset.monthlyExpenses });
@@ -79,26 +93,88 @@ export default function ExpensesStep({ scenario, onChange, dismissedDots, dismis
           prefix="$"
           suffix="/mo"
           min={0}
-          helper="Total household spending including housing, food, transport, health"
+          helper="Total household spending including housing, food, transport, health, and other regular spending"
         />
+
+        {/* Debt overlap toggle — only when debts exist */}
+        {hasDebt && (
+          <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={!!scenario.expensesIncludeDebt}
+                  onChange={(e) => onChange({ expensesIncludeDebt: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-gray-300 rounded-full peer-checked:bg-blue-600 transition-colors" />
+                <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow peer-checked:translate-x-4 transition-transform" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">
+                My expenses already include debt payments
+              </span>
+            </label>
+
+            {scenario.expensesIncludeDebt && (
+              <div className="mt-3 space-y-1 text-sm">
+                {debtInfo.mortgage > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Mortgage payment</span>
+                    <span className="text-red-600">-${debtInfo.mortgage.toLocaleString()}/mo</span>
+                  </div>
+                )}
+                {debtInfo.consumer > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Consumer debt payment</span>
+                    <span className="text-red-600">-${debtInfo.consumer.toLocaleString()}/mo</span>
+                  </div>
+                )}
+                {debtInfo.other > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Other debt payment</span>
+                    <span className="text-red-600">-${debtInfo.other.toLocaleString()}/mo</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-medium pt-1 border-t border-gray-200">
+                  <span className="text-gray-700">Non-debt expenses used by engine</span>
+                  <span className={adjustedMonthly <= 0 ? 'text-red-600' : 'text-green-700'}>
+                    ${Math.max(0, adjustedMonthly).toLocaleString()}/mo
+                  </span>
+                </div>
+                {adjustedMonthly <= 0 && (
+                  <p className="text-red-600 text-xs mt-1">
+                    Your debt payments exceed your total expenses. Check your numbers or turn this off.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Retirement expense reduction */}
-      <Card>
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">
-          Retirement Expense Adjustment
-        </h3>
-        <SliderControl
-          label="Spending reduction at retirement"
-          value={scenario.expenseReductionAtRetirement * 100}
-          onChange={(v) => onChange({ expenseReductionAtRetirement: v / 100 })}
-          min={0}
-          max={30}
-          step={1}
-          format="percent"
-          helper="Many retirees spend 10-20% less due to no commute, work clothes, etc."
-        />
-      </Card>
+      {!alreadyRetired ? (
+        <Card>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">
+            Retirement Expense Adjustment
+          </h3>
+          <SliderControl
+            label="Spending reduction at retirement"
+            value={scenario.expenseReductionAtRetirement * 100}
+            onChange={(v) => onChange({ expenseReductionAtRetirement: v / 100 })}
+            min={0}
+            max={30}
+            step={1}
+            format="percent"
+            helper="Many retirees spend 10-20% less due to no commute, work clothes, etc."
+          />
+        </Card>
+      ) : (
+        <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 text-sm text-blue-800">
+          Since you&apos;re already retired, enter your <strong>current</strong> monthly
+          spending above — no future adjustment needed.
+        </div>
+      )}
 
       {/* Return assumptions */}
       <Card>

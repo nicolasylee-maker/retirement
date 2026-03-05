@@ -1,5 +1,5 @@
 import { calcSustainableWithdrawal } from '../engines/withdrawalCalc';
-import { calcDebtSchedule } from './debtCalc';
+import { calcDebtSchedule, calcTotalMonthlyDebt } from './debtCalc';
 import { projectScenario } from '../engines/projectionEngine';
 import { calcEstateImpact } from '../engines/estateEngine';
 import { computeDiffDrivers, getPhaseRanges, computePhaseSummary, computePhaseStatus, computeMonthlySnapshots } from './compareAnalysis';
@@ -52,6 +52,8 @@ export function buildDashboardAiData(scenario, projectionData) {
     lifeExpectancy: scenario.lifeExpectancy,
     inflationRatePct: (inf * 100).toFixed(1),
     monthlyExpenses: scenario.monthlyExpenses,
+    expensesIncludeDebt: !!scenario.expensesIncludeDebt,
+    debtAdjustmentMonthly: scenario.expensesIncludeDebt ? calcTotalMonthlyDebt(scenario).totalMonthly : 0,
     expensesAtRetirement: expensesAtRet,
     expensesMonthlyToday: tdMonthly(expensesAtRet),
     portfolioAtRetirement: portfolioAtRet,

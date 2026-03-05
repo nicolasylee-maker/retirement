@@ -67,25 +67,26 @@ function buildRows(s) {
 
     [48+O, 'Expenses & Returns',   null, null, null],
     [49+O, 'Monthly Expenses',     'Assumptions_MonthlyExpenses',   s.monthlyExpenses ?? 4000,       FMT.currency, false, 'Total monthly living expenses (housing, food, transport, etc.)'],
-    [50+O, 'Expense Reduction',    'Assumptions_ExpenseReduction',  s.expenseReductionAtRetirement || 0, FMT.pct, true, 'How much expenses drop in retirement (no commute, paid-off home)'],
-    [51+O, 'Inflation Rate',       'Assumptions_Inflation',         s.inflationRate || 0.025,        FMT.pct, true, 'Expected annual price increases (BoC target = 2%)'],
-    [52+O, 'Real Return (RRSP)',   'Assumptions_RealReturn',        s.realReturn || 0.04,            FMT.pct, true, 'Investment return above inflation for RRSP accounts'],
-    [53+O, 'TFSA Return',          'Assumptions_TfsaReturn',        s.tfsaReturn || (s.realReturn || 0.04), FMT.pct, true, 'Investment return above inflation for TFSA'],
-    [54+O, 'Non-Reg Return',       'Assumptions_NonRegReturn',      s.nonRegReturn || (s.realReturn || 0.04), FMT.pct, true, 'Investment return above inflation for non-registered accounts'],
+    [50+O, 'Includes Debt Payments','Assumptions_ExpensesIncDebt',  s.expensesIncludeDebt ? 1 : 0,   FMT.int,  false, '1 = expenses already include debt payments (engine subtracts them to avoid double-counting)'],
+    [51+O, 'Expense Reduction',    'Assumptions_ExpenseReduction',  s.expenseReductionAtRetirement || 0, FMT.pct, true, 'How much expenses drop in retirement (no commute, paid-off home)'],
+    [52+O, 'Inflation Rate',       'Assumptions_Inflation',         s.inflationRate || 0.025,        FMT.pct, true, 'Expected annual price increases (BoC target = 2%)'],
+    [53+O, 'Real Return (RRSP)',   'Assumptions_RealReturn',        s.realReturn || 0.04,            FMT.pct, true, 'Investment return above inflation for RRSP accounts'],
+    [54+O, 'TFSA Return',          'Assumptions_TfsaReturn',        s.tfsaReturn || (s.realReturn || 0.04), FMT.pct, true, 'Investment return above inflation for TFSA'],
+    [55+O, 'Non-Reg Return',       'Assumptions_NonRegReturn',      s.nonRegReturn || (s.realReturn || 0.04), FMT.pct, true, 'Investment return above inflation for non-registered accounts'],
 
-    [56+O, 'Withdrawal Strategy',  null, null, null],
-    [57+O, 'Withdrawal Order',     null,                            'TFSA > NonReg > RRSP > Other',  FMT.text, false, 'TFSA first (tax-free), then NonReg, then RRSP (most taxed)'],
-    [58+O, 'RRSP Meltdown Enabled','Assumptions_MeltdownEnabled',   b(s.rrspMeltdownEnabled),        FMT.int,  false, '1 = gradually draw down RRSP before 72, 0 = wait for RRIF'],
-    [59+O, 'Meltdown Start Age',   'Assumptions_MeltdownStartAge',  s.rrspMeltdownStartAge ?? s.retirementAge, FMT.int, false, 'Age to start RRSP meltdown withdrawals'],
-    [60+O, 'Meltdown Target Age',  'Assumptions_MeltdownTargetAge', s.rrspMeltdownTargetAge || 71,   FMT.int,  false, 'Age to finish meltdown (must be \u226471, before RRIF kicks in)'],
-    [61+O, 'Meltdown Annual',      'Assumptions_MeltdownAnnual',    s.rrspMeltdownAnnual || 0,       FMT.currency, false, 'Annual meltdown withdrawal amount'],
+    [57+O, 'Withdrawal Strategy',  null, null, null],
+    [58+O, 'Withdrawal Order',     null,                            'TFSA > NonReg > RRSP > Other',  FMT.text, false, 'TFSA first (tax-free), then NonReg, then RRSP (most taxed)'],
+    [59+O, 'RRSP Meltdown Enabled','Assumptions_MeltdownEnabled',   b(s.rrspMeltdownEnabled),        FMT.int,  false, '1 = gradually draw down RRSP before 72, 0 = wait for RRIF'],
+    [60+O, 'Meltdown Start Age',   'Assumptions_MeltdownStartAge',  s.rrspMeltdownStartAge ?? s.retirementAge, FMT.int, false, 'Age to start RRSP meltdown withdrawals'],
+    [61+O, 'Meltdown Target Age',  'Assumptions_MeltdownTargetAge', s.rrspMeltdownTargetAge || 71,   FMT.int,  false, 'Age to finish meltdown (must be \u226471, before RRIF kicks in)'],
+    [62+O, 'Meltdown Annual',      'Assumptions_MeltdownAnnual',    s.rrspMeltdownAnnual || 0,       FMT.currency, false, 'Annual meltdown withdrawal amount'],
 
-    [63+O, 'Tax Constants',        null, null, null],
-    [64+O, 'Capital Gains Inclusion', 'Assumptions_CapGainsRate',   0.50,                            FMT.pct,  false, 'Fraction of capital gains that are taxable (currently 50%)'],
-    [65+O, 'TFSA Annual Limit',    'Assumptions_TfsaAnnualLimit',   7000,                            FMT.currency, false, 'Maximum annual TFSA contribution room'],
-    [66+O, 'OAS Clawback Threshold','Assumptions_OasClawbackThresh',93454,                           FMT.currency, false, 'Income above this triggers OAS clawback at 15%'],
-    [67+O, 'OAS Clawback Rate',    'Assumptions_OasClawbackRate',   0.15,                            FMT.pct,  false, 'Rate at which OAS is clawed back (15%)'],
-    [68+O, 'OAS Max Annual',       'Assumptions_OasMaxAnnual',      8881,                            FMT.currency, false, 'Maximum annual OAS benefit (for clawback cap)'],
+    [64+O, 'Tax Constants',        null, null, null],
+    [65+O, 'Capital Gains Inclusion', 'Assumptions_CapGainsRate',   0.50,                            FMT.pct,  false, 'Fraction of capital gains that are taxable (currently 50%)'],
+    [66+O, 'TFSA Annual Limit',    'Assumptions_TfsaAnnualLimit',   7000,                            FMT.currency, false, 'Maximum annual TFSA contribution room'],
+    [67+O, 'OAS Clawback Threshold','Assumptions_OasClawbackThresh',93454,                           FMT.currency, false, 'Income above this triggers OAS clawback at 15%'],
+    [68+O, 'OAS Clawback Rate',    'Assumptions_OasClawbackRate',   0.15,                            FMT.pct,  false, 'Rate at which OAS is clawed back (15%)'],
+    [69+O, 'OAS Max Annual',       'Assumptions_OasMaxAnnual',      8881,                            FMT.currency, false, 'Maximum annual OAS benefit (for clawback cap)'],
   ];
 }
 
@@ -136,10 +137,10 @@ export function buildAssumptionsSheet(wb, scenario) {
   }
 
   // Note at bottom
-  const noteRow = ws.getRow(70 + ROW_OFFSET);
+  const noteRow = ws.getRow(71 + ROW_OFFSET);
   noteRow.getCell(1).value = 'Change any blue value \u2192 entire workbook recalculates.';
   noteRow.getCell(1).font = FONTS.small;
-  const noteRow2 = ws.getRow(71 + ROW_OFFSET);
+  const noteRow2 = ws.getRow(72 + ROW_OFFSET);
   noteRow2.getCell(1).value = 'Yellow cells = key assumptions to sensitivity-test.';
   noteRow2.getCell(1).font = FONTS.small;
 

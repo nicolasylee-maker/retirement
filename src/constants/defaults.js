@@ -103,6 +103,7 @@ export function createDefaultScenario(name = 'My Scenario') {
 
     // Step 7: Expenses & Assumptions
     monthlyExpenses: 4000,
+    expensesIncludeDebt: false,
     expenseReductionAtRetirement: 0.10,
     inflationRate: 0.025,
     realReturn: 0.04,

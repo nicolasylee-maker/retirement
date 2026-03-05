@@ -68,7 +68,7 @@ export function auditInflationCrosswalk(scenario, projectionData) {
 
   // Inputs to track
   const inputs = [
-    { label: 'Monthly Expenses', annual: (s.monthlyExpenses || 0) * 12, projField: 'expenses' },
+    { label: s.expensesIncludeDebt ? 'Monthly Expenses (adjusted for debt overlap)' : 'Monthly Expenses', annual: (s.monthlyExpenses || 0) * 12, projField: 'expenses' },
     { label: 'CPP', annual: (s.cppMonthly || 0) * 12, projField: 'cppIncome' },
     { label: 'OAS', annual: (s.oasMonthly || 0) * 12, projField: 'oasIncome' },
   ];

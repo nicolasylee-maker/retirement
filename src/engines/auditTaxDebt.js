@@ -11,6 +11,7 @@ import {
   PROVINCE_DATA, PROVINCE_NAMES,
 } from '../constants/taxTables.js';
 import { calcTotalTax } from './taxEngine.js';
+import { splitCoupleIncome } from '../utils/coupleHelpers.js';
 
 const $ = (v) => formatCurrency(v);
 const pct = (v, d = 1) => formatPercent(v, d);
@@ -37,23 +38,51 @@ export function auditTaxVerification(scenario, projectionData) {
 
   for (const row of exampleRows) {
     if (!row) continue;
-    const income = row.totalTaxableIncome;
-    const age = row.age;
-    const hasPension = (row.pensionIncome > 0) || (age >= 72 && row.rrspWithdrawal > 0);
 
-    md += `### Worked Example: ${$(income)} taxable income, age ${age}${hasPension ? ', pension income' : ''}\n\n`;
-    md += workedTaxExample(income, age, hasPension, province);
-    md += '\n';
+    if (s.isCouple) {
+      const { primaryTaxable, spouseTaxable, spouseAge } = splitCoupleIncome(row, s);
+      const age = row.age;
+      const primaryHasPension = (row.pensionIncome > 0) || (age >= 72 && row.rrspWithdrawal > 0);
+      const spouseHasPension = (row.spousePensionIncome > 0) || (spouseAge >= 72 && (row.spouseRrspWithdrawal || 0) > 0);
 
-    // Verify against engine
-    const engineTax = calcTotalTax(income, age, hasPension, province);
-    const projTax = row.totalTax;
-    md += `**Engine verification**: calcTotalTax(${$(income)}, ${age}, ${hasPension}, '${province}') = ${$(engineTax)}\n`;
-    md += `**Projection row tax**: ${$(projTax)}\n`;
-    if (Math.abs(engineTax - projTax) > 2) {
-      md += `**MISMATCH** — delta ${$(Math.abs(engineTax - projTax))} (may be due to rounding in iterative gross-up)\n`;
+      md += `### Worked Example: age ${age} (household ${$(row.totalTaxableIncome)})\n\n`;
+
+      md += `#### Primary (${$(primaryTaxable)} taxable, age ${age})\n\n`;
+      md += workedTaxExample(primaryTaxable, age, primaryHasPension, province);
+      md += '\n';
+
+      md += `#### Spouse (${$(spouseTaxable)} taxable, age ${spouseAge})\n\n`;
+      md += workedTaxExample(spouseTaxable, spouseAge, spouseHasPension, province);
+      md += '\n';
+
+      const primaryTax = calcTotalTax(primaryTaxable, age, primaryHasPension, province);
+      const spouseTax = calcTotalTax(spouseTaxable, spouseAge, spouseHasPension, province);
+      const combinedTax = primaryTax + spouseTax;
+      const projTax = row.totalTax;
+      md += `**Engine verification**: primary ${$(primaryTax)} + spouse ${$(spouseTax)} = ${$(combinedTax)}\n`;
+      md += `**Projection row tax**: ${$(projTax)}\n`;
+      if (Math.abs(combinedTax - projTax) > 2) {
+        md += `**MISMATCH** — delta ${$(Math.abs(combinedTax - projTax))} (may be due to rounding in iterative gross-up)\n`;
+      }
+      md += '\n';
+    } else {
+      const income = row.totalTaxableIncome;
+      const age = row.age;
+      const hasPension = (row.pensionIncome > 0) || (age >= 72 && row.rrspWithdrawal > 0);
+
+      md += `### Worked Example: ${$(income)} taxable income, age ${age}${hasPension ? ', pension income' : ''}\n\n`;
+      md += workedTaxExample(income, age, hasPension, province);
+      md += '\n';
+
+      const engineTax = calcTotalTax(income, age, hasPension, province);
+      const projTax = row.totalTax;
+      md += `**Engine verification**: calcTotalTax(${$(income)}, ${age}, ${hasPension}, '${province}') = ${$(engineTax)}\n`;
+      md += `**Projection row tax**: ${$(projTax)}\n`;
+      if (Math.abs(engineTax - projTax) > 2) {
+        md += `**MISMATCH** — delta ${$(Math.abs(engineTax - projTax))} (may be due to rounding in iterative gross-up)\n`;
+      }
+      md += '\n';
     }
-    md += '\n';
   }
 
   // Additional data points table

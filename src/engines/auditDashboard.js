@@ -32,8 +32,12 @@ export function auditDashboardSummary(scenario, projectionData) {
   const nwRows = [
     ['RRSP/RRIF', $(retRow.rrspBalance)],
     ['TFSA', $(retRow.tfsaBalance)],
-    ['Non-Registered', $(retRow.nonRegBalance)],
   ];
+  if (s.isCouple && (retRow.spouseRrspBalance || 0) > 0)
+    nwRows.push(['Spouse RRSP/RRIF', $(retRow.spouseRrspBalance)]);
+  if (s.isCouple && (retRow.spouseTfsaBalance || 0) > 0)
+    nwRows.push(['Spouse TFSA', $(retRow.spouseTfsaBalance)]);
+  nwRows.push(['Non-Registered', $(retRow.nonRegBalance)]);
   if ((retRow.otherBalance || 0) > 0) nwRows.push(['Other Assets', $(retRow.otherBalance)]);
   nwRows.push(['**Portfolio (liquid)**', `**${$(retRow.totalPortfolio)}**`]);
   if ((s.realEstateValue || 0) > 0) nwRows.push(['Real Estate', $(s.realEstateValue)]);
@@ -93,17 +97,34 @@ export function auditDashboardSummary(scenario, projectionData) {
   // --- SHORTFALL ---
   md += `### SHORTFALL (first year of retirement, age ${s.retirementAge})\n\n`;
   const expReductionPct = Math.round((s.expenseReductionAtRetirement || 0) * 100);
-  const primarySource = rrspWd >= tfsaWd && rrspWd >= nonRegWd ? 'RRSP'
-    : tfsaWd >= nonRegWd ? 'TFSA' : 'Non-Reg';
+
+  let shortfallLabel, fundedFromLabel;
+  if (totalWd === 0) {
+    shortfallLabel = '$0 (surplus)';
+    fundedFromLabel = 'N/A — income covers all expenses';
+  } else {
+    shortfallLabel = `**-${$(totalWd)}**`;
+    const sources = [];
+    if (rrspWd > 0) sources.push('RRSP');
+    if (tfsaWd > 0) sources.push('TFSA');
+    if (nonRegWd > 0) sources.push('Non-Reg');
+    if (otherWd > 0) sources.push('Other');
+    if (couple) {
+      if ((retRow.spouseRrspWithdrawal || 0) > 0) sources.push('Spouse RRSP');
+      if ((retRow.spouseTfsaWithdrawal || 0) > 0) sources.push('Spouse TFSA');
+    }
+    fundedFromLabel = sources.length > 0 ? sources.join(', ') : 'Portfolio';
+  }
+
   const sfRows = [
     ['After-Tax Income', $(retRow.afterTaxIncome)],
     ['Living Expenses', `-${$(retRow.expenses)}`],
     ["Expenses (today's $/mo)", tdMo(retRow.expenses)],
     ['Pre-retirement input', `${$(s.monthlyExpenses)}/mo`],
     ['Retirement reduction', `${expReductionPct}%`],
-    ['**Annual Shortfall**', `**-${$(totalWd)}**`],
-    ["Shortfall (today's $/mo)", tdMo(totalWd)],
-    ['Funded from', primarySource],
+    ['**Annual Shortfall**', shortfallLabel],
+    ["Shortfall (today's $/mo)", totalWd === 0 ? '-' : tdMo(totalWd)],
+    ['Funded from', fundedFromLabel],
   ];
   md += mdTable(['Item', 'Value'], sfRows) + '\n\n';
 

@@ -4,6 +4,8 @@ import { projectScenario } from '../engines/projectionEngine';
 import { calcEstateImpact } from '../engines/estateEngine';
 import { computeDiffDrivers, getPhaseRanges, computePhaseSummary, computePhaseStatus, computeMonthlySnapshots } from './compareAnalysis';
 import { toTodaysDollars } from './inflationHelper';
+import { splitCoupleIncome } from './coupleHelpers';
+import { OAS_PARAMS } from '../constants/taxTables';
 
 export function buildDashboardAiData(scenario, projectionData) {
   const retirementRow = projectionData.find(r => r.age === scenario.retirementAge);
@@ -91,6 +93,26 @@ export function buildDashboardAiData(scenario, projectionData) {
     yearsToRetirement: yearsToRet,
     workingYearsWithWithdrawals,
     tfsaDepletedWhileWorking: tfsaDepletedWhileWorking ? 'Yes' : 'No',
+    // OAS clawback status
+    ...((() => {
+      const oasStart = scenario.oasStartAge || 65;
+      if (isCouple) {
+        const ageDiff = (scenario.spouseAge || scenario.currentAge) - scenario.currentAge;
+        const spouseOasStart = scenario.spouseOasStartAge || 65;
+        const { primaryTaxable: pInc } = retirementRow ? splitCoupleIncome(retirementRow, scenario) : { primaryTaxable: 0 };
+        const { spouseTaxable: sInc } = retirementRow ? splitCoupleIncome(retirementRow, scenario) : { spouseTaxable: 0 };
+        const primaryOasYears = projectionData.filter(r => r.age >= oasStart);
+        const spouseOasYears = projectionData.filter(r => (r.age + ageDiff) >= spouseOasStart);
+        return {
+          primaryOasClawbackTriggered: primaryOasYears.some(r => splitCoupleIncome(r, scenario).primaryTaxable > OAS_PARAMS.clawbackStart) ? 'Yes' : 'No',
+          spouseOasClawbackTriggered: spouseOasYears.some(r => splitCoupleIncome(r, scenario).spouseTaxable > OAS_PARAMS.clawbackStart) ? 'Yes' : 'No',
+        };
+      }
+      const oasYears = projectionData.filter(r => r.age >= oasStart);
+      return {
+        oasClawbackTriggered: oasYears.some(r => (r.totalTaxableIncome || 0) > OAS_PARAMS.clawbackStart) ? 'Yes' : 'No',
+      };
+    })()),
     // Couple context
     isCouple,
     ...(isCouple ? {
@@ -102,6 +124,8 @@ export function buildDashboardAiData(scenario, projectionData) {
       spouseCppMonthly: scenario.spouseCppMonthly || 0,
       spouseOasMonthly: scenario.spouseOasMonthly || 0,
       spousePensionIncome: scenario.spousePensionType === 'db' ? (scenario.spouseDbPensionAnnual || 0) : 0,
+      primaryIncomeAtRetirement: retirementRow ? splitCoupleIncome(retirementRow, scenario).primaryTaxable : 0,
+      spouseIncomeAtRetirement: retirementRow ? splitCoupleIncome(retirementRow, scenario).spouseTaxable : 0,
     } : {}),
   };
 }

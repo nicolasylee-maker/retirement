@@ -75,6 +75,7 @@ retirement/
 │   ├── utils/
 │   │   ├── analytics.js                    ← Plausible custom event helper (no-ops if window.plausible absent)
 │   │   ├── buildAiData.js                  ← Builds structured AI context payloads per view (dashboard, debt, compare, estate, optimize)
+│   │   ├── coupleHelpers.js                ← Shared couple helpers: splitCoupleIncome (per-person taxable income from projection row)
 │   │   ├── compareAnalysis.js              ← Pure comparison utilities: diff drivers, phase ranges, phase summaries, monthly snapshots
 │   │   ├── buildAiPrompt.js                ← Client-side port of gemini-proxy buildPrompt(); resolves {variables} for all 5 insight types; exports getPromptTemplate() for unresolved template
 │   │   ├── renderMarkdownText.jsx          ← Shared markdown renderer (bold, numbered lists, bullets) extracted from AiInsight.jsx; used by AiTestResultPanel
@@ -216,12 +217,13 @@ retirement/
 │               ├── AiTestConfigPanel.jsx   ← AI Testing config UI (insight type, user/scenario search, provider/model)
 │               └── AiTestResultPanel.jsx   ← AI Testing 3-column result display (Gemini | Rival | Raw Prompt)
 │
-├── tests/                                  ← Vitest test files (15 files, run: npm test)
+├── tests/                                  ← Vitest test files (16 files, run: npm test)
 │   ├── taxEngine.test.js                   ← Federal/provincial tax, OAS clawback, RRIF mins
 │   ├── projectionEngine.test.js            ← Year-by-year projections with persona scenarios
 │   ├── debtCalc.test.js                    ← calcAnnualPayment + calcTotalMonthlyDebt unit tests
 │   ├── estateEngine.test.js                ← Death tax, probate, intestacy distribution
 │   ├── coupleEstateFix.test.js             ← Couple estate: spouse balances, AI context
+│   ├── coupleAuditFix.test.js             ← Couple audit: per-person tax, OAS clawback, net worth, surplus, AI context
 │   ├── withdrawalCalc.test.js              ← Sustainable withdrawal, overrides, monotonicity
 │   ├── multiProvinceEngine.test.js         ← Province-aware tax/probate/intestacy (all provinces)
 │   ├── goldenFileTests.test.js             ← Per-province regression snapshots

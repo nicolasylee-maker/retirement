@@ -7,6 +7,7 @@
 
 import { formatCurrency, formatPercent, mdTable } from '../utils/formatters.js';
 import { CPP_PARAMS, OAS_PARAMS } from '../constants/taxTables.js';
+import { splitCoupleIncome } from '../utils/coupleHelpers.js';
 
 const $ = (v) => formatCurrency(v);
 const pct = (v, d = 1) => formatPercent(v, d);
@@ -129,12 +130,6 @@ export function auditCppOasVerification(scenario, projectionData) {
   const deferralBonus = monthsDeferred * OAS_PARAMS.deferralBonus;
   const oasAnnualBase = (s.oasMonthly || 0) * 12 * (1 + deferralBonus);
 
-  // Find highest-income year for clawback check — only among OAS-receiving years
-  const oasYears = projectionData.filter(r => r.age >= oasStartAge);
-  const maxIncomeRow = oasYears.length > 0
-    ? oasYears.reduce((a, b) => (b.totalTaxableIncome > a.totalTaxableIncome ? b : a), oasYears[0])
-    : projectionData[0];
-
   // Inflation indexing example: pick age retirementAge + 5 (or life expectancy if shorter)
   const indexExampleAge = Math.min(s.retirementAge + 5, s.lifeExpectancy);
   const indexYears = indexExampleAge - (cppStartAge > oasStartAge ? cppStartAge : oasStartAge);
@@ -142,7 +137,7 @@ export function auditCppOasVerification(scenario, projectionData) {
 
   let md = '## 3. CPP & OAS Verification\n\n';
 
-  md += '### CPP Calculation\n```\n';
+  md += `### CPP Calculation${s.isCouple ? ' (Primary)' : ''}\n\`\`\`\n`;
   md += `Monthly at 65:           ${$(s.cppMonthly)}\n`;
   md += `Start age:               ${cppStartAge} (${cppAdjLabel})\n`;
   md += `Adjustment:              ${cppAdjCalc}\n`;
@@ -154,7 +149,41 @@ export function auditCppOasVerification(scenario, projectionData) {
   }
   md += '```\n\n';
 
-  md += '### OAS Calculation\n```\n';
+  // Spouse CPP
+  if (s.isCouple) {
+    const spCppStartAge = s.spouseCppStartAge || 65;
+    const spMonthsDiff = (spCppStartAge - 65) * 12;
+    let spCppFactor;
+    let spCppAdjLabel, spCppAdjCalc;
+    if (spMonthsDiff < 0) {
+      const p = +(CPP_PARAMS.earlyReduction * 100).toFixed(1);
+      const t = +(Math.abs(spMonthsDiff) * p).toFixed(1);
+      spCppFactor = 1 + spMonthsDiff * CPP_PARAMS.earlyReduction;
+      spCppAdjLabel = `Early by ${Math.abs(spMonthsDiff)} months`;
+      spCppAdjCalc = `${Math.abs(spMonthsDiff)} x ${p}% = ${t.toFixed(1)}% reduction`;
+    } else if (spMonthsDiff > 0) {
+      const p = +(CPP_PARAMS.lateIncrease * 100).toFixed(1);
+      const t = +(spMonthsDiff * p).toFixed(1);
+      spCppFactor = 1 + spMonthsDiff * CPP_PARAMS.lateIncrease;
+      spCppAdjLabel = `Late by ${spMonthsDiff} months`;
+      spCppAdjCalc = `${spMonthsDiff} x ${p}% = ${t.toFixed(1)}% bonus`;
+    } else {
+      spCppFactor = 1;
+      spCppAdjLabel = 'At 65 (no adjustment)';
+      spCppAdjCalc = 'Factor = 1.000';
+    }
+    const spCppAnnual = (s.spouseCppMonthly || 0) * 12 * spCppFactor;
+
+    md += '### CPP Calculation (Spouse)\n```\n';
+    md += `Monthly at 65:           ${$(s.spouseCppMonthly || 0)}\n`;
+    md += `Start age:               ${spCppStartAge} (${spCppAdjLabel})\n`;
+    md += `Adjustment:              ${spCppAdjCalc}\n`;
+    md += `Adjustment factor:       ${spCppFactor.toFixed(3)}\n`;
+    md += `Annual CPP (base):       ${$(s.spouseCppMonthly || 0)} x 12 x ${spCppFactor.toFixed(3)} = ${$(spCppAnnual)}\n`;
+    md += '```\n\n';
+  }
+
+  md += `### OAS Calculation${s.isCouple ? ' (Primary)' : ''}\n\`\`\`\n`;
   md += `Monthly at 65:           ${$(s.oasMonthly)}\n`;
   md += `Start age:               ${oasStartAge}\n`;
   if (monthsDeferred > 0) {
@@ -167,11 +196,75 @@ export function auditCppOasVerification(scenario, projectionData) {
   md += `Inflation indexed:       Yes (${pct(s.inflationRate || 0.025)}/yr)\n`;
   md += '```\n\n';
 
-  md += '### OAS Clawback Check\n```\n';
-  md += `Clawback threshold:      ${$(OAS_PARAMS.clawbackStart)}\n`;
-  md += `Highest taxable income:  ~${$(maxIncomeRow.totalTaxableIncome)} (age ${maxIncomeRow.age}, during OAS-receiving years)\n`;
-  md += `Clawback triggered?      ${maxIncomeRow.totalTaxableIncome > OAS_PARAMS.clawbackStart ? 'Yes' : 'No'}\n`;
-  md += '```\n\n';
+  // Spouse OAS
+  if (s.isCouple) {
+    const spOasStart = s.spouseOasStartAge || 65;
+    const spYearsDeferred = Math.min(spOasStart, OAS_PARAMS.maxDeferAge) - OAS_PARAMS.startAge;
+    const spMonthsDeferred = Math.max(0, spYearsDeferred) * 12;
+    const spDeferralBonus = spMonthsDeferred * OAS_PARAMS.deferralBonus;
+    const spOasAnnual = (s.spouseOasMonthly || 0) * 12 * (1 + spDeferralBonus);
+
+    md += '### OAS Calculation (Spouse)\n```\n';
+    md += `Monthly at 65:           ${$(s.spouseOasMonthly || 0)}\n`;
+    md += `Start age:               ${spOasStart}\n`;
+    if (spMonthsDeferred > 0) {
+      md += `Months deferred:         ${spMonthsDeferred}\n`;
+      md += `Total bonus:             ${(spDeferralBonus * 100).toFixed(1)}%\n`;
+    }
+    md += `Annual OAS (base):       ${$(s.spouseOasMonthly || 0)} x 12 x ${(1 + spDeferralBonus).toFixed(3)} = ${$(spOasAnnual)}\n`;
+    md += '```\n\n';
+  }
+
+  // OAS Clawback — per-person for couples
+  if (s.isCouple) {
+    const ageDiff = (s.spouseAge || s.currentAge) - s.currentAge;
+    const spouseOasStart = s.spouseOasStartAge || 65;
+
+    // Primary clawback check
+    const primaryOasYears = projectionData.filter(r => r.age >= oasStartAge);
+    let maxPrimaryIncome = 0, maxPrimaryAge = oasStartAge;
+    for (const r of primaryOasYears) {
+      const { primaryTaxable } = splitCoupleIncome(r, s);
+      if (primaryTaxable > maxPrimaryIncome) {
+        maxPrimaryIncome = primaryTaxable;
+        maxPrimaryAge = r.age;
+      }
+    }
+
+    // Spouse clawback check
+    const spouseOasYears = projectionData.filter(r => (r.age + ageDiff) >= spouseOasStart);
+    let maxSpouseIncome = 0, maxSpouseAge = spouseOasStart;
+    for (const r of spouseOasYears) {
+      const { spouseTaxable, spouseAge: spAge } = splitCoupleIncome(r, s);
+      if (spouseTaxable > maxSpouseIncome) {
+        maxSpouseIncome = spouseTaxable;
+        maxSpouseAge = spAge;
+      }
+    }
+
+    md += '### OAS Clawback Check (Primary)\n```\n';
+    md += `Clawback threshold:      ${$(OAS_PARAMS.clawbackStart)}\n`;
+    md += `Highest taxable income:  ~${$(maxPrimaryIncome)} (age ${maxPrimaryAge})\n`;
+    md += `Clawback triggered?      ${maxPrimaryIncome > OAS_PARAMS.clawbackStart ? 'Yes' : 'No'}\n`;
+    md += '```\n\n';
+
+    md += '### OAS Clawback Check (Spouse)\n```\n';
+    md += `Clawback threshold:      ${$(OAS_PARAMS.clawbackStart)}\n`;
+    md += `Highest taxable income:  ~${$(maxSpouseIncome)} (spouse age ${maxSpouseAge})\n`;
+    md += `Clawback triggered?      ${maxSpouseIncome > OAS_PARAMS.clawbackStart ? 'Yes' : 'No'}\n`;
+    md += '```\n\n';
+  } else {
+    const oasYears = projectionData.filter(r => r.age >= oasStartAge);
+    const maxIncomeRow = oasYears.length > 0
+      ? oasYears.reduce((a, b) => (b.totalTaxableIncome > a.totalTaxableIncome ? b : a), oasYears[0])
+      : projectionData[0];
+
+    md += '### OAS Clawback Check\n```\n';
+    md += `Clawback threshold:      ${$(OAS_PARAMS.clawbackStart)}\n`;
+    md += `Highest taxable income:  ~${$(maxIncomeRow.totalTaxableIncome)} (age ${maxIncomeRow.age}, during OAS-receiving years)\n`;
+    md += `Clawback triggered?      ${maxIncomeRow.totalTaxableIncome > OAS_PARAMS.clawbackStart ? 'Yes' : 'No'}\n`;
+    md += '```\n\n';
+  }
 
   return md;
 }

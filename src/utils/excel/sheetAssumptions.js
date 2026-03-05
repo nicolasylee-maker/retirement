@@ -1,6 +1,7 @@
 /**
  * Sheet 1: Assumptions — all user inputs as named ranges.
  * Changing any value here recalculates the entire workbook.
+ * Couple scenarios add a spouse section after Tax Constants.
  */
 import {
   FONTS, COLORS, FMT,
@@ -8,6 +9,7 @@ import {
   setColWidths, addNamedRange, addPurposeRows,
   DOC_FONT, DOC_BG,
 } from './styles.js';
+import { FIRST_DATA as PROJ_FIRST_DATA } from './sheetProjection.js';
 
 const ROW_OFFSET = 3; // purpose rows 1-2 + blank row 3
 
@@ -19,7 +21,7 @@ function buildRows(s) {
   const other = (s.otherAssets || 0) + (s.otherRegisteredBalance || 0);
   const O = ROW_OFFSET;
 
-  return [
+  const rows = [
     [3+O,  'Personal',             null, null, null],
     [4+O,  'Current Age',          'Assumptions_CurrentAge',        s.currentAge,                    FMT.int,  false, 'Your age today \u2014 the starting point for all projections'],
     [5+O,  'Retirement Age',       'Assumptions_RetirementAge',     s.retirementAge,                 FMT.int,  false, 'When you plan to stop working and draw from savings'],
@@ -88,6 +90,33 @@ function buildRows(s) {
     [68+O, 'OAS Clawback Rate',    'Assumptions_OasClawbackRate',   0.15,                            FMT.pct,  false, 'Rate at which OAS is clawed back (15%)'],
     [69+O, 'OAS Max Annual',       'Assumptions_OasMaxAnnual',      8881,                            FMT.currency, false, 'Maximum annual OAS benefit (for clawback cap)'],
   ];
+
+  // Spouse section (couple only) — starts at row 71+O
+  if (s.isCouple) {
+    const spRrsp = (s.spouseRrspBalance || 0) + (s.spouseRrifBalance || 0) + (s.spouseDcPensionBalance || 0);
+    let sr = 71 + O;
+    rows.push(
+      [sr++, 'Spouse (Couple Only)', null, null, null],
+      [sr++, 'Spouse Age',               'Assumptions_SpouseAge',              s.spouseAge || 60,                FMT.int,  false, 'Spouse\'s current age'],
+      [sr++, 'Spouse Retirement Age',    'Assumptions_SpouseRetirementAge',    s.spouseRetirementAge || 65,      FMT.int,  false, 'When spouse plans to stop working'],
+      [sr++, 'Spouse Employment Income', 'Assumptions_SpouseEmploymentIncome', s.spouseEmploymentIncome || 0,    FMT.currency, false, 'Spouse gross annual employment income'],
+      [sr++, 'Spouse Still Working',     'Assumptions_SpouseStillWorking',     b(s.spouseStillWorking ?? true),  FMT.int,  false, '1 = spouse currently employed, 0 = already retired'],
+      [sr++, 'Spouse CPP Monthly',       'Assumptions_SpouseCppMonthly',       s.spouseCppMonthly || 0,          FMT.currency, false, 'Spouse CPP pension per month at age 65'],
+      [sr++, 'Spouse CPP Start Age',     'Assumptions_SpouseCppStartAge',      s.spouseCppStartAge || 65,        FMT.int,  false, 'When spouse starts CPP (60\u201370)'],
+      [sr++, 'Spouse OAS Monthly',       'Assumptions_SpouseOasMonthly',       s.spouseOasMonthly || 0,          FMT.currency, false, 'Spouse OAS pension per month at age 65'],
+      [sr++, 'Spouse OAS Start Age',     'Assumptions_SpouseOasStartAge',      s.spouseOasStartAge || 65,        FMT.int,  false, 'When spouse starts OAS (65\u201370)'],
+      [sr++, 'Spouse Pension Type',      'Assumptions_SpousePensionType',      s.spousePensionType || 'none',    FMT.text, false, 'Spouse pension: "db", "dc", or "none"'],
+      [sr++, 'Spouse DB Pension Annual', 'Assumptions_SpouseDbPensionAnnual',  s.spouseDbPensionAnnual || 0,     FMT.currency, false, 'Spouse annual DB pension at start age'],
+      [sr++, 'Spouse DB Pension Start',  'Assumptions_SpouseDbPensionStartAge', s.spouseDbPensionStartAge || 65, FMT.int,  false, 'Age when spouse DB pension begins'],
+      [sr++, 'Spouse DB Indexed',        'Assumptions_SpouseDbPensionIndexed', b(s.spouseDbPensionIndexed),      FMT.int,  false, '1 = spouse pension indexed, 0 = fixed'],
+      [sr++, 'Spouse DC Pension Bal',    'Assumptions_SpouseDcPensionBalance', s.spouseDcPensionBalance || 0,    FMT.currency, false, 'Spouse DC pension balance (rolled into spouse RRSP pool)'],
+      [sr++, 'Spouse RRSP Balance',      'Assumptions_SpouseRrspBalance',      spRrsp,                           FMT.currency, false, 'Combined spouse RRSP + RRIF + DC pension balance'],
+      [sr++, 'Spouse TFSA Balance',      'Assumptions_SpouseTfsaBalance',      s.spouseTfsaBalance || 0,         FMT.currency, false, 'Spouse Tax-Free Savings Account balance'],
+      [sr++, 'Spouse TFSA Contribution Room', 'Assumptions_SpouseTfsaContRoom', s.spouseTfsaContributionRoom || 0, FMT.currency, false, 'Spouse unused TFSA contribution room'],
+    );
+  }
+
+  return rows;
 }
 
 const SHEET_NAME = 'Assumptions';
@@ -113,9 +142,11 @@ export function buildAssumptionsSheet(wb, scenario) {
   titleRow.getCell(3).font = { ...FONTS.small, italic: true };
 
   const rows = buildRows(scenario);
+  let lastDataRow = 0;
   for (const [rowNum, label, namedRange, value, fmt, highlight, description] of rows) {
     const row = ws.getRow(rowNum);
     row.getCell(1).value = label;
+    if (rowNum > lastDataRow) lastDataRow = rowNum;
 
     if (value === null && namedRange === null) {
       // Section header
@@ -127,7 +158,6 @@ export function buildAssumptionsSheet(wb, scenario) {
       styleInputCell(cell, fmt);
       if (highlight) styleHighlight(cell);
       if (namedRange) addNamedRange(wb, namedRange, SHEET_NAME, 'B' + rowNum);
-      // Column C: plain English explanation
       if (description) {
         row.getCell(3).value = description;
         row.getCell(3).font = DOC_FONT;
@@ -136,13 +166,69 @@ export function buildAssumptionsSheet(wb, scenario) {
     }
   }
 
-  // Note at bottom
-  const noteRow = ws.getRow(71 + ROW_OFFSET);
-  noteRow.getCell(1).value = 'Change any blue value \u2192 entire workbook recalculates.';
-  noteRow.getCell(1).font = FONTS.small;
-  const noteRow2 = ws.getRow(72 + ROW_OFFSET);
-  noteRow2.getCell(1).value = 'Yellow cells = key assumptions to sensitivity-test.';
-  noteRow2.getCell(1).font = FONTS.small;
+  // Note rows
+  let noteR = lastDataRow + 2;
+  ws.getRow(noteR).getCell(1).value = 'Change any blue value \u2192 entire workbook recalculates.';
+  ws.getRow(noteR).getCell(1).font = FONTS.small;
+  noteR++;
+  ws.getRow(noteR).getCell(1).value = 'Yellow cells = key assumptions to sensitivity-test.';
+  ws.getRow(noteR).getCell(1).font = FONTS.small;
+  noteR += 2;
+
+  // Today's Dollars Reference section (formulas referencing Projection sheet)
+  const numYears = scenario.lifeExpectancy - scenario.currentAge + 1;
+  const retYearsFromStart = scenario.retirementAge - scenario.currentAge;
+  const retProjRow = PROJ_FIRST_DATA + retYearsFromStart;
+  const lastProjRow = PROJ_FIRST_DATA + numYears - 1;
+
+  styleSectionRow(ws.getRow(noteR), 3);
+  ws.getRow(noteR).getCell(1).value = "Today's Dollars Reference";
+  noteR++;
+
+  // Years to Retirement
+  ws.getRow(noteR).getCell(1).value = 'Years to Retirement';
+  ws.getRow(noteR).getCell(1).font = FONTS.normal;
+  ws.getRow(noteR).getCell(2).value = { formula: 'Assumptions_RetirementAge-Assumptions_CurrentAge' };
+  ws.getRow(noteR).getCell(2).numFmt = FMT.int;
+  ws.getRow(noteR).getCell(3).value = 'How many years until you retire';
+  ws.getRow(noteR).getCell(3).font = DOC_FONT;
+  noteR++;
+
+  // Deflation Factor at Retirement
+  ws.getRow(noteR).getCell(1).value = 'Deflation Factor at Ret.';
+  ws.getRow(noteR).getCell(1).font = FONTS.normal;
+  ws.getRow(noteR).getCell(2).value = { formula: `1/(1+Assumptions_Inflation)^(Assumptions_RetirementAge-Assumptions_CurrentAge)` };
+  ws.getRow(noteR).getCell(2).numFmt = '0.0000';
+  ws.getRow(noteR).getCell(3).value = 'Multiplier to convert future $ back to today\'s purchasing power';
+  ws.getRow(noteR).getCell(3).font = DOC_FONT;
+  const deflFactorCell = `B${noteR}`;
+  noteR++;
+
+  // Monthly Expenses at Retirement (today's $)
+  ws.getRow(noteR).getCell(1).value = 'Monthly Expenses at Ret. ($today)';
+  ws.getRow(noteR).getCell(1).font = FONTS.normal;
+  ws.getRow(noteR).getCell(2).value = { formula: `'Projection'!M${retProjRow}*${deflFactorCell}/12` };
+  ws.getRow(noteR).getCell(2).numFmt = FMT.currency;
+  ws.getRow(noteR).getCell(3).value = 'Retirement expenses in today\'s purchasing power (monthly)';
+  ws.getRow(noteR).getCell(3).font = DOC_FONT;
+  noteR++;
+
+  // Portfolio at Retirement (today's $)
+  ws.getRow(noteR).getCell(1).value = 'Portfolio at Ret. ($today)';
+  ws.getRow(noteR).getCell(1).font = FONTS.normal;
+  ws.getRow(noteR).getCell(2).value = { formula: `'Projection'!AQ${retProjRow}*${deflFactorCell}` };
+  ws.getRow(noteR).getCell(2).numFmt = FMT.currency;
+  ws.getRow(noteR).getCell(3).value = 'Total portfolio at retirement in today\'s purchasing power';
+  ws.getRow(noteR).getCell(3).font = DOC_FONT;
+  noteR++;
+
+  // Portfolio at Life Expectancy (today's $)
+  ws.getRow(noteR).getCell(1).value = 'Portfolio at LE ($today)';
+  ws.getRow(noteR).getCell(1).font = FONTS.normal;
+  ws.getRow(noteR).getCell(2).value = { formula: `'Projection'!AQ${lastProjRow}/(1+Assumptions_Inflation)^(Assumptions_LifeExpectancy-Assumptions_CurrentAge)` };
+  ws.getRow(noteR).getCell(2).numFmt = FMT.currency;
+  ws.getRow(noteR).getCell(3).value = 'Total portfolio at life expectancy in today\'s purchasing power';
+  ws.getRow(noteR).getCell(3).font = DOC_FONT;
 
   return ws;
 }

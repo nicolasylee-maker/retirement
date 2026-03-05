@@ -1,6 +1,7 @@
 /**
  * Sheet 6: Estate Calculator — deemed disposition tax at death.
  * References Assumptions + Projection final-year balances.
+ * Couple scenarios include spouse RRSP/TFSA in final balances.
  */
 import {
   FONTS, COLORS, FMT,
@@ -16,6 +17,7 @@ const PURPOSE_ROWS = 3; // rows 1-2 purpose + row 3 blank
 export function buildEstateSheet(wb, scenario, projectionData) {
   const ws = wb.addWorksheet(SHEET_NAME, { properties: { tabColor: { argb: 'FF7030A0' } } });
   setColWidths(ws, [[1, 28], [2, 18], [3, 18]]);
+  const isCouple = !!scenario.isCouple;
 
   // Purpose rows (1-2)
   addPurposeRows(ws,
@@ -45,10 +47,21 @@ export function buildEstateSheet(wb, scenario, projectionData) {
     ['TFSA Balance',        `'Projection'!AM${lastProjRow}`, FMT.currency],
     ['Non-Reg Balance',     `'Projection'!AN${lastProjRow}`, FMT.currency],
     ['Other Assets',        `'Projection'!AO${lastProjRow}`, FMT.currency],
+  ];
+
+  // Couple: add spouse accounts
+  if (isCouple) {
+    balRows.push(
+      ['Spouse RRSP/RRIF',   `'Projection'!BB${lastProjRow}`, FMT.currency],
+      ['Spouse TFSA',         `'Projection'!BC${lastProjRow}`, FMT.currency],
+    );
+  }
+
+  balRows.push(
     ['Total Portfolio',     `'Projection'!AQ${lastProjRow}`, FMT.currency],
     ['Real Estate Value',   'Assumptions_RealEstateValue',   FMT.currency],
     ['Mortgage Balance',    `'Projection'!AP${lastProjRow}`, FMT.currency],
-  ];
+  );
 
   const balStartRow = r;
   for (const [label, formula, fmt] of balRows) {
@@ -59,11 +72,21 @@ export function buildEstateSheet(wb, scenario, projectionData) {
     row.getCell(2).numFmt = fmt;
     r++;
   }
+
+  // Cell references depend on whether couple (shifted by 2 for spouse rows)
   const rrspBalCell = `B${balStartRow}`;
   const nonRegBalCell = `B${balStartRow + 2}`;
-  const totalPortCell = `B${balStartRow + 4}`;
-  const realEstCell = `B${balStartRow + 5}`;
-  const mortBalCell = `B${balStartRow + 6}`;
+  const totalPortCell = isCouple ? `B${balStartRow + 6}` : `B${balStartRow + 4}`;
+  const realEstCell = isCouple ? `B${balStartRow + 7}` : `B${balStartRow + 5}`;
+  const mortBalCell = isCouple ? `B${balStartRow + 8}` : `B${balStartRow + 6}`;
+  const tfsaBalCell = `B${balStartRow + 1}`;
+
+  if (isCouple) {
+    r++;
+    ws.getRow(r).getCell(1).value = 'Note: Spouse accounts pass to surviving spouse tax-free on first death.';
+    ws.getRow(r).getCell(1).font = { ...FONTS.small, italic: true };
+    r++;
+  }
 
   r++; // blank
 
@@ -72,7 +95,7 @@ export function buildEstateSheet(wb, scenario, projectionData) {
   ws.getRow(r).getCell(1).value = 'Deemed Disposition at Death';
   r++;
 
-  // RRSP fully taxable
+  // RRSP fully taxable (primary only — spouse RRSP rolls over tax-free)
   const rrspDeemedRow = r;
   ws.getRow(r).getCell(1).value = 'RRSP Deemed Income';
   ws.getRow(r).getCell(1).font = FONTS.normal;
@@ -103,6 +126,12 @@ export function buildEstateSheet(wb, scenario, projectionData) {
   ws.getRow(r).getCell(2).numFmt = FMT.currency;
   const totalDeemedCell = `B${r}`;
   r++;
+
+  if (isCouple) {
+    ws.getRow(r).getCell(1).value = 'Spouse RRSP passes to surviving spouse without tax; only primary RRSP triggers deemed disposition.';
+    ws.getRow(r).getCell(1).font = { ...FONTS.small, italic: true };
+    r++;
+  }
 
   r++; // blank
 
@@ -145,13 +174,12 @@ export function buildEstateSheet(wb, scenario, projectionData) {
   // Probate estate = portfolio + real estate - TFSA (passes outside estate) - mortgage
   ws.getRow(r).getCell(1).value = 'Probate Estate';
   ws.getRow(r).getCell(1).font = FONTS.normal;
-  const tfsaBalCell = `B${balStartRow + 1}`;
   ws.getRow(r).getCell(2).value = { formula: `MAX(0, ${totalPortCell}+${realEstCell}-${tfsaBalCell}-${mortBalCell})` };
   ws.getRow(r).getCell(2).numFmt = FMT.currency;
   const probateEstateCell = `B${r}`;
   r++;
 
-  // Probate fee formula (Ontario: $5/1000 on first $50K, $15/1000 above)
+  // Probate fee formula
   ws.getRow(r).getCell(1).value = 'Probate Fee';
   ws.getRow(r).getCell(1).font = FONTS.normal;
   const firstThresh = PROBATE.firstThreshold;
@@ -214,6 +242,13 @@ export function buildEstateSheet(wb, scenario, projectionData) {
     ['Probate Fees',        'Provincial fee for validating your will (varies by province)'],
     ['Net to Heirs',        'What your beneficiaries actually receive after all deductions'],
   ];
+
+  if (isCouple) {
+    dictEntries.push(
+      ['Spouse RRSP/RRIF',   'Passes to surviving spouse tax-free on first death (not deemed disposed)'],
+      ['Spouse TFSA',         'Passes to surviving spouse outside probate (designated beneficiary)'],
+    );
+  }
 
   for (const [term, desc] of dictEntries) {
     addDocCell(ws, r, 1, term);

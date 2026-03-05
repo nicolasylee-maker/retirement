@@ -28,6 +28,8 @@ import {
   auditChartSnapshots,
 } from '../engines/auditCrosswalk.js';
 
+import { auditInvestmentReturns } from '../engines/auditInvestmentReturns.js';
+
 import { buildDashboardAiData } from './buildAiData.js';
 import { mdTable } from './formatters.js';
 
@@ -46,6 +48,8 @@ function fmtAudit(n) {
 function auditAiContextDump(scenario, projectionData) {
   const ctx = buildDashboardAiData(scenario, projectionData);
   let md = '## 16. AI Insights Context Dump\n\n';
+  md += `*Prompt version: 2026-03-05-couple-aware*\n`;
+  md += `*Generated: ${new Date().toISOString()}*\n\n`;
   md += '*Exact data sent to the AI insights engine. Verify any AI claim against these values.*\n\n';
   const rows = Object.entries(ctx).map(([key, value]) => [key, String(value ?? '')]);
   md += mdTable(['Variable', 'Value'], rows) + '\n\n';
@@ -152,6 +156,8 @@ export function generateAuditMarkdown(scenario, projectionData, optimizationResu
   md += auditDepletionAnalysis(scenario, projectionData);
   md += '---\n\n';
   md += auditPreRetirementHealth(scenario, projectionData);
+  md += '---\n\n';
+  md += auditInvestmentReturns(scenario, projectionData);
   md += '---\n\n';
   md += auditInflationCrosswalk(scenario, projectionData);
   md += '---\n\n';

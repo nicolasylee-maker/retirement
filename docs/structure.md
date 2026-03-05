@@ -56,6 +56,7 @@ retirement/
 │   │   ├── auditTaxDebt.js                 ← Audit sections 4–5: tax worked example + debt trace
 │   │   ├── auditAnalysis.js                ← Audit sections 6–10: estate, withdrawal, RRIF, gaps, KPIs
 │   │   ├── auditDashboard.js               ← Audit sections 11–13: dashboard KPIs, depletion, pre-retirement health
+│   │   ├── auditInvestmentReturns.js       ← Audit section 13b: investment returns by phase (working/early-ret/RRIF)
 │   │   └── auditCrosswalk.js               ← Audit sections 14–15: inflation crosswalk, chart tooltip snapshots
 │   │
 │   ├── contexts/
@@ -91,8 +92,9 @@ retirement/
 │   │   └── excel/                          ← Excel audit workbook (premium)
 │   │       ├── index.js                    ← downloadExcelAudit: orchestrator, creates multi-sheet workbook
 │   │       ├── styles.js                   ← Shared Excel cell styles (fonts, borders, fills)
-│   │       ├── sheetAssumptions.js         ← Sheet: input assumptions summary
-│   │       ├── sheetProjection.js          ← Sheet: year-by-year projection table
+│   │       ├── sheetAssumptions.js         ← Sheet: input assumptions + spouse section (couple) + today's dollars
+│   │       ├── sheetProjection.js          ← Sheet: year-by-year projection + 10 spouse columns (couple)
+│   │       ├── projectionFormulas.js       ← Extracted: tax/debt/mortgage formula builders + spouse dict entries
 │   │       ├── sheetTaxEngine.js           ← Sheet: tax calculation worked example
 │   │       ├── sheetCppOas.js              ← Sheet: CPP/OAS benefit verification
 │   │       ├── sheetRrifRates.js           ← Sheet: RRIF minimum withdrawal rates

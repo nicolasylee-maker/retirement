@@ -127,6 +127,12 @@ export function auditInputSnapshot(scenario) {
   if ((s.nonRegReturn || s.realReturn) !== s.realReturn) rows.push(['Non-reg return', pct(s.nonRegReturn)]);
   rows.push(['Withdrawal order', (s.withdrawalOrder || []).join(' > ')]);
 
+  if (s.rrspContributionRoom > 0) rows.push(['RRSP contribution room', $(s.rrspContributionRoom)]);
+  if (s.tfsaContributionRoom > 0) rows.push(['TFSA contribution room', $(s.tfsaContributionRoom)]);
+  if (s.isCouple && s.spouseTfsaContributionRoom > 0) {
+    rows.push(['Spouse TFSA contribution room', $(s.spouseTfsaContributionRoom)]);
+  }
+
   if (s.rrspMeltdownEnabled) {
     const meltStart = s.rrspMeltdownStartAge ?? s.retirementAge;
     rows.push(['RRSP meltdown', `${$(s.rrspMeltdownAnnual)}/yr from age ${meltStart} to ${s.rrspMeltdownTargetAge}`]);

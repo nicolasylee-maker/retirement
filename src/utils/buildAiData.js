@@ -46,6 +46,8 @@ export function buildDashboardAiData(scenario, projectionData) {
   // Expense reduction context
   const expReductionPct = Math.round((scenario.expenseReductionAtRetirement || 0) * 100);
 
+  const isCouple = !!scenario.isCouple;
+
   return {
     currentAge: scenario.currentAge,
     retirementAge: scenario.retirementAge,
@@ -89,6 +91,18 @@ export function buildDashboardAiData(scenario, projectionData) {
     yearsToRetirement: yearsToRet,
     workingYearsWithWithdrawals,
     tfsaDepletedWhileWorking: tfsaDepletedWhileWorking ? 'Yes' : 'No',
+    // Couple context
+    isCouple,
+    ...(isCouple ? {
+      spouseAge: scenario.spouseAge,
+      spouseRetirementAge: scenario.spouseRetirementAge,
+      spouseEmploymentIncome: scenario.spouseEmploymentIncome || 0,
+      spouseRrspBalance: scenario.spouseRrspBalance || 0,
+      spouseTfsaBalance: scenario.spouseTfsaBalance || 0,
+      spouseCppMonthly: scenario.spouseCppMonthly || 0,
+      spouseOasMonthly: scenario.spouseOasMonthly || 0,
+      spousePensionIncome: scenario.spousePensionType === 'db' ? (scenario.spouseDbPensionAnnual || 0) : 0,
+    } : {}),
   };
 }
 
@@ -211,6 +225,8 @@ export function buildEstateAiData(scenario, projectionData, ageAtDeath) {
     rrspBalance: estateResult.rrspRrifDeemed || 0,
     rrspBalanceToday: tdAnnual(estateResult.rrspRrifDeemed || 0),
     spouseRollover: scenario.primaryBeneficiary === 'spouse',
+    spouseRrspBalance: estateResult.spouseRrspBalance || 0,
+    spouseTfsaBalance: estateResult.spouseTfsaBalance || 0,
   };
 }
 

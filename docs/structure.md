@@ -221,6 +221,7 @@ retirement/
 │   ├── projectionEngine.test.js            ← Year-by-year projections with persona scenarios
 │   ├── debtCalc.test.js                    ← calcAnnualPayment + calcTotalMonthlyDebt unit tests
 │   ├── estateEngine.test.js                ← Death tax, probate, intestacy distribution
+│   ├── coupleEstateFix.test.js             ← Couple estate: spouse balances, AI context
 │   ├── withdrawalCalc.test.js              ← Sustainable withdrawal, overrides, monotonicity
 │   ├── multiProvinceEngine.test.js         ← Province-aware tax/probate/intestacy (all provinces)
 │   ├── goldenFileTests.test.js             ← Per-province regression snapshots

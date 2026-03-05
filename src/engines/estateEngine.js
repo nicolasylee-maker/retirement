@@ -162,11 +162,16 @@ export function calcEstateImpact(scenario, projectionData, ageAtDeath) {
   const otherValue = row.otherBalance || 0;
   const realEstateValue = s.includeRealEstateInEstate ? (s.realEstateValue || 0) : 0;
 
+  // Spouse balances (couple mode only — surviving spouse's own assets)
+  const spouseRrspValue = s.isCouple ? (row.spouseRrspBalance || 0) : 0;
+  const spouseTfsaValue = s.isCouple ? (row.spouseTfsaBalance || 0) : 0;
+
   // Debts at death
   const totalDebt = (row.mortgageBalance || 0);
 
-  // Gross estate
-  const grossEstate = rrspRrifValue + tfsaValue + nonRegValue + otherValue + realEstateValue - totalDebt;
+  // Gross estate (household total — includes spouse's surviving assets)
+  const grossEstate = rrspRrifValue + tfsaValue + nonRegValue + otherValue
+    + spouseRrspValue + spouseTfsaValue + realEstateValue - totalDebt;
 
   // --- 1. RRSP/RRIF deemed income ---
   let rrspRrifDeemed = 0;
@@ -234,6 +239,12 @@ export function calcEstateImpact(scenario, projectionData, ageAtDeath) {
   if (otherValue > 0) {
     breakdown.push({ label: 'Other assets', amount: otherValue });
   }
+  if (spouseRrspValue > 0) {
+    breakdown.push({ label: 'Spouse RRSP/RRIF balance', amount: spouseRrspValue });
+  }
+  if (spouseTfsaValue > 0) {
+    breakdown.push({ label: 'Spouse TFSA balance', amount: spouseTfsaValue });
+  }
   if (realEstateValue > 0) {
     breakdown.push({ label: 'Real estate', amount: realEstateValue });
   }
@@ -281,6 +292,8 @@ export function calcEstateImpact(scenario, projectionData, ageAtDeath) {
     tfsaBalance: Math.round(tfsaValue),
     nonRegBalance: Math.round(nonRegValue),
     otherBalance: Math.round(otherValue),
+    spouseRrspBalance: Math.round(spouseRrspValue),
+    spouseTfsaBalance: Math.round(spouseTfsaValue),
     realEstateValue: Math.round(realEstateValue),
     realEstateExcluded,
     excludedRealEstateValue: realEstateExcluded ? Math.round(s.realEstateValue) : 0,

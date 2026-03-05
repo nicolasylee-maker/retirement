@@ -20,6 +20,10 @@ export default function EstateSummaryCards({ estateResult }) {
     ...(estateResult.realEstateValue > 0 ? [{ label: 'Real Estate', value: estateResult.realEstateValue, color: '#d97706',
       sub: 'Primary residence is capital gains exempt but still subject to probate' }] : []),
     ...(estateResult.otherBalance > 0 ? [{ label: 'Other', value: estateResult.otherBalance, color: '#8b5cf6' }] : []),
+    ...(estateResult.spouseRrspBalance > 0 ? [{ label: 'Spouse RRSP/RRIF', value: estateResult.spouseRrspBalance, color: '#fb923c',
+      sub: 'Surviving spouse\'s own RRSP — no tax impact (not part of deceased\'s estate)' }] : []),
+    ...(estateResult.spouseTfsaBalance > 0 ? [{ label: 'Spouse TFSA', value: estateResult.spouseTfsaBalance, color: '#86efac',
+      sub: 'Surviving spouse\'s own TFSA — tax-free, retained by spouse' }] : []),
   ];
   // If no assets but real estate excluded, explain why
   if (assetItems.length === 0 && estateResult.realEstateExcluded) {
@@ -44,6 +48,8 @@ export default function EstateSummaryCards({ estateResult }) {
       { label: 'RRSP/RRIF', value: estateResult.rrspRrifBalance || 0, color: '#f97316' },
       { label: 'TFSA', value: estateResult.tfsaBalance || 0, color: '#22c55e' },
       { label: 'Non-Reg', value: estateResult.nonRegBalance || 0, color: '#0ea5e9' },
+      { label: 'Spouse RRSP', value: estateResult.spouseRrspBalance || 0, color: '#fb923c' },
+      { label: 'Spouse TFSA', value: estateResult.spouseTfsaBalance || 0, color: '#86efac' },
       { label: 'Real Estate', value: estateResult.realEstateValue || 0, color: '#d97706' },
     ].filter(i => i.value > 0),
   };

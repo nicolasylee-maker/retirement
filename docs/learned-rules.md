@@ -86,3 +86,9 @@
 - Non-reg investments deemed disposed at FMV
 - Probate: $5/K first $50K + $15/K above
 - Intestate: spouse preferential share $350K, then split with children
+- **Couple mode**: Estate engine includes spouse RRSP/TFSA in `grossEstate` (household total). Spouse's own accounts are NOT taxable (surviving spouse owns them) and bypass probate. Tax and probate calculations remain primary-only.
+
+## AI Context (buildAiData) — Couple Mode
+
+- `buildDashboardAiData()` sends couple fields (spouseAge, spouseRetirementAge, spouseEmploymentIncome, spouseRrspBalance, spouseTfsaBalance, spouseCppMonthly, spouseOasMonthly, spousePensionIncome) only when `isCouple` is true. Single scenarios omit these fields to keep the Gemini prompt clean.
+- `buildEstateAiData()` includes `spouseRrspBalance` and `spouseTfsaBalance` from the estate result so Gemini can report true household estate value.

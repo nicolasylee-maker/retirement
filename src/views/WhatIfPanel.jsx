@@ -40,7 +40,7 @@ const WHAT_IF_SLIDERS = [
   },
 ];
 
-function SliderList({ scenario, overrides, onOverrideChange, onReset }) {
+function SliderList({ scenario, overrides, onOverrideChange, onReset, onEditAssumptions }) {
   const hasOverrides = Object.keys(overrides).length > 0;
   return (
     <>
@@ -63,17 +63,26 @@ function SliderList({ scenario, overrides, onOverrideChange, onReset }) {
         })}
       </div>
       {hasOverrides && (
-        <div className="mt-6 pt-4 border-t border-gray-100">
+        <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between gap-4 flex-wrap">
           <Button variant="secondary" size="sm" onClick={onReset}>
-            Reset to Defaults
+            Reset to saved values
           </Button>
+          {onEditAssumptions && (
+            <button
+              type="button"
+              onClick={onEditAssumptions}
+              className="text-sm font-medium text-sunset-600 hover:text-sunset-800 underline underline-offset-2"
+            >
+              Make changes permanent &rarr;
+            </button>
+          )}
         </div>
       )}
     </>
   );
 }
 
-export default function WhatIfPanel({ scenario, overrides, onOverrideChange, onReset, expanded, onToggle }) {
+export default function WhatIfPanel({ scenario, overrides, onOverrideChange, onReset, expanded, onToggle, onEditAssumptions }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const hasOverrides = Object.keys(overrides).length > 0;
 
@@ -127,7 +136,8 @@ export default function WhatIfPanel({ scenario, overrides, onOverrideChange, onR
               Adjust assumptions to see how they affect your plan.
             </p>
             <SliderList scenario={scenario} overrides={overrides}
-              onOverrideChange={onOverrideChange} onReset={onReset} />
+              onOverrideChange={onOverrideChange} onReset={onReset}
+              onEditAssumptions={onEditAssumptions} />
           </div>
         )}
       </div>

@@ -441,6 +441,16 @@ export default function App() {
   }, []);
   const handleResetOverrides = useCallback(() => setWhatIfOverrides({}), []);
 
+  const whatIfActive = Object.keys(whatIfOverrides).length > 0;
+
+  const handleEditAssumptions = useCallback(() => {
+    const keys = Object.keys(whatIfOverrides);
+    const step = (keys.length === 1 && keys[0] === 'lifeExpectancy') ? 0 : 6;
+    setWizardStep(step);
+    setWizardIsNew(false);
+    setView('wizard');
+  }, [whatIfOverrides]);
+
   const handleSaveInsight = useCallback((type, text, hash) => {
     const generatedAt = new Date().toISOString();
     const newInsight = { text, hash, generatedAt };
@@ -771,6 +781,7 @@ export default function App() {
             <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4 pb-20 md:pb-4">
               <WhatIfPanel scenario={currentScenario} overrides={whatIfOverrides}
                 onOverrideChange={handleOverrideChange} onReset={handleResetOverrides}
+                onEditAssumptions={handleEditAssumptions}
                 expanded={whatIfExpanded} onToggle={() => {
                   setWhatIfExpanded(v => {
                     const next = !v;
@@ -780,7 +791,8 @@ export default function App() {
                 }} />
               <Dashboard scenario={effectiveScenario} projectionData={projectionData}
                 onScenarioChange={handleScenarioChange} isPaid={isPaid}
-                aiInsights={effectiveScenario.aiInsights} onSaveInsight={handleSaveInsight} />
+                aiInsights={effectiveScenario.aiInsights} onSaveInsight={handleSaveInsight}
+                whatIfActive={whatIfActive} onEditAssumptions={handleEditAssumptions} />
             </div>
           )}
           {view === 'debt' && currentScenario && (

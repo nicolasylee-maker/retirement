@@ -60,12 +60,14 @@ function relativeTime(isoString) {
  * AiInsight card.
  *
  * Props:
- *   type        – 'dashboard' | 'debt' | 'compare' | 'estate'
- *   data        – current aiData object (used for hash + API call)
- *   savedInsight – { text, hash, generatedAt? } | null  — persisted insight from scenario
- *   onSave      – (text, hash) => void    — called after a successful fetch
+ *   type              – 'dashboard' | 'debt' | 'compare' | 'estate'
+ *   data              – current aiData object (used for hash + API call)
+ *   savedInsight      – { text, hash, generatedAt? } | null  — persisted insight from scenario
+ *   onSave            – (text, hash) => void    — called after a successful fetch
+ *   whatIfActive      – bool  — true when What If overrides are in effect
+ *   onEditAssumptions – () => void  — navigates to wizard to make What If changes permanent
  */
-export default function AiInsight({ type, data, savedInsight, onSave }) {
+export default function AiInsight({ type, data, savedInsight, onSave, whatIfActive, onEditAssumptions }) {
   const { isPaid } = useSubscription()
   const dataHash = computeHash(data)
 
@@ -82,10 +84,17 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
   const [quotaInfo, setQuotaInfo] = useState(null)
   const [collapsed, setCollapsed] = useState(false)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const [isWhatIfResult, setIsWhatIfResult] = useState(false)
+
+  // Clear ephemeral What If result when What If is deactivated
+  useEffect(() => {
+    if (!whatIfActive) setIsWhatIfResult(false)
+  }, [whatIfActive])
 
   // Sync when savedInsight or data changes (tab switch, WhatIf change, estate slider)
   useEffect(() => {
     if (savedInsight?._loading) return // auto-gen in-flight, don't reset state
+    if (isWhatIfResult) return // preserve ephemeral What If result
     if (savedInsight == null) {
       setRecommendation('')
       setStale(false)
@@ -97,7 +106,7 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
       setRecommendation(savedInsight.text)
       setStale(true)
     }
-  }, [dataHash, savedInsight]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dataHash, savedInsight, isWhatIfResult]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchRecommendation = useCallback(async () => {
     setLoading(true)
@@ -107,7 +116,11 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
     try {
       const result = await getAiRecommendation(type, data, true)
       setRecommendation(result)
-      onSave?.(result, dataHash)
+      if (whatIfActive) {
+        setIsWhatIfResult(true)
+      } else {
+        onSave?.(result, dataHash)
+      }
     } catch (e) {
       if (e instanceof QuotaExceededError) {
         setQuotaInfo({ used: e.used, limit: e.limit, resetAt: e.resetAt })
@@ -117,7 +130,7 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
     } finally {
       setLoading(false)
     }
-  }, [type, data, dataHash, onSave])
+  }, [type, data, dataHash, onSave, whatIfActive])
 
   const handleGenerate = isPaid ? fetchRecommendation : () => setUpgradeOpen(true)
 
@@ -170,7 +183,7 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
         <div className="px-5 pb-5 max-h-[calc(100vh-10rem)] overflow-y-auto">
           {(loading || autoGenLoading) && <ShimmerLines />}
 
-          {stale && !(loading || autoGenLoading) && (
+          {stale && !isWhatIfResult && !(loading || autoGenLoading) && (
             <div className="flex items-center justify-between gap-2 mb-3 px-3 py-2
                             bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
               <div>
@@ -188,6 +201,22 @@ export default function AiInsight({ type, data, savedInsight, onSave }) {
               >
                 Regenerate
               </button>
+            </div>
+          )}
+
+          {whatIfActive && isWhatIfResult && !(loading || autoGenLoading) && (
+            <div className="flex items-center justify-between gap-2 mb-3 px-3 py-2
+                            bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              <span>Based on What If adjustments — not your saved plan</span>
+              {onEditAssumptions && (
+                <button
+                  onClick={onEditAssumptions}
+                  className="font-semibold text-amber-900 underline underline-offset-2
+                             hover:text-amber-700 whitespace-nowrap"
+                >
+                  Edit &amp; Save &rarr;
+                </button>
+              )}
             </div>
           )}
 

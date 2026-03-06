@@ -361,8 +361,19 @@ export default function App() {
   const handleModeSelect = useCallback((mode) => {
     sessionStorage.setItem(MODE_SEEN_KEY, '1');
     setShowModePicker(false);
-    setView(mode === 'basic' ? 'wizard-basic' : 'wizard');
-  }, []);
+    if (mode === 'basic') {
+      // Apply Basic-mode smart defaults so preset pills show selected state on first render
+      handleScenarioChange({
+        monthlyExpenses: 5000,  // Comfortable preset
+        cppMonthly: 815,        // Average preset
+        oasMonthly: 713,        // Average preset
+        // realReturn: 0.04 + inflationRate: 0.025 already match Balanced in createDefaultScenario
+      });
+      setView('wizard-basic');
+    } else {
+      setView('wizard');
+    }
+  }, [handleScenarioChange]);
 
   const handleBasicComplete = useCallback(() => {
     handleScenarioChange({ wizardMode: 'basic' });

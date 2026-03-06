@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Card from '../../components/Card';
 import FormField from '../../components/FormField';
 import QuickFillPills from '../../components/QuickFillPills';
@@ -11,12 +11,29 @@ import {
 
 function findActivePresetKey(presets, scenarioValues) {
   return Object.entries(presets).find(([, vals]) =>
-    Object.entries(vals).every(([k, v]) => scenarioValues[k] === v)
+    Object.entries(vals)
+      .filter(([k]) => k !== 'label')
+      .every(([k, v]) => scenarioValues[k] === v)
   )?.[0] ?? null;
+}
+
+function incomeByAge(age) {
+  if (age < 35) return 50000;
+  if (age < 45) return 65000;
+  if (age < 55) return 70000;
+  return 60000;
 }
 
 export default function BasicWizardView({ scenario, onChange, onComplete }) {
   const [errors, setErrors] = useState({});
+  const incomeSuggested = useRef(false);
+
+  // Set age-bracket employment income once on mount — never overwrites after that
+  useEffect(() => {
+    if (incomeSuggested.current) return;
+    incomeSuggested.current = true;
+    onChange({ employmentIncome: incomeByAge(scenario.currentAge ?? 50) });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = (updates) => onChange(updates);
 

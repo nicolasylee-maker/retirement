@@ -162,7 +162,7 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
           <LockIcon className="w-7 h-7 text-purple-600" />
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Unlock RetirePlanner Pro</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Unlock <span className="text-sunset-600">RetirePlanner</span> Pro</h2>
         <p className="text-gray-500 mb-5">
           Start your 7-day free trial — no credit card required.
         </p>

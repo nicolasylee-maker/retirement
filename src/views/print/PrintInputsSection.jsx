@@ -130,7 +130,7 @@ export default function PrintInputsSection({ scenario }) {
 
       <div className="mt-6 pt-4 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">
-          Ontario Retirement Planner · Not financial advice · Generated {new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
+          RetirePlanner.ca · Not financial advice · Generated {new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
     </div>

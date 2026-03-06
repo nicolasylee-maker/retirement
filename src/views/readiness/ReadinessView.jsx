@@ -75,7 +75,7 @@ export default function ReadinessView({ scenario, onContinue }) {
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-12">
 
       {/* Logo */}
-      <p className="mb-10 text-xs font-medium tracking-widest uppercase text-gray-400">
+      <p className="mb-10 text-xs font-medium tracking-widest uppercase text-sunset-600">
         RetirePlanner.ca
       </p>
 

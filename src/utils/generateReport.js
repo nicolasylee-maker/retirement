@@ -236,7 +236,7 @@ export function generateReport(scenario, projectionData, userName) {
   </div>
 
   <div class="footer">
-    Ontario Retirement Planner &middot; Report generated ${new Date().toISOString().slice(0, 10)}
+    RetirePlanner.ca &middot; Report generated ${new Date().toISOString().slice(0, 10)}
   </div>
 </div>
 </body></html>`;

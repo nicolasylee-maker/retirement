@@ -128,7 +128,6 @@ retirement/
 │   │
 │   └── views/                              ← Page-level view components
 │       ├── LandingPage.jsx                 ← Public landing page: hero, demo charts, Google sign-in CTA
-│       ├── WelcomeScreen.jsx               ← Signed-in home (New Plan / Load Saved Plan)
 │       ├── ReturningHomeView.jsx           ← Returning-user choice screen (View Results / Edit / New Plan)
 │       ├── ScenarioPickerView.jsx          ← Scenario list picker (action: 'results' | 'edit')
 │       ├── MyPlansView.jsx                 ← Scenario card grid with edit/view actions
@@ -258,7 +257,7 @@ retirement/
 
 ### Flow 1: Create New Retirement Plan
 ```
-WelcomeScreen
+LandingPage / ReturningHomeView
     ↓ "Start New Plan"
 WizardShell (9 steps: Personal → Benefits → Pensions → Savings → Assets → Liabilities → Expenses → Withdrawal → Estate)
     ↓ "Finish"
@@ -320,7 +319,7 @@ downloadExcelAudit → multi-sheet .xlsx workbook (assumptions, projection, tax,
 
 ### Flow 7: Load Saved Plan
 ```
-WelcomeScreen
+ReturningHomeView
     ↓ "Load Saved Plan" (JSON file picker)
 Dashboard (loaded scenario)
 ```

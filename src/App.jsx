@@ -702,7 +702,7 @@ export default function App() {
         <div className="px-4 sm:px-6 lg:px-10 py-3">
           {/* Row 1: logo + actions (all screen sizes) */}
           <div className="flex items-center justify-between gap-3">
-            <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight shrink-0">
+            <h1 className="text-base sm:text-lg font-bold text-sunset-600 tracking-tight shrink-0">
               RetirePlanner.ca
             </h1>
 
@@ -1011,7 +1011,7 @@ export default function App() {
 
       {view !== 'landing' && <footer className="py-4 text-center border-t border-gray-100">
         <p className="text-xs text-gray-400">
-          RetirePlanner.ca &middot; Not financial advice &middot;{' '}
+          <span className="text-sunset-600 font-semibold">RetirePlanner.ca</span> &middot; Not financial advice &middot;{' '}
           <a href="/privacy" className="hover:underline">Privacy</a>
           {' '}&middot;{' '}
           <a href="/terms" className="hover:underline">Terms</a>

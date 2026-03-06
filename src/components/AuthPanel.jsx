@@ -56,9 +56,12 @@ export default function AuthPanel({ onClose }) {
       </div>
 
       {magicSent ? (
-        <p className="text-sm text-green-700 bg-green-50 rounded-lg px-4 py-3">
-          Check your email — we sent a link to <strong>{email}</strong>
-        </p>
+        <div className="text-sm text-green-700 bg-green-50 rounded-lg px-4 py-3 space-y-1">
+          <p>Check your email — we sent a link to <strong>{email}</strong></p>
+          {sessionStorage.getItem('rp-pending-checkout') && (
+            <p className="text-green-600">Click the link and you'll be taken straight to checkout.</p>
+          )}
+        </div>
       ) : (
         <form onSubmit={handleMagicLink} className="space-y-2">
           <input

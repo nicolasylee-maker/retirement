@@ -6,7 +6,7 @@ import { openPrintReport } from './utils/openPrintReport';
 import { downloadAudit } from './utils/downloadAudit';
 import { downloadExcelAudit } from './utils/excel/index.js';
 import VisualAudit from './views/audit/VisualAudit';
-import { openBillingPortal } from './services/stripeService';
+import { openBillingPortal, startCheckout } from './services/stripeService';
 import WizardShell from './views/wizard/WizardShell';
 import BasicWizardView from './views/wizard/BasicWizardView';
 import ModePicker from './components/ModePicker';
@@ -200,6 +200,16 @@ export default function App() {
       sessionStorage.removeItem(ANON_SESSION_KEY);
       setView(v => (v === 'wizard' || v === 'wizard-basic') ? 'dashboard' : v);
     }
+  }, [authUser]);
+
+  // If the user started checkout as anon (magic link / Google redirect away from the page),
+  // resume checkout automatically when they land back signed in.
+  useEffect(() => {
+    if (!authUser) return;
+    const pendingPriceId = sessionStorage.getItem('rp-pending-checkout');
+    if (!pendingPriceId) return;
+    sessionStorage.removeItem('rp-pending-checkout');
+    startCheckout(pendingPriceId).catch(() => {});
   }, [authUser]);
 
   // Clear stale anonymous data when returning to the site after closing the browser.

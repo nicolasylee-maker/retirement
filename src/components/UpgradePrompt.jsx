@@ -85,25 +85,18 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
   const [authOpen, setAuthOpen] = useState(false)
-  const [pendingCheckout, setPendingCheckout] = useState(false)
-
-  // Auto-resume checkout after sign-in completes
-  React.useEffect(() => {
-    if (!pendingCheckout || !user) return
-    setPendingCheckout(false)
-    const priceId = billingPlan === 'yearly' ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID
-    setCheckoutLoading(true)
-    setCheckoutError('')
-    startCheckout(priceId).catch((e) => {
-      setCheckoutError(e.message || 'Could not start checkout. Please try again.')
-      setCheckoutLoading(false)
-    })
-  }, [user, pendingCheckout, billingPlan])
 
   if (isLoading) return null
 
   async function handleCheckout() {
-    if (!user) { setPendingCheckout(true); setAuthOpen(true); return }
+    if (!user) {
+      // Both Google OAuth and magic link redirect away from the page, wiping React state.
+      // Persist the chosen priceId in sessionStorage so App.jsx can resume checkout on return.
+      const priceId = billingPlan === 'yearly' ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID
+      sessionStorage.setItem('rp-pending-checkout', priceId)
+      setAuthOpen(true)
+      return
+    }
     setCheckoutLoading(true)
     setCheckoutError('')
     const priceId = billingPlan === 'yearly' ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID

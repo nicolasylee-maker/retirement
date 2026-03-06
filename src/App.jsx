@@ -817,6 +817,7 @@ export default function App() {
                   {saveStatus === 'error' && <span className="text-xs text-red-500 shrink-0">Save failed</span>}
                 </div>
               )}
+              {(authUser || view !== 'dashboard') && (
               <div className="relative">
                 <button type="button" onClick={() => setMenuOpen(v => !v)}
                   className={`p-1.5 rounded-lg transition-colors ${
@@ -873,6 +874,7 @@ export default function App() {
                   </div>
                 )}
               </div>
+              )}
               <input ref={importInputRef} type="file" accept=".json,application/json"
                 onChange={handleImport} className="hidden" aria-label="Import scenario file" />
               {isAdmin && (
@@ -885,7 +887,9 @@ export default function App() {
               )}
               <EnvironmentBadge />
               <SubscriptionBadge />
-              <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
+              {(authUser || view !== 'dashboard') && (
+                <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
+              )}
             </div>
           </div>
 
@@ -895,6 +899,7 @@ export default function App() {
               RetirePlanner.ca
             </h1>
             <div className="flex items-center gap-1">
+              {(authUser || view !== 'dashboard') && (
               <div className="relative">
                 <button type="button" onClick={() => setMenuOpen(v => !v)}
                   className={`p-1.5 rounded-lg transition-colors ${
@@ -951,10 +956,13 @@ export default function App() {
                   </div>
                 )}
               </div>
+              )}
               <input ref={importInputRef} type="file" accept=".json,application/json"
                 onChange={handleImport} className="hidden" aria-label="Import scenario file" />
               <SubscriptionBadge />
-              <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
+              {(authUser || view !== 'dashboard') && (
+                <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
+              )}
             </div>
           </div>
 

@@ -181,7 +181,7 @@ export default function BasicWizardView({ scenario, onChange, onComplete, onExit
       {/* Your Savings */}
       <Card>
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Your Savings</h2>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-3 gap-4">
           <FormField
             label="RRSP / RRIF Balance"
             name="rrspBalance"
@@ -196,6 +196,14 @@ export default function BasicWizardView({ scenario, onChange, onComplete, onExit
             type="number"
             value={scenario.tfsaBalance}
             onChange={(v) => handleChange({ tfsaBalance: v })}
+            prefix="$"
+          />
+          <FormField
+            label="Non-Registered"
+            name="nonRegInvestments"
+            type="number"
+            value={scenario.nonRegInvestments}
+            onChange={(v) => handleChange({ nonRegInvestments: v })}
             prefix="$"
           />
         </div>

@@ -987,6 +987,11 @@ export default function App() {
             </button>
           ))}
         </nav>
+
+        {/* Anon sign-in bar — slim strip, only on dashboard, disappears on auth */}
+        {!authUser && view === 'dashboard' && (
+          <AnonDashboardBanner betaPromo={betaPromo} headerBar />
+        )}
       </header>
       )}
 
@@ -1060,9 +1065,6 @@ export default function App() {
                 setView('dashboard');
               }}
             />
-          )}
-          {view === 'dashboard' && !authUser && (
-            <AnonDashboardBanner betaPromo={betaPromo} />
           )}
           {view === 'dashboard' && currentScenario && (
             <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4 pb-20 md:pb-4">

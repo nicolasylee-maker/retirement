@@ -53,15 +53,12 @@ export default function Dashboard({
       </h1>
 
       {isBasicMode && (
-        <div className="flex items-center justify-between rounded-xl bg-blue-50 border border-blue-200 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-blue-800">Quick Start plan active</p>
-            <p className="text-xs text-gray-600 mt-0.5">Add more detail to improve accuracy</p>
-          </div>
-          <button onClick={onImproveAccuracy} className="text-sm font-medium text-blue-700 underline whitespace-nowrap ml-4">
-            Full Setup →
+        <p className="text-xs text-gray-400">
+          Quick Start plan active —{' '}
+          <button onClick={onImproveAccuracy} className="underline hover:text-gray-600 transition-colors">
+            Full Setup for better accuracy →
           </button>
-        </div>
+        </p>
       )}
 
       {/* AI Insights — mobile (above content) */}

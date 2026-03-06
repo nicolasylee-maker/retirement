@@ -22,7 +22,7 @@ function formatCutoff(dateStr) {
   }
 }
 
-export default function AnonDashboardBanner({ betaPromo }) {
+export default function AnonDashboardBanner({ betaPromo, headerBar = false }) {
   const { signInWithGoogle, signInWithMagicLink } = useAuth();
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
@@ -44,8 +44,12 @@ export default function AnonDashboardBanner({ betaPromo }) {
     }
   }
 
+  const containerCls = headerBar
+    ? 'border-t border-indigo-100 bg-indigo-50 px-4 sm:px-6 lg:px-10 py-1.5 flex items-center gap-6'
+    : 'mx-4 sm:mx-6 lg:mx-10 mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 flex items-center gap-6';
+
   return (
-    <div className="mx-4 sm:mx-6 lg:mx-10 mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 flex items-center gap-6">
+    <div className={containerCls}>
       {/* Left: text */}
       <div className="flex-1 min-w-0">
         {betaPromo ? (

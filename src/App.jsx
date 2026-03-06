@@ -400,6 +400,7 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' });
     handleScenarioChange({ wizardMode: 'full' });
     setAutoAiPending(true);
+    localStorage.setItem('rp-auto-ai-pending', '1');
     setWizardIsNew(false);
     setView('readiness-rank');
   }, [handleScenarioChange]);
@@ -427,6 +428,7 @@ export default function App() {
     localStorage.setItem(`rp-wiz-${currentScenarioId}`, '1');
     localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
     setAutoAiPending(true);
+    localStorage.setItem('rp-auto-ai-pending', '1');
     setWizardIsNew(false);
     setView('readiness-rank');
   }, [handleScenarioChange, currentScenarioId]);
@@ -570,7 +572,7 @@ export default function App() {
   const [contactOpen, setContactOpen] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(false);
-  const [autoAiPending, setAutoAiPending] = useState(false);
+  const [autoAiPending, setAutoAiPending] = useState(() => !!localStorage.getItem('rp-auto-ai-pending'));
   const [showBetaWelcome, setShowBetaWelcome] = useState(false);
   const [betaPromo, setBetaPromo] = useState(null);
   const GATED_TABS = new Set(['compare', 'estate', 'deep-dive']);
@@ -674,6 +676,7 @@ export default function App() {
   useEffect(() => {
     if (!isPaid || !autoAiPending) return;
     setAutoAiPending(false);
+    localStorage.removeItem('rp-auto-ai-pending');
 
     const scenario = scenarios.find(s => s.id === currentScenarioId) || scenarios[0];
     if (!scenario) return;

@@ -133,40 +133,6 @@ export default function Dashboard({
               );
             })()}
 
-          {/* Depletion warning banner */}
-          {(() => {
-            const depRow = projectionData.find(r => r.age > scenario.currentAge && r.totalPortfolio <= 0);
-            if (!depRow || depRow.age >= scenario.lifeExpectancy) return null;
-            const yearsShort = scenario.lifeExpectancy - depRow.age;
-            const postIncome = (depRow.cppIncome || 0) + (depRow.oasIncome || 0)
-              + (depRow.gisIncome || 0) + (depRow.pensionIncome || 0)
-              + (depRow.spouseCppIncome || 0) + (depRow.spouseOasIncome || 0)
-              + (depRow.spousePensionIncome || 0);
-            const shortfall = Math.max(0, (depRow.expenses || 0) - postIncome);
-            return (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
-                <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                <div className="text-sm text-red-800">
-                  <p>
-                    <span className="font-semibold">Portfolio depleted at age {depRow.age}</span> — {yearsShort} years before life expectancy.
-                  </p>
-                  <p className="mt-1 text-red-700">
-                    After age {depRow.age}, your only income is {formatCurrency(postIncome)}/yr
-                    {todaysDollarsCompact(postIncome, depRow.age, scenario.currentAge, scenario.inflationRate, 'yearly') && (
-                      <span className="text-red-500 text-xs"> {todaysDollarsCompact(postIncome, depRow.age, scenario.currentAge, scenario.inflationRate, 'yearly')}</span>
-                    )}
-                    {' '}against expenses of {formatCurrency(depRow.expenses)}/yr
-                    {todaysDollarsCompact(depRow.expenses, depRow.age, scenario.currentAge, scenario.inflationRate, 'yearly') && (
-                      <span className="text-red-500 text-xs"> {todaysDollarsCompact(depRow.expenses, depRow.age, scenario.currentAge, scenario.inflationRate, 'yearly')}</span>
-                    )}
-                    {shortfall > 0 && <>, leaving a <span className="font-semibold">{formatCurrency(shortfall)}/yr shortfall</span></>}.
-                  </p>
-                </div>
-              </div>
-            );
-          })()}
 
           <div id="portfolio-chart">
             <PortfolioChart projectionData={projectionData} scenario={scenario} />

@@ -109,6 +109,13 @@ export default function BasicWizardView({ scenario, onChange, onComplete, onExit
         mortgageYearsLeft: Number(mortgageYears),
         expensesIncludeDebt: true,
       });
+    } else {
+      onChange({
+        mortgageBalance: 0,
+        mortgageRate: 0,
+        mortgageYearsLeft: 0,
+        expensesIncludeDebt: false,
+      });
     }
 
     if ((scenario.nonRegInvestments ?? 0) > 0) {

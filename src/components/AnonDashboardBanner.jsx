@@ -44,52 +44,69 @@ export default function AnonDashboardBanner({ betaPromo }) {
     }
   }
 
-  const headline = betaPromo
-    ? `Sign in before ${formatCutoff(betaPromo.cutoff)} — get ${betaPromo.days} days free`
-    : 'Sign in to unlock AI Insights, Compare, Estate & more';
-
   return (
-    <div className="mx-4 sm:mx-6 lg:mx-10 mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-      {/* Headline */}
-      <p className="text-sm font-semibold text-indigo-900 shrink-0 mr-1">{headline}</p>
+    <div className="mx-4 sm:mx-6 lg:mx-10 mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 flex items-center gap-6">
+      {/* Left: text */}
+      <div className="flex-1 min-w-0">
+        {betaPromo ? (
+          <>
+            <p className="text-sm font-semibold text-indigo-900">
+              Sign in before {formatCutoff(betaPromo.cutoff)} — get {betaPromo.days} days of free beta access
+            </p>
+            <p className="text-xs text-indigo-600 mt-0.5">
+              Includes AI Insights, Compare scenarios, Estate planning, Deep Dive &amp; more.
+            </p>
+          </>
+        ) : (
+          <p className="text-sm font-semibold text-indigo-900">
+            Sign in to unlock AI Insights, Compare, Estate &amp; more
+          </p>
+        )}
+      </div>
 
-      {/* Google button */}
-      <button
-        type="button"
-        onClick={() => signInWithGoogle()}
-        className="inline-flex items-center gap-1.5 shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
-      >
-        <GoogleIcon />
-        Sign in with Google
-      </button>
+      {/* Right: actions — compact, shrink-to-fit */}
+      <div className="shrink-0 flex items-center gap-2">
+        {sent ? (
+          <p className="text-sm font-medium text-green-700 whitespace-nowrap">
+            Check your inbox — link sent!
+          </p>
+        ) : (
+          <>
+            {/* Google */}
+            <button
+              type="button"
+              onClick={() => signInWithGoogle()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors whitespace-nowrap"
+            >
+              <GoogleIcon />
+              Sign in with Google
+            </button>
 
-      <span className="text-xs text-indigo-400 font-medium shrink-0">or</span>
+            <span className="text-xs text-indigo-400 font-medium">or</span>
 
-      {/* Magic link */}
-      {sent ? (
-        <p className="text-sm font-medium text-green-700">
-          Check your inbox — link sent to {email}
-        </p>
-      ) : (
-        <form onSubmit={handleMagicLink} className="flex items-center gap-2">
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="your@email.com"
-            required
-            className="w-48 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-          />
-          <button
-            type="submit"
-            disabled={sending}
-            className="shrink-0 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium px-3 py-1.5 transition-colors"
-          >
-            {sending ? 'Sending…' : 'Send link'}
-          </button>
-          {error && <p className="text-xs text-red-600 font-medium">{error}</p>}
-        </form>
-      )}
+            {/* Magic link */}
+            <form onSubmit={handleMagicLink} className="flex items-center gap-1.5">
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              />
+              <button
+                type="submit"
+                disabled={sending}
+                className="rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium px-3 py-1.5 transition-colors whitespace-nowrap"
+              >
+                {sending ? 'Sending…' : 'Send link'}
+              </button>
+            </form>
+
+            {error && <p className="text-xs text-red-600 font-medium">{error}</p>}
+          </>
+        )}
+      </div>
     </div>
   );
 }

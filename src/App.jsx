@@ -394,6 +394,7 @@ export default function App() {
   }, [authUser]);
 
   const handleWizardComplete = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
     handleScenarioChange({ wizardMode: 'full' });
     setAutoAiPending(true);
     setWizardIsNew(false);
@@ -418,6 +419,7 @@ export default function App() {
   }, [handleScenarioChange]);
 
   const handleBasicComplete = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
     handleScenarioChange({ wizardMode: 'basic' });
     localStorage.setItem(`rp-wiz-${currentScenarioId}`, '1');
     localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
@@ -593,6 +595,13 @@ export default function App() {
       return () => clearInterval(interval);
     }
   }, []); // eslint-disable-line
+
+  useEffect(() => {
+    if (view !== 'dashboard' || !isOverride) return;
+    const key = `rp-beta-welcome-${authUser?.id ?? 'anon'}`;
+    if (localStorage.getItem(key)) return;
+    setShowBetaWelcome(true);
+  }, [view, isOverride, authUser?.id]);
 
   // When subscription unlocks after checkout, auto-generate all AI insights
   useEffect(() => {
@@ -978,7 +987,7 @@ export default function App() {
           <BetaWelcomeBanner
             overrideDaysRemaining={overrideDaysRemaining}
             onDismiss={() => {
-              sessionStorage.setItem('beta-welcome-seen', '1');
+              localStorage.setItem(`rp-beta-welcome-${authUser?.id ?? 'anon'}`, '1');
               setShowBetaWelcome(false);
             }}
           />
@@ -1023,10 +1032,8 @@ export default function App() {
             <ReadinessView
               scenario={currentScenario}
               onContinue={() => {
+                window.scrollTo({ top: 0, behavior: 'instant' });
                 setView('dashboard');
-                if (isOverride && override === 'beta' && !sessionStorage.getItem('beta-welcome-seen')) {
-                  setShowBetaWelcome(true);
-                }
               }}
             />
           )}

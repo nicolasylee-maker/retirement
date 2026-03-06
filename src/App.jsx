@@ -395,10 +395,10 @@ export default function App() {
 
   const handleWizardComplete = useCallback(() => {
     handleScenarioChange({ wizardMode: 'full' });
-    if (wizardIsNew) setAutoAiPending(true);
+    setAutoAiPending(true);
     setWizardIsNew(false);
     setView('readiness-rank');
-  }, [handleScenarioChange, wizardIsNew]);
+  }, [handleScenarioChange]);
 
   const handleModeSelect = useCallback((mode) => {
     sessionStorage.setItem(MODE_SEEN_KEY, '1');
@@ -421,10 +421,10 @@ export default function App() {
     handleScenarioChange({ wizardMode: 'basic' });
     localStorage.setItem(`rp-wiz-${currentScenarioId}`, '1');
     localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
-    if (wizardIsNew) setAutoAiPending(true);
+    setAutoAiPending(true);
     setWizardIsNew(false);
     setView('readiness-rank');
-  }, [handleScenarioChange, currentScenarioId, wizardIsNew]);
+  }, [handleScenarioChange, currentScenarioId]);
 
   const handleWizardExit = useCallback(() => {
     const hasMultiple = scenarios.length > 1;

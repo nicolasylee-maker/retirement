@@ -755,7 +755,7 @@ export default function App() {
         ) : (
         <div className="view-enter" key={view}>
           {view === 'landing' && (
-            authUser
+            authUser || authLoading
               ? <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
                   <svg className="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

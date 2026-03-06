@@ -530,12 +530,16 @@ export default function App() {
   const whatIfActive = Object.keys(whatIfOverrides).length > 0;
 
   const handleEditAssumptions = useCallback(() => {
+    setWizardIsNew(false);
+    if (currentScenario?.wizardMode === 'basic') {
+      setView('wizard-basic');
+      return;
+    }
     const keys = Object.keys(whatIfOverrides);
     const step = (keys.length === 1 && keys[0] === 'lifeExpectancy') ? 0 : 6;
     setWizardStep(step);
-    setWizardIsNew(false);
     setView('wizard');
-  }, [whatIfOverrides]);
+  }, [whatIfOverrides, currentScenario]);
 
   const handleSaveInsight = useCallback((type, text, hash) => {
     const generatedAt = new Date().toISOString();
@@ -930,6 +934,7 @@ export default function App() {
                     onNavigate={(v) => setView(v)}
                     lifeExpectancyOverride={whatIfOverrides.lifeExpectancy}
                     onLifeExpectancyChange={(v) => handleOverrideChange('lifeExpectancy', v)}
+                    onScenarioChange={handleScenarioChange}
                     aiInsights={currentScenario.aiInsights} onSaveInsight={handleSaveInsight} />
                 : <UpgradePrompt variant="full" featureName="Estate Planning" feature="estate" />
               }

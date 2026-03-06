@@ -7,7 +7,7 @@ import { formatCurrency } from '../../utils/formatters';
 import EstateSummaryCards from './EstateSummaryCards';
 import EstateBreakdown from './EstateBreakdown';
 
-export default function EstateView({ scenario, projectionData, onNavigate, lifeExpectancyOverride, onLifeExpectancyChange, aiInsights, onSaveInsight }) {
+export default function EstateView({ scenario, projectionData, onNavigate, lifeExpectancyOverride, onLifeExpectancyChange, onScenarioChange, aiInsights, onSaveInsight }) {
   // Use the what-if life expectancy override if present, otherwise scenario value
   const effectiveLifeExpectancy = lifeExpectancyOverride ?? scenario.lifeExpectancy ?? 90;
   const [ageAtDeath, setAgeAtDeath] = useState(() => {
@@ -79,25 +79,40 @@ export default function EstateView({ scenario, projectionData, onNavigate, lifeE
           {/* Controls */}
           <div className="card-base p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <SliderControl
-                label="Age at Death"
-                value={ageAtDeath}
-                onChange={(v) => {
-                  setAgeAtDeath(v);
-                  if (onLifeExpectancyChange) onLifeExpectancyChange(v);
-                }}
-                min={minAge}
-                max={maxAge}
-                step={1}
-                format="number"
-              />
+              <div>
+                <SliderControl
+                  label="Age at Death"
+                  value={ageAtDeath}
+                  onChange={(v) => {
+                    setAgeAtDeath(v);
+                    if (onLifeExpectancyChange) onLifeExpectancyChange(v);
+                  }}
+                  min={minAge}
+                  max={maxAge}
+                  step={1}
+                  format="number"
+                />
+                {ageAtDeath !== scenario.lifeExpectancy && onScenarioChange && (
+                  <button
+                    type="button"
+                    onClick={() => onScenarioChange({ lifeExpectancy: ageAtDeath })}
+                    className="mt-1 text-xs text-sunset-600 hover:text-sunset-700 underline"
+                  >
+                    Save as life expectancy →
+                  </button>
+                )}
+              </div>
               <div className="flex items-center gap-3">
                 <label className="text-sm font-medium text-gray-700">Has Will</label>
                 <button
                   type="button"
                   role="switch"
                   aria-checked={hasWillOverride}
-                  onClick={() => setHasWillOverride(v => !v)}
+                  onClick={() => {
+                    const next = !hasWillOverride;
+                    setHasWillOverride(next);
+                    if (onScenarioChange) onScenarioChange({ hasWill: next });
+                  }}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
                     ${hasWillOverride ? 'bg-sunset-500' : 'bg-gray-300'}`}
                 >

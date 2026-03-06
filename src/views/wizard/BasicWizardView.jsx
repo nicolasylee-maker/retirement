@@ -111,6 +111,10 @@ export default function BasicWizardView({ scenario, onChange, onComplete, onExit
       });
     }
 
+    if ((scenario.nonRegInvestments ?? 0) > 0) {
+      onChange({ nonRegCostBasis: Math.round(scenario.nonRegInvestments * 0.7) });
+    }
+
     onComplete({});
   };
 

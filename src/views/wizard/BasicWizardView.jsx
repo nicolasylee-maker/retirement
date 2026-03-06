@@ -8,6 +8,7 @@ import {
   EXPENSE_PRESETS,
   RETURN_PRESETS,
 } from '../../constants/defaults';
+import { backSolveMortgageBalance } from '../../utils/debtCalc.js';
 
 function findActivePresetKey(presets, scenarioValues) {
   return Object.entries(presets).find(([, vals]) =>
@@ -26,6 +27,9 @@ function incomeByAge(age) {
 
 export default function BasicWizardView({ scenario, onChange, onComplete, onExit }) {
   const [errors, setErrors] = useState({});
+  const [hasMortgage, setHasMortgage] = useState(null); // null = unanswered, true/false
+  const [mortgagePayment, setMortgagePayment] = useState('');
+  const [mortgageYears, setMortgageYears] = useState('');
   const incomeSuggested = useRef(false);
 
   // Set age-bracket employment income once on mount — never overwrites after that
@@ -54,6 +58,21 @@ export default function BasicWizardView({ scenario, onChange, onComplete, onExit
     handleChange(vals);
   };
 
+  const handleMortgageAnswer = (answer) => {
+    setHasMortgage(answer);
+    if (!answer) {
+      // Clear any previously set mortgage fields
+      setMortgagePayment('');
+      setMortgageYears('');
+      onChange({
+        mortgageBalance: 0,
+        mortgageRate: 0,
+        mortgageYearsLeft: 0,
+        expensesIncludeDebt: false,
+      });
+    }
+  };
+
   const validate = () => {
     const errs = {};
     if (!scenario.currentAge || scenario.currentAge < 18 || scenario.currentAge > 100)
@@ -64,6 +83,12 @@ export default function BasicWizardView({ scenario, onChange, onComplete, onExit
       errs.lifeExpectancy = 'Must be greater than retirement age';
     if (!scenario.monthlyExpenses || scenario.monthlyExpenses <= 0)
       errs.monthlyExpenses = 'Enter your expected monthly spending';
+    if (hasMortgage === true) {
+      if (!mortgagePayment || Number(mortgagePayment) <= 0)
+        errs.mortgagePayment = 'Enter your monthly mortgage payment';
+      if (!mortgageYears || Number(mortgageYears) <= 0)
+        errs.mortgageYears = 'Enter years remaining on your mortgage';
+    }
     return errs;
   };
 
@@ -75,6 +100,17 @@ export default function BasicWizardView({ scenario, onChange, onComplete, onExit
       document.getElementById(firstErrId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+
+    if (hasMortgage === true) {
+      const balance = backSolveMortgageBalance(Number(mortgagePayment), Number(mortgageYears));
+      onChange({
+        mortgageBalance: balance,
+        mortgageRate: 0.05,
+        mortgageYearsLeft: Number(mortgageYears),
+        expensesIncludeDebt: true,
+      });
+    }
+
     onComplete({});
   };
 
@@ -174,8 +210,64 @@ export default function BasicWizardView({ scenario, onChange, onComplete, onExit
           onChange={(v) => { handleChange({ monthlyExpenses: v }); setErrors(e => ({ ...e, monthlyExpenses: null })); }}
           prefix="$"
           error={errors.monthlyExpenses}
-          helper="In today's dollars — we'll adjust for inflation"
+          helper="In today's dollars — include everything you spend monthly (mortgage is fine to include, we'll ask about it below)"
         />
+
+        {/* Mortgage question */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <p className="text-sm font-medium text-gray-700 mb-2">Does this include a mortgage payment?</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleMortgageAnswer(true)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                hasMortgage === true
+                  ? 'bg-sunset-500 border-sunset-500 text-white'
+                  : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+              }`}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={() => handleMortgageAnswer(false)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                hasMortgage === false
+                  ? 'bg-sunset-500 border-sunset-500 text-white'
+                  : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+              }`}
+            >
+              No
+            </button>
+          </div>
+
+          {hasMortgage === true && (
+            <div className="mt-3 grid sm:grid-cols-2 gap-3">
+              <FormField
+                label="Monthly Payment"
+                name="mortgagePayment"
+                type="number"
+                value={mortgagePayment}
+                onChange={(v) => { setMortgagePayment(v); setErrors(e => ({ ...e, mortgagePayment: null })); }}
+                prefix="$"
+                suffix="/mo"
+                min={1}
+                error={errors.mortgagePayment}
+              />
+              <FormField
+                label="Years Remaining"
+                name="mortgageYears"
+                type="number"
+                value={mortgageYears}
+                onChange={(v) => { setMortgageYears(v); setErrors(e => ({ ...e, mortgageYears: null })); }}
+                suffix="yrs"
+                min={1}
+                max={35}
+                error={errors.mortgageYears}
+              />
+            </div>
+          )}
+        </div>
       </Card>
 
       {/* Your Savings */}

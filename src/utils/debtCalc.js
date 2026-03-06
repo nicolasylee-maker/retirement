@@ -1,4 +1,17 @@
 /**
+ * Back-solve a mortgage balance from a known monthly payment and years remaining.
+ * Assumes a fixed 5% annual rate (sufficient for quick-start approximation).
+ * Returns 0 for invalid inputs.
+ */
+export function backSolveMortgageBalance(monthlyPayment, yearsLeft) {
+  if (!monthlyPayment || monthlyPayment <= 0 || yearsLeft <= 0) return 0;
+  const rate = 0.05;
+  const annualPayment = monthlyPayment * 12;
+  const factor = Math.pow(1 + rate, yearsLeft);
+  return Math.round(annualPayment * (factor - 1) / (rate * factor));
+}
+
+/**
  * Calculate the annual payment for a loan using the standard PMT formula.
  * Returns 0 if balance or years are non-positive.
  */

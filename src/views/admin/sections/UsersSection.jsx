@@ -7,6 +7,32 @@ import UserScenariosPanel from '../components/UserScenariosPanel'
 const PAGE_SIZE = 25
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
+function DeleteUserButton({ user, onDeleted }) {
+  const [state, setState] = useState(null)
+
+  const handleClick = async () => {
+    if (!window.confirm(`Delete ${user.email}? This removes their account and all scenarios permanently.`)) return
+    setState('deleting')
+    try {
+      await adminApi.deleteUser(user.id)
+      onDeleted()
+    } catch (err) {
+      alert(`Failed: ${err.message}`)
+      setState(null)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={state === 'deleting'}
+      className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40 transition-colors whitespace-nowrap"
+    >
+      {state === 'deleting' ? 'Deleting…' : 'Delete'}
+    </button>
+  )
+}
+
 function ResendInviteButton({ user, session }) {
   const [state, setState] = useState(null) // null | 'sending' | 'sent' | 'error'
 
@@ -171,6 +197,7 @@ export default function UsersSection() {
                         >
                           Scenarios
                         </button>
+                        <DeleteUserButton user={u} onDeleted={() => load(page, search)} />
                       </div>
                     </td>
                   </tr>

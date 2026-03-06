@@ -243,6 +243,20 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ subscriptions: enriched, total, page })
     }
 
+    // ---------- DELETE ----------
+    if (action === 'delete') {
+      if (!userId) return errorResponse('userId is required', 400)
+
+      // Delete from public.users first (cascades to scenarios), then auth.users
+      const { error: publicErr } = await supabaseAdmin.from('users').delete().eq('id', userId)
+      if (publicErr) return errorResponse(publicErr.message, 500)
+
+      const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(userId)
+      if (authErr) return errorResponse(authErr.message, 500)
+
+      return jsonResponse({ success: true })
+    }
+
     return errorResponse('Unknown action', 400)
   } catch (err) {
     console.error('[admin-users]', err)

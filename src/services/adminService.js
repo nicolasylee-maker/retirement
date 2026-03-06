@@ -45,6 +45,9 @@ export const adminApi = {
   fetchAiModels: (provider, apiKey) =>
     callAdminFunction('ai-test-proxy', { action: 'list-models', provider, apiKey }),
 
+  deleteUser: (userId) =>
+    callAdminFunction('admin-users', { action: 'delete', userId }),
+
   setOverride: (email, override, accessToken) => {
     // Uses the existing send-invite edge function
     return fetch(`${SUPABASE_URL}/functions/v1/send-invite`, {

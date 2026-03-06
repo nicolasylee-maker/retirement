@@ -8,6 +8,8 @@ import { downloadExcelAudit } from './utils/excel/index.js';
 import VisualAudit from './views/audit/VisualAudit';
 import { openBillingPortal } from './services/stripeService';
 import WizardShell from './views/wizard/WizardShell';
+import BasicWizardView from './views/wizard/BasicWizardView';
+import ModePicker from './components/ModePicker';
 import Dashboard from './views/dashboard/Dashboard';
 import CompareView from './views/compare/CompareView';
 import EstateView from './views/estate/EstateView';
@@ -37,6 +39,7 @@ import { computeHash } from './components/AiInsight';
 import { buildDashboardAiData, buildDebtAiData, buildCompareAiData, buildEstateAiData } from './utils/buildAiData';
 
 const WIZARD_CHECKPOINT_KEY = 'rp-wizard-step';
+const MODE_SEEN_KEY = 'rp-mode-seen';
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
 
 function uniqueName(base, existingNames) {
@@ -143,6 +146,7 @@ export default function App() {
     } catch { /* ignore */ }
     return 0;
   });
+  const [showModePicker, setShowModePicker] = useState(false);
   const [whatIfOverrides, setWhatIfOverrides] = useState({});
   const [whatIfExpanded, setWhatIfExpanded] = useState(true);
   const [pickerAction, setPickerAction] = useState('results');
@@ -151,7 +155,7 @@ export default function App() {
   const prevAuthUserRef = useRef(authUser);
 
   useEffect(() => {
-    const data = { scenarios, currentScenarioId, view: view === 'wizard' ? 'dashboard' : view };
+    const data = { scenarios, currentScenarioId, view: (view === 'wizard' || view === 'wizard-basic') ? 'dashboard' : view };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [scenarios, currentScenarioId, view]);
 
@@ -261,7 +265,14 @@ export default function App() {
     setScenarios(prev => prev.length > 0 ? prev : [fallback]);
     setCurrentScenarioId(prev => prev || fallback.id);
     sessionStorage.setItem(CHOICE_SEEN_KEY, '1'); // skip returning-home for new users
-    setView(prev => prev === 'landing' ? 'wizard' : prev);
+    setView(prev => {
+      if (prev !== 'landing') return prev;
+      if (!sessionStorage.getItem(MODE_SEEN_KEY)) {
+        setShowModePicker(true);
+        return prev; // stay on landing until mode is chosen
+      }
+      return 'wizard';
+    });
   }, []);
 
   const { saveStatus, syncDone } = useCloudSync({
@@ -341,7 +352,25 @@ export default function App() {
     }
   }, [authUser]);
 
-  const handleWizardComplete = useCallback(() => { setWizardIsNew(false); setView('dashboard'); }, []);
+  const handleWizardComplete = useCallback(() => {
+    handleScenarioChange({ wizardMode: 'full' });
+    setWizardIsNew(false);
+    setView('dashboard');
+  }, [handleScenarioChange]);
+
+  const handleModeSelect = useCallback((mode) => {
+    sessionStorage.setItem(MODE_SEEN_KEY, '1');
+    setShowModePicker(false);
+    setView(mode === 'basic' ? 'wizard-basic' : 'wizard');
+  }, []);
+
+  const handleBasicComplete = useCallback(() => {
+    handleScenarioChange({ wizardMode: 'basic' });
+    localStorage.setItem(`rp-wiz-${currentScenarioId}`, '1');
+    localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
+    setWizardIsNew(false);
+    setView('dashboard');
+  }, [handleScenarioChange, currentScenarioId]);
 
   const handleChoiceViewResults = useCallback(() => {
     sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
@@ -611,7 +640,7 @@ export default function App() {
           to keep access.
         </div>
       )}
-      {view !== 'wizard' && view !== 'save-nudge' && view !== 'landing' && view !== 'admin'
+      {view !== 'wizard' && view !== 'wizard-basic' && view !== 'save-nudge' && view !== 'landing' && view !== 'admin'
         && view !== 'returning-home' && view !== 'scenario-picker' && (
       <header ref={headerRef} className="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div className="px-4 sm:px-6 lg:px-10 py-3">
@@ -753,6 +782,13 @@ export default function App() {
             <p className="text-sm text-gray-500">Loading your plans…</p>
           </div>
         ) : (
+        <>
+        {showModePicker && (
+          <ModePicker
+            onSelectBasic={() => handleModeSelect('basic')}
+            onSelectFull={() => handleModeSelect('full')}
+          />
+        )}
         <div className="view-enter" key={view}>
           {view === 'landing' && (
             authUser || authLoading
@@ -769,13 +805,24 @@ export default function App() {
                   setScenarios([newScenario]);
                   setCurrentScenarioId(newScenario.id);
                   setWizardIsNew(true);
-                  setView('wizard');
+                  if (!sessionStorage.getItem(MODE_SEEN_KEY)) {
+                    setShowModePicker(true);
+                  } else {
+                    setView('wizard');
+                  }
                 }} />
           )}
           {view === 'wizard' && currentScenario && (
             <WizardShell scenario={currentScenario} onChange={handleScenarioChange}
               onComplete={handleWizardComplete} currentStep={wizardStep} onStepChange={setWizardStep}
               isNewScenario={wizardIsNew} />
+          )}
+          {view === 'wizard-basic' && currentScenario && (
+            <BasicWizardView
+              scenario={currentScenario}
+              onChange={handleScenarioChange}
+              onComplete={handleBasicComplete}
+            />
           )}
           {view === 'dashboard' && currentScenario && (
             <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4 pb-20 md:pb-4">
@@ -792,7 +839,9 @@ export default function App() {
               <Dashboard scenario={effectiveScenario} projectionData={projectionData}
                 onScenarioChange={handleScenarioChange} isPaid={isPaid}
                 aiInsights={effectiveScenario.aiInsights} onSaveInsight={handleSaveInsight}
-                whatIfActive={whatIfActive} onEditAssumptions={handleEditAssumptions} />
+                whatIfActive={whatIfActive} onEditAssumptions={handleEditAssumptions}
+                isBasicMode={currentScenario?.wizardMode === 'basic'}
+                onImproveAccuracy={() => { setWizardStep(0); setView('wizard'); }} />
             </div>
           )}
           {view === 'debt' && currentScenario && (
@@ -873,6 +922,7 @@ export default function App() {
           )}
           {view === 'admin' && isAdmin && <AdminView onClose={() => setView('dashboard')} />}
         </div>
+        </>
         )}
       </main>
 

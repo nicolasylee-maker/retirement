@@ -127,6 +127,9 @@ export function createDefaultScenario(name = 'My Scenario') {
     // AI insights cache — persisted per view type
     // Shape: { dashboard?: {text, hash}, debt?: {text, hash}, compare?: {text, hash}, estate?: {text, hash} }
     aiInsights: {},
+
+    // Wizard mode: null = not set, 'basic' = Quick Start, 'full' = Full Setup
+    wizardMode: null,
   };
 }
 

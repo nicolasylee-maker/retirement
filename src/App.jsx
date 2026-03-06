@@ -190,6 +190,7 @@ export default function App() {
       setCurrentScenarioId(null);
       setWizardStep(0);
       setWhatIfOverrides({});
+      setShowBetaWelcome(false);
       setView('landing');
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
@@ -983,7 +984,7 @@ export default function App() {
             onSelectFull={() => handleModeSelect('full')}
           />
         )}
-        {showBetaWelcome && (
+        {showBetaWelcome && view === 'dashboard' && (
           <BetaWelcomeBanner
             overrideDaysRemaining={overrideDaysRemaining}
             onDismiss={() => {

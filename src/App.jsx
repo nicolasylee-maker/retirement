@@ -194,6 +194,7 @@ export default function App() {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
       sessionStorage.removeItem(CHOICE_SEEN_KEY);
+      sessionStorage.removeItem(MODE_SEEN_KEY);
       sessionStorage.removeItem(ANON_SESSION_KEY);
     }
 

@@ -1,4 +1,5 @@
 import React from 'react'
+import BetaPromotionCard from '../components/BetaPromotionCard'
 import TaxDataEditor from '../components/TaxDataEditor'
 import LegislationPanel from '../components/LegislationPanel'
 
@@ -20,6 +21,10 @@ export default function MaintenanceSection() {
           Manage tax data and monitor legislation changes. Edits take effect immediately for all users.
         </p>
       </div>
+
+      <SectionCard title="Beta Promotion">
+        <BetaPromotionCard />
+      </SectionCard>
 
       <SectionCard title="Tax Data">
         <TaxDataEditor />

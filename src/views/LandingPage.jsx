@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../services/supabaseClient'
 import SummaryCards from './dashboard/SummaryCards'
 import PortfolioChart from './dashboard/PortfolioChart'
 import { DEMO_SCENARIO, DEMO_PROJECTION } from '../constants/demoScenario'
@@ -21,6 +22,24 @@ export function LandingPage({ onTryAnonymous }) {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const [promo, setPromo] = useState(null)
+
+  useEffect(() => {
+    supabase
+      .from('admin_config')
+      .select('config_key, config_value')
+      .like('config_key', 'beta_promotion_%')
+      .then(({ data }) => {
+        if (!data) return
+        const map = Object.fromEntries(data.map(r => [r.config_key, r.config_value]))
+        const cutoff = map.beta_promotion_cutoff
+        const days = parseInt(map.beta_promotion_days, 10)
+        if (cutoff && cutoff !== 'null' && new Date(cutoff + 'T23:59:59') >= new Date() && days > 0) {
+          setPromo({ cutoff, days })
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleMagicLink(e) {
     e.preventDefault()
@@ -88,6 +107,14 @@ export function LandingPage({ onTryAnonymous }) {
       {/* ── RIGHT 40%: Sign-in ─────────────────────────────────── */}
       <div className="order-1 lg:order-2 lg:w-2/5 flex items-center justify-center px-8 py-12 bg-white lg:border-l border-b lg:border-b-0 border-gray-200">
         <div className="w-full max-w-sm">
+
+          {promo && (
+            <div className="mb-4 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-center">
+              <p className="text-sm font-semibold text-green-800">
+                Sign up before {new Date(promo.cutoff).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })} and get {promo.days} days of full access free
+              </p>
+            </div>
+          )}
 
           <h2 className="text-3xl font-black text-gray-900 mb-2">Start your free plan</h2>
           <p className="text-base text-gray-600 mb-8">5 minutes to know your retirement number — and whether you're on track.</p>

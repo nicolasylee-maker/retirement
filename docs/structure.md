@@ -221,6 +221,7 @@ retirement/
 │               ├── InviteModal.jsx         ← Invite user modal (wraps send-invite edge fn)
 │               ├── TaxDataEditor.jsx       ← Province JSON editor; exports parseTaxJson, runTaxSmokeTest
 │               ├── LegislationPanel.jsx    ← CanLII status table + Run Check button
+│               ├── BetaPromotionCard.jsx   ← Beta promotion config: cutoff date + duration, save to admin_config
 │               ├── AiTestConfigPanel.jsx   ← AI Testing config UI (insight type, user/scenario search, provider/model)
 │               └── AiTestResultPanel.jsx   ← AI Testing 3-column result display (Gemini | Rival | Raw Prompt)
 │
@@ -240,6 +241,7 @@ retirement/
 │   ├── taxDataHelpers.test.js              ← parseTaxJson, runTaxSmokeTest
 │   ├── aiInsightsPersistence.test.js       ← AI insight caching, hash staleness
 │   ├── returningUserFlow.test.js           ← Sign-in routing, picker target
+│   ├── subscriptionBadge.test.jsx         ← SubscriptionBadge: beta countdown display
 │   ├── trialOverride.test.js              ← Pure helpers: days remaining, expiry, build expiry date
 │   ├── mobilePolish.test.js                ← Mobile-specific UI helpers
 │   ├── optimizerEngine.test.js             ← All 8 optimization dimensions

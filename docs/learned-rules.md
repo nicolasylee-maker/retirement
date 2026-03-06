@@ -88,6 +88,11 @@
 - Intestate: spouse preferential share $350K, then split with children
 - **Couple mode**: Estate engine includes spouse RRSP/TFSA in `grossEstate` (household total). Spouse's own accounts are NOT taxable (surviving spouse owns them) and bypass probate. Tax and probate calculations remain primary-only.
 
+## Beta Promotion (admin_config RLS)
+
+- `admin_config` has RLS enabled with no general client policies (service role only). A targeted SELECT policy (`config_key LIKE 'beta_promotion_%'`) allows the landing page to read promotion config without authentication. No other `admin_config` keys are exposed.
+- The `handle_new_user()` trigger auto-grants `subscription_override = 'beta'` with an `override_expires_at` when a new user signs up during an active promotion. It skips admin-invited users (those with `subscription_override` in `raw_user_meta_data`) and returning users (those with an existing `subscription_override`).
+
 ## AI Context (buildAiData) — Couple Mode
 
 - `buildDashboardAiData()` sends couple fields (spouseAge, spouseRetirementAge, spouseEmploymentIncome, spouseRrspBalance, spouseTfsaBalance, spouseCppMonthly, spouseOasMonthly, spousePensionIncome) only when `isCouple` is true. Single scenarios omit these fields to keep the Gemini prompt clean.

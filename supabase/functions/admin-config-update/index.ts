@@ -15,6 +15,8 @@ const ALLOWED_KEYS = [
   'prompt_compare',
   'prompt_estate',
   'prompt_debt',
+  'beta_promotion_cutoff',
+  'beta_promotion_days',
 ]
 
 function jsonResponse(data: unknown, status = 200) {

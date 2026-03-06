@@ -46,12 +46,15 @@ export default function SubscriptionBadge() {
   }
 
   if (isOverride && override === 'beta') {
+    const label = overrideDaysRemaining != null
+      ? `Beta (${overrideDaysRemaining}d left)`
+      : 'Beta'
     return (
       <span
         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
                    bg-gray-100 text-gray-600 border border-gray-300"
       >
-        Beta
+        {label}
       </span>
     )
   }

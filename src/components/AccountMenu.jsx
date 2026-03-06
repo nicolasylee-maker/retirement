@@ -8,7 +8,7 @@ const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
 
 export default function AccountMenu({ onAdmin, open, onOpenChange }) {
   const { user, avatarUrl, isLoading, signOut } = useAuth()
-  const { isPaid, isTrial, isOverride, isOverrideTrial, overrideDaysRemaining } = useSubscription()
+  const { isPaid, isTrial, isOverride, isOverrideTrial, override, overrideDaysRemaining } = useSubscription()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [panelOpenInternal, setPanelOpenInternal] = useState(false)
   const [billingError, setBillingError] = useState(false)
@@ -101,9 +101,9 @@ export default function AccountMenu({ onAdmin, open, onOpenChange }) {
               Admin
             </button>
           )}
-          {isOverrideTrial && overrideDaysRemaining != null && (
+          {((isOverrideTrial) || (isOverride && override === 'beta')) && overrideDaysRemaining != null && (
             <p className="px-4 py-1.5 text-xs text-orange-600">
-              Trial: {overrideDaysRemaining} day{overrideDaysRemaining !== 1 ? 's' : ''} remaining
+              {override === 'beta' ? 'Beta' : 'Trial'}: {overrideDaysRemaining} day{overrideDaysRemaining !== 1 ? 's' : ''} remaining
             </p>
           )}
           {isPaid && !isOverride && (

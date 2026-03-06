@@ -158,6 +158,8 @@ tests/yourModuleEngine.test.js    ← Unit tests for engine functions
 | `src/engines/estateEngine.js` | Estate tax, probate, distribution |
 | `src/engines/withdrawalCalc.js` | Sustainable withdrawal (binary search) |
 | `src/engines/optimizerEngine.js` | `runOptimization(scenario)` — tests 8 dimensions, returns ranked recommendations |
+| `src/engines/readinessEngine.js` | `computeReadinessRank(scenario)` — Canadian percentile rank vs Stats Canada/Fidelity benchmarks by age bracket |
+| `src/views/readiness/ReadinessView.jsx` | Post-wizard rank screen: animated arc gauge, percentile headline, stat cards |
 | `src/engines/incomeHelpers.js` | Pure income helper functions (CPP, OAS, GIS, GAINS, capital gains) |
 | `src/hooks/useCloudSync.js` | Supabase scenario sync: fetch on sign-in, auto-save on change |
 | `src/services/supabaseClient.js` | Supabase client singleton |
@@ -250,3 +252,4 @@ See `docs/learned-rules.md` → Edge Function Deployment for machine-specific de
 | 2026-03-04 | AI Testing admin tab: ai-test-proxy edge function (passthrough for 6 providers: Gemini/OpenAI/Anthropic/OpenRouter/xAI/Kimi), buildAiPrompt.js (client-side prompt resolver), AiTestingSection + AiTestConfigPanel + AiTestResultPanel (3-column side-by-side comparison UI with raw prompt column) |
 | 2026-03-04 | Compare tab analytical sections: DifferenceDrivers (input diff table), PhaseComparison (life phase health cards), MonthlyReality (cash flow at key ages); compareAnalysis.js pure utility; enriched Gemini compare prompt with diffLines/phaseLines/monthlyLines |
 | 2026-03-05 | Admin-granted time-limited trial override: `override_expires_at` DB column, `trial` override type, trialOverride.js pure helpers, SubscriptionContext exposes isOverrideTrial/overrideDaysRemaining, InviteModal + OverrideSelect + RenewTrialButton in admin UI, "Trial — N days left" badge |
+| 2026-03-05 | Readiness Rank Screen: post-wizard interstitial (both Basic + Full), readinessEngine.js (log-normal percentile vs Stats Canada/Fidelity benchmarks by age bracket), ReadinessView.jsx (animated SVG arc gauge, dark theme, stat cards, pension disclaimer), free for all users |

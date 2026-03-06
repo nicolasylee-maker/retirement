@@ -23,6 +23,7 @@ import ScenarioPickerView from './views/ScenarioPickerView';
 import { getPickerTarget } from './utils/returningUserFlow.js';
 import AdminView from './views/admin/AdminView';
 import RecommendationsTab from './views/recommendations/RecommendationsTab';
+import ReadinessView from './views/readiness/ReadinessView';
 import { runOptimization } from './engines/optimizerEngine';
 import AccountMenu from './components/AccountMenu';
 import ContactModal from './components/ContactModal';
@@ -155,7 +156,7 @@ export default function App() {
   const prevAuthUserRef = useRef(authUser);
 
   useEffect(() => {
-    const data = { scenarios, currentScenarioId, view: (view === 'wizard' || view === 'wizard-basic') ? 'dashboard' : view };
+    const data = { scenarios, currentScenarioId, view: (view === 'wizard' || view === 'wizard-basic' || view === 'readiness-rank') ? 'dashboard' : view };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [scenarios, currentScenarioId, view]);
 
@@ -355,7 +356,7 @@ export default function App() {
   const handleWizardComplete = useCallback(() => {
     handleScenarioChange({ wizardMode: 'full' });
     setWizardIsNew(false);
-    setView('dashboard');
+    setView('readiness-rank');
   }, [handleScenarioChange]);
 
   const handleModeSelect = useCallback((mode) => {
@@ -380,7 +381,7 @@ export default function App() {
     localStorage.setItem(`rp-wiz-${currentScenarioId}`, '1');
     localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
     setWizardIsNew(false);
-    setView('dashboard');
+    setView('readiness-rank');
   }, [handleScenarioChange, currentScenarioId]);
 
   const handleChoiceViewResults = useCallback(() => {
@@ -833,6 +834,12 @@ export default function App() {
               scenario={currentScenario}
               onChange={handleScenarioChange}
               onComplete={handleBasicComplete}
+            />
+          )}
+          {view === 'readiness-rank' && currentScenario && (
+            <ReadinessView
+              scenario={currentScenario}
+              onContinue={() => setView('dashboard')}
             />
           )}
           {view === 'dashboard' && currentScenario && (

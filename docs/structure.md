@@ -57,7 +57,8 @@ retirement/
 │   │   ├── auditAnalysis.js                ← Audit sections 6–10: estate, withdrawal, RRIF, gaps, KPIs
 │   │   ├── auditDashboard.js               ← Audit sections 11–13: dashboard KPIs, depletion, pre-retirement health
 │   │   ├── auditInvestmentReturns.js       ← Audit section 13b: investment returns by phase (working/early-ret/RRIF)
-│   │   └── auditCrosswalk.js               ← Audit sections 14–15: inflation crosswalk, chart tooltip snapshots
+│   │   ├── auditCrosswalk.js               ← Audit sections 14–15: inflation crosswalk, chart tooltip snapshots
+│   │   └── readinessEngine.js              ← computeReadinessRank(scenario): Canadian percentile rank vs Stats Canada benchmarks by age bracket
 │   │
 │   ├── contexts/
 │   │   ├── AuthContext.jsx                 ← Supabase session; provides user, isLoading, signOut, signInWithGoogle/MagicLink
@@ -133,6 +134,9 @@ retirement/
 │       ├── MyPlansView.jsx                 ← Scenario card grid with edit/view actions
 │       ├── SaveNudgeScreen.jsx             ← Post-wizard prompt to save plan (sign-in nudge)
 │       ├── WhatIfPanel.jsx                 ← Collapsible parameter panel (inline on md+; bottom drawer portal on mobile)
+│       │
+│       ├── readiness/                      ← Post-wizard readiness rank interstitial
+│       │   └── ReadinessView.jsx           ← Full-screen rank screen: animated arc gauge, Canadian percentile, stat cards
 │       │
 │       ├── wizard/                         ← 9-step input wizard
 │       │   ├── WizardShell.jsx             ← Wizard container, navigation, step management

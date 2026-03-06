@@ -5,6 +5,44 @@ import InviteModal from '../components/InviteModal'
 import UserScenariosPanel from '../components/UserScenariosPanel'
 
 const PAGE_SIZE = 25
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+
+function ResendInviteButton({ user, session }) {
+  const [state, setState] = useState(null) // null | 'sending' | 'sent' | 'error'
+
+  const handleClick = async () => {
+    setState('sending')
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ email: user.email, override: user.subscription_override ?? null }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error || 'Failed')
+      }
+      setState('sent')
+      setTimeout(() => setState(null), 3000)
+    } catch (err) {
+      alert(`Failed to send invite: ${err.message}`)
+      setState(null)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={state === 'sending'}
+      className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-40 transition-colors whitespace-nowrap"
+    >
+      {state === 'sending' ? 'Sending…' : state === 'sent' ? '✓ Sent' : 'Resend Invite'}
+    </button>
+  )
+}
 
 function OverrideSelect({ user, session, onChanged }) {
   const [saving, setSaving] = useState(false)
@@ -125,12 +163,15 @@ export default function UsersSection() {
                     <td className="px-4 py-3 text-gray-600">{u.ai_usage_this_month ?? 0}</td>
                     <td className="px-4 py-3 text-gray-600">{u.scenario_count ?? 0}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => setScenariosUser({ id: u.id, email: u.email })}
-                        className="text-xs text-purple-600 hover:text-purple-800 transition-colors"
-                      >
-                        Scenarios
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <ResendInviteButton user={u} session={session} />
+                        <button
+                          onClick={() => setScenariosUser({ id: u.id, email: u.email })}
+                          className="text-xs text-purple-600 hover:text-purple-800 transition-colors"
+                        >
+                          Scenarios
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

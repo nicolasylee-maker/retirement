@@ -103,17 +103,19 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { error: linkError } = await adminClient.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
+    const appUrl = Deno.env.get('APP_URL') ?? 'https://retireplanner.ca'
+    const tierLabel = override === 'lifetime' ? 'lifetime' : override === 'beta' ? 'beta' : 'free'
+    const resendKey = Deno.env.get('RESEND_API_KEY') ?? ''
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'RetirePlanner <hello@retireplanner.ca>',
+        to: [email],
+        subject: "Your RetirePlanner.ca access has been updated",
+        text: `Hi,\n\nYour account has been granted ${tierLabel} access to RetirePlanner.ca.\n\nSign in to get started:\n${appUrl}\n\n— The RetirePlanner Team`,
+      }),
     })
-
-    if (linkError) {
-      return new Response(JSON.stringify({ error: linkError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
   }
 
   return new Response(JSON.stringify({ success: true, userId: inviteData?.user?.id ?? null }), {

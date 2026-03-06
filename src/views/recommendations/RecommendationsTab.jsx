@@ -125,9 +125,9 @@ function UpgradeCta({ lockedRecs, onUpgrade }) {
         onClick={onUpgrade}
         className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
       >
-        Upgrade to Premium — $5/mo
+        Upgrade to Pro
       </button>
-      <p className="text-xs text-indigo-400 mt-2">7-day free trial · Cancel anytime</p>
+      <p className="text-xs text-indigo-400 mt-2">Cancel anytime</p>
     </div>
   )
 }

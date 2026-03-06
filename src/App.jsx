@@ -666,7 +666,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {checkoutSuccess && (
         <div className="bg-green-600 text-white text-center py-2 text-sm font-medium">
-          Your trial is active! Welcome to RetirePlanner Pro.
+          Welcome to RetirePlanner Pro! Your access is now active.
         </div>
       )}
       {checkoutPending && createPortal(
@@ -918,7 +918,7 @@ export default function App() {
               {isPaid
                 ? <CompareView scenarios={scenarios} onNavigate={(v) => setView(v)}
                     aiInsights={currentScenario?.aiInsights} onSaveInsight={handleSaveInsight} />
-                : <UpgradePrompt variant="full" featureName="Compare" />
+                : <UpgradePrompt variant="full" featureName="Compare" feature="compare" />
               }
             </div>
           )}
@@ -930,7 +930,7 @@ export default function App() {
                     lifeExpectancyOverride={whatIfOverrides.lifeExpectancy}
                     onLifeExpectancyChange={(v) => handleOverrideChange('lifeExpectancy', v)}
                     aiInsights={currentScenario.aiInsights} onSaveInsight={handleSaveInsight} />
-                : <UpgradePrompt variant="full" featureName="Estate Planning" />
+                : <UpgradePrompt variant="full" featureName="Estate Planning" feature="estate" />
               }
             </div>
           )}
@@ -952,7 +952,7 @@ export default function App() {
             <div className="flex-1">
               {isPaid || adminBypass
                 ? <VisualAudit scenario={effectiveScenario} projectionData={projectionData} optimizationResult={optimizationResult} />
-                : <div className="px-4 sm:px-6 lg:px-10 py-4"><UpgradePrompt variant="full" featureName="Deep Dive" /></div>
+                : <div className="px-4 sm:px-6 lg:px-10 py-4"><UpgradePrompt variant="full" featureName="Deep Dive" feature="deepDive" /></div>
               }
             </div>
           )}

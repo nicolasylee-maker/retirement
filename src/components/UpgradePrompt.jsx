@@ -25,13 +25,52 @@ function CheckIcon() {
 }
 
 const FEATURES = [
-  'Compare multiple scenarios side-by-side',
+  'Compare scenarios side-by-side',
   'Estate planning & heir distribution',
   'Deep Dive — phase-by-phase breakdown',
-  'Optimize My Plan — 8 ranked strategies',
+  'Optimize — 8 AI-ranked strategies',
   'AI-powered retirement insights',
-  'Excel & PDF reports',
+  'Excel & PDF reports with real formulas',
+  'Unlimited scenarios',
 ]
+
+const FEATURE_PROMPTS = {
+  compare: {
+    title: 'Compare Scenarios',
+    description: 'See how different retirement ages, spending levels, or investment strategies stack up side by side.',
+    cta: 'Upgrade to compare',
+  },
+  estate: {
+    title: 'Estate Planning',
+    description: 'See what your heirs actually receive after taxes, probate, and spousal rollover.',
+    cta: 'Upgrade for estate planning',
+  },
+  deepDive: {
+    title: 'Deep Dive',
+    description: 'Phase-by-phase breakdown of your working years, early retirement, and RRIF era.',
+    cta: 'Upgrade for deep dive',
+  },
+  optimize: {
+    title: 'Optimize My Plan',
+    description: '8 AI-ranked strategies to maximize your retirement outcome — CPP timing, withdrawal order, and more.',
+    cta: 'Upgrade to optimize',
+  },
+  aiInsights: {
+    title: 'AI Insights',
+    description: 'Plain-English recommendations based on your specific numbers, not generic advice.',
+    cta: 'Upgrade for AI insights',
+  },
+  export: {
+    title: 'Excel & PDF Reports',
+    description: 'Download your full plan as a PDF or Excel workbook where every cell is a real formula.',
+    cta: 'Upgrade for reports',
+  },
+  multipleScenarios: {
+    title: 'Multiple Scenarios',
+    description: 'Save unlimited scenarios and switch between them to explore different paths.',
+    cta: 'Upgrade for unlimited scenarios',
+  },
+}
 
 const PRO_FEATURES = [
   {
@@ -54,7 +93,7 @@ const PRO_FEATURES = [
   },
   {
     name: 'AI Insights',
-    desc: 'Plain-English strategy powered by Gemini AI',
+    desc: 'Plain-English recommendations for your specific plan',
     bg: '#e0e7ff',
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/><path d="M18 14l.75 2.25L21 17l-2.25.75L18 20l-.75-2.25L15 17l2.25-.75z"/></svg>,
   },
@@ -72,13 +111,13 @@ const PRO_FEATURES = [
   },
   {
     name: 'PDF & Excel Reports',
-    desc: 'Print-ready PDF and full Excel audit workbook',
+    desc: 'PDF reports and Excel workbook with real formulas',
     bg: '#fff1f2',
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>,
   },
 ]
 
-export default function UpgradePrompt({ variant = 'full', featureName, modal = false, onUpgrade }) {
+export default function UpgradePrompt({ variant = 'full', featureName, feature, modal = false, onUpgrade }) {
   const { isLoading } = useSubscription()
   const { user } = useAuth()
   const [billingPlan, setBillingPlan] = useState('yearly')
@@ -144,7 +183,7 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
                        hover:from-purple-700 hover:to-indigo-700
                        disabled:opacity-50 transition-all whitespace-nowrap"
           >
-            {(!onUpgrade && checkoutLoading) ? 'Loading...' : 'Start trial'}
+            {(!onUpgrade && checkoutLoading) ? 'Loading...' : 'Upgrade to Pro'}
           </button>
           {checkoutError && <p className="text-xs text-red-600">{checkoutError}</p>}
         </div>
@@ -152,6 +191,9 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
       </>
     )
   }
+
+  const featurePrompt = feature ? FEATURE_PROMPTS[feature] : null
+  const ctaLabel = checkoutLoading ? 'Loading...' : (featurePrompt?.cta ?? 'Upgrade to Pro')
 
   // variant === 'full'
   const cardInner = (
@@ -162,10 +204,16 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
           <LockIcon className="w-7 h-7 text-purple-600" />
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Unlock <span className="text-sunset-600">RetirePlanner</span> Pro</h2>
-        <p className="text-gray-500 mb-5">
-          Start your 7-day free trial — no credit card required.
-        </p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Upgrade to <span className="text-sunset-600">RetirePlanner</span> Pro</h2>
+
+        {featurePrompt ? (
+          <div className="w-full mb-5 text-left bg-purple-50 border border-purple-100 rounded-xl p-4">
+            <p className="text-sm font-semibold text-purple-900 mb-1">{featurePrompt.title}</p>
+            <p className="text-sm text-purple-700 leading-snug">{featurePrompt.description}</p>
+          </div>
+        ) : (
+          <p className="text-gray-500 text-sm mb-5">Access all Pro features below.</p>
+        )}
 
         <ul className="text-left space-y-2 mb-5 w-full">
           {FEATURES.map((f) => (
@@ -223,10 +271,14 @@ export default function UpgradePrompt({ variant = 'full', featureName, modal = f
           className="w-full py-3 text-sm font-semibold text-white rounded-xl
                      bg-gradient-to-r from-purple-600 to-indigo-600
                      hover:from-purple-700 hover:to-indigo-700
-                     disabled:opacity-50 transition-all mb-4"
+                     disabled:opacity-50 transition-all mb-2"
         >
-          {checkoutLoading ? 'Loading...' : 'Start free trial'}
+          {ctaLabel}
         </button>
+
+        <p className="text-xs text-gray-400 mb-2">
+          Free plan includes: 1 scenario · dashboard · portfolio charts · What If
+        </p>
 
         {!user && (
           <button

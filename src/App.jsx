@@ -134,10 +134,10 @@ export default function App() {
     const saved = loadSaved();
     if (saved?.scenarios?.length > 0) {
       if (sessionStorage.getItem(ANON_SESSION_KEY)) {
-        // Restore the exact wizard mode the anon user was in.
-        // 'landing' means they clicked Skip but hadn't chosen a mode yet — keep them there.
-        if (saved.view === 'wizard-basic') return 'wizard-basic';
-        if (saved.view === 'landing') return 'landing';
+        // Restore the exact view the anon user was in. Views not in this list
+        // fall back to the full wizard as a safe default.
+        const anonRestorable = ['wizard', 'wizard-basic', 'landing', 'dashboard'];
+        if (anonRestorable.includes(saved.view)) return saved.view;
         return 'wizard';
       }
       return saved.view || 'dashboard';
@@ -162,7 +162,10 @@ export default function App() {
   const prevAuthUserRef = useRef(authUser);
 
   useEffect(() => {
-    const data = { scenarios, currentScenarioId, view: (view === 'wizard' || view === 'wizard-basic' || view === 'readiness-rank') ? 'dashboard' : view };
+    // Persist the current view. readiness-rank is a one-time transition screen — always
+    // restore to dashboard instead. wizard/wizard-basic are preserved so refresh restores
+    // the correct in-progress mode.
+    const data = { scenarios, currentScenarioId, view: view === 'readiness-rank' ? 'dashboard' : view };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [scenarios, currentScenarioId, view]);
 
@@ -195,7 +198,7 @@ export default function App() {
 
     if (justLoggedIn && sessionStorage.getItem(ANON_SESSION_KEY)) {
       sessionStorage.removeItem(ANON_SESSION_KEY);
-      setView(v => v === 'wizard' ? (loadSaved()?.view || 'dashboard') : v);
+      setView(v => (v === 'wizard' || v === 'wizard-basic') ? 'dashboard' : v);
     }
   }, [authUser]);
 
@@ -260,7 +263,7 @@ export default function App() {
       setScenarios(cloudScenarios);
       setCurrentScenarioId(cloudScenarios[0].id);
       setWhatIfOverrides({});
-      setView(prev => (prev === 'landing' || prev === 'wizard') ? 'returning-home' : prev);
+      setView(prev => (prev === 'landing' || prev === 'wizard' || prev === 'wizard-basic') ? 'returning-home' : prev);
       return;
     }
     if (fetchError) {

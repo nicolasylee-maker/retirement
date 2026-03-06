@@ -204,13 +204,16 @@ export default function App() {
 
   // If the user started checkout as anon (magic link / Google redirect away from the page),
   // resume checkout automatically when they land back signed in.
-  // Also mark CHOICE_SEEN_KEY so the returning-home screen doesn't interrupt the redirect.
+  // Suppress all interstitial screens (returning-home, ModePicker) before the async Stripe
+  // redirect fires by marking both session keys and moving off 'landing'.
   useEffect(() => {
     if (!authUser) return;
     const pendingPriceId = sessionStorage.getItem('rp-pending-checkout');
     if (!pendingPriceId) return;
     sessionStorage.removeItem('rp-pending-checkout');
     sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
+    sessionStorage.setItem(MODE_SEEN_KEY, '1');
+    setView(v => v === 'landing' ? 'dashboard' : v);
     startCheckout(pendingPriceId).catch(() => {});
   }, [authUser]);
 

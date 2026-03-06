@@ -105,6 +105,7 @@ retirement/
 │   │
 │   ├── components/                         ← Reusable UI components
 │   │   ├── AccountMenu.jsx                 ← User avatar dropdown: sign-in/out, billing portal, admin link
+│   │   ├── AnonDashboardBanner.jsx         ← Inline banner for anon dashboard users: sign-in CTA with optional beta promo copy
 │   │   ├── BetaWelcomeBanner.jsx           ← One-time overlay after readiness for beta users: feature checklist + days remaining
 │   │   ├── AiInsight.jsx                   ← AI recommendation card (Gemini integration, hash-based staleness)
 │   │   ├── AuthPanel.jsx                   ← Sign-in panel: Google OAuth + magic link email

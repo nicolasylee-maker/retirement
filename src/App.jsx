@@ -16,6 +16,7 @@ import EstateView from './views/estate/EstateView';
 import DebtView from './views/debt/DebtView';
 import WhatIfPanel from './views/WhatIfPanel';
 import BetaWelcomeBanner from './components/BetaWelcomeBanner';
+import AnonDashboardBanner from './components/AnonDashboardBanner';
 import { LandingPage } from './views/LandingPage';
 import MyPlansView from './views/MyPlansView';
 import ReturningHomeView from './views/ReturningHomeView';
@@ -34,6 +35,7 @@ import { EnvironmentBadge } from './components/EnvironmentBadge';
 import { useSubscription } from './contexts/SubscriptionContext';
 import { useAuth } from './contexts/AuthContext';
 import { useCloudSync } from './hooks/useCloudSync';
+import { supabase } from './services/supabaseClient';
 import { deleteScenario as deleteScenarioFromCloud, saveScenario } from './services/scenarioService';
 import { getAiRecommendation } from './services/geminiService';
 import { computeHash } from './components/AiInsight';
@@ -570,7 +572,25 @@ export default function App() {
   const [checkoutPending, setCheckoutPending] = useState(false);
   const [autoAiPending, setAutoAiPending] = useState(false);
   const [showBetaWelcome, setShowBetaWelcome] = useState(false);
+  const [betaPromo, setBetaPromo] = useState(null);
   const GATED_TABS = new Set(['compare', 'estate', 'deep-dive']);
+
+  useEffect(() => {
+    supabase
+      .from('admin_config')
+      .select('config_key, config_value')
+      .like('config_key', 'beta_promotion_%')
+      .then(({ data }) => {
+        if (!data) return;
+        const map = Object.fromEntries(data.map(r => [r.config_key, r.config_value]));
+        const cutoff = map.beta_promotion_cutoff;
+        const days = parseInt(map.beta_promotion_days, 10);
+        if (cutoff && cutoff !== 'null' && new Date(cutoff + 'T23:59:59') >= new Date() && days > 0) {
+          setBetaPromo({ cutoff, days });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1037,6 +1057,9 @@ export default function App() {
                 setView('dashboard');
               }}
             />
+          )}
+          {view === 'dashboard' && !authUser && (
+            <AnonDashboardBanner betaPromo={betaPromo} />
           )}
           {view === 'dashboard' && currentScenario && (
             <div className="px-4 sm:px-6 lg:px-10 py-4 space-y-4 pb-20 md:pb-4">

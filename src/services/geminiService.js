@@ -26,7 +26,7 @@ export async function getAiRecommendation(type, data, forceRefresh = false) {
   if (!session) throw new Error('Must be signed in to use AI features')
 
   const res = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-proxy`,
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-proxy`,
     {
       method: 'POST',
       headers: {

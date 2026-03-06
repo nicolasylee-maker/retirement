@@ -45,6 +45,12 @@ export const adminApi = {
   fetchAiModels: (provider, apiKey) =>
     callAdminFunction('ai-test-proxy', { action: 'list-models', provider, apiKey }),
 
+  setProviderKey: (provider, apiKey) =>
+    callAdminFunction('admin-vault-update', { action: 'set-key', provider, apiKey }),
+
+  getProviderKeyStatus: () =>
+    callAdminFunction('admin-vault-update', { action: 'key-status' }),
+
   deleteUser: (userId) =>
     callAdminFunction('admin-users', { action: 'delete', userId }),
 

@@ -7,6 +7,8 @@ const corsHeaders = {
 }
 
 const ALLOWED_KEYS = [
+  'ai_provider',
+  'ai_model',
   'gemini_model',
   'temperature',
   'max_output_tokens',
@@ -15,6 +17,7 @@ const ALLOWED_KEYS = [
   'prompt_compare',
   'prompt_estate',
   'prompt_debt',
+  'prompt_optimize',
   'beta_promotion_cutoff',
   'beta_promotion_days',
 ]

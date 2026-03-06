@@ -1,6 +1,23 @@
 import React, { useEffect, useState } from 'react'
 import { adminApi } from '../../../services/adminService'
 
+const PROVIDERS = ['openrouter', 'gemini', 'openai', 'anthropic', 'xai', 'kimi']
+
+const MODEL_SUGGESTIONS = {
+  openrouter: [
+    'meta-llama/llama-3.3-70b-instruct',
+    'qwen/qwen-2.5-72b-instruct',
+    'google/gemini-2.0-flash-001',
+    'anthropic/claude-3.5-sonnet',
+    'openai/gpt-4o-mini',
+  ],
+  gemini: ['gemini-2.5-pro-preview-05-06', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro'],
+  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
+  anthropic: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
+  xai: ['grok-3', 'grok-3-mini'],
+  kimi: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k'],
+}
+
 const PROMPT_FIELDS = [
   { key: 'prompt_base', label: 'Base System Prompt', variables: '(no variables — this is the base instructions)' },
   { key: 'prompt_dashboard', label: 'Dashboard Prompt', variables: '{currentAge}, {retirementAge}, {lifeExpectancy}, {inflationRatePct}, {monthlyExpenses}, {expReductionPct}, {expensesAtRetirement}, {expensesMonthlyToday}, {portfolioAtRetirement}, {portfolioAtRetirementToday}, {netWorthAtRetirement}, {annualIncome}, {annualTax}, {annualShortfall}, {shortfallMonthlyToday}, {sustainableMonthly}, {sustainableMonthlyToday}, {portfolioAtEnd}, {portfolioAtEndToday}, {rrspBalance}, {tfsaBalance}, {nonRegBalance}, {cppMonthly}, {cppStartAge}, {cppAtRetirement}, {cppMonthlyToday}, {oasMonthly}, {oasStartAge}, {oasAtRetirement}, {oasMonthlyToday}, {pensionLine}, {depletionAge}, {portfolioDepleted}, {postDepletionIncome}, {postDepletionIncomeToday}, {postDepletionExpenses}, {postDepletionExpensesToday}, {yearsToRetirement}, {workingYearsWithWithdrawals}, {tfsaDepletedWhileWorking}, {primaryOasAtRetirement}, {primaryOasClawbackAmount}, {spouseOasAtRetirement}, {spouseOasClawbackAmount}, {primaryIncomeAtRetirement}, {spouseIncomeAtRetirement}, {isCouple}, {spouseAge}, {spouseRetirementAge}, {spouseEmploymentIncome}, {spouseRrspBalance}, {spouseTfsaBalance}, {spouseCppMonthly}, {spouseCppStartAge}, {spouseOasMonthly}, {spouseOasStartAge}, {spousePensionIncome}' },
@@ -18,10 +35,19 @@ export default function AiConfigSection() {
   const [error, setError] = useState(null)
   const [savedMsg, setSavedMsg] = useState(false)
 
+  // Per-provider key management
+  const [keyStatus, setKeyStatus] = useState({}) // { openrouter: true/false, ... }
+  const [keyInput, setKeyInput] = useState('')
+  const [keySaving, setKeySaving] = useState(false)
+  const [keyMsg, setKeyMsg] = useState(null) // { type: 'ok'|'err', text }
+
   useEffect(() => {
     adminApi.getConfig()
       .then(d => { setConfig(d.config || {}); setLoading(false) })
       .catch(e => { setError(e.message); setLoading(false) })
+    adminApi.getProviderKeyStatus()
+      .then(d => setKeyStatus(d.status || {}))
+      .catch(() => {}) // non-fatal
   }, [])
 
   const handleChange = (key, value) => {
@@ -44,8 +70,30 @@ export default function AiConfigSection() {
     }
   }
 
+  const handleSaveKey = async () => {
+    const provider = config['ai_provider'] ?? 'openrouter'
+    if (!keyInput.trim()) return
+    setKeySaving(true)
+    setKeyMsg(null)
+    try {
+      await adminApi.setProviderKey(provider, keyInput.trim())
+      setKeyStatus(prev => ({ ...prev, [provider]: true }))
+      setKeyInput('')
+      setKeyMsg({ type: 'ok', text: 'Key saved' })
+      setTimeout(() => setKeyMsg(null), 3000)
+    } catch (e) {
+      setKeyMsg({ type: 'err', text: e.message })
+    } finally {
+      setKeySaving(false)
+    }
+  }
+
   if (loading) return <p className="text-sm text-gray-400">Loading...</p>
   if (error) return <p className="text-sm text-red-600">{error}</p>
+
+  const selectedProvider = config['ai_provider'] ?? 'openrouter'
+  const isGemini = selectedProvider === 'gemini'
+  const providerHasKey = isGemini ? true : !!keyStatus[selectedProvider]
 
   return (
     <div className="space-y-6">
@@ -63,25 +111,78 @@ export default function AiConfigSection() {
         </div>
       </div>
 
-      {/* Model + generation settings */}
+      {/* AI Provider section */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
-        <h3 className="text-sm font-semibold text-gray-700">Model Settings</h3>
+        <h3 className="text-sm font-semibold text-gray-700">AI Provider</h3>
 
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1.5">Gemini Model</label>
-          <input
-            type="text"
-            list="gemini-models"
-            value={config['gemini_model'] ?? ''}
-            onChange={(e) => handleChange('gemini_model', e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-full max-w-xs"
-          />
-          <datalist id="gemini-models">
-            <option value="gemini-3-flash-preview" />
-            <option value="gemini-2.0-flash" />
-            <option value="gemini-1.5-pro" />
-          </datalist>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Provider</label>
+            <select
+              value={selectedProvider}
+              onChange={(e) => { handleChange('ai_provider', e.target.value); setKeyMsg(null) }}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-full"
+            >
+              {PROVIDERS.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Model</label>
+            <input
+              type="text"
+              list="ai-models"
+              value={config['ai_model'] ?? ''}
+              onChange={(e) => handleChange('ai_model', e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-full"
+              placeholder="model name"
+            />
+            <datalist id="ai-models">
+              {(MODEL_SUGGESTIONS[selectedProvider] || []).map(m => <option key={m} value={m} />)}
+            </datalist>
+          </div>
         </div>
+
+        {/* API Key management (not shown for gemini — uses server env var) */}
+        {!isGemini && (
+          <div className="border-t border-gray-100 pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-medium text-gray-600">API Key for {selectedProvider}:</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${providerHasKey ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                {providerHasKey ? 'Key set' : 'Not configured'}
+              </span>
+            </div>
+            <div className="flex gap-2 items-center">
+              <input
+                type="password"
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
+                placeholder={`${selectedProvider} API key`}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 flex-1 max-w-xs font-mono"
+              />
+              <button
+                onClick={handleSaveKey}
+                disabled={keySaving || !keyInput.trim()}
+                className="px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-40 transition-colors font-medium whitespace-nowrap"
+              >
+                {keySaving ? 'Saving...' : 'Save Key'}
+              </button>
+              {keyMsg && (
+                <span className={`text-xs font-medium ${keyMsg.type === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
+                  {keyMsg.text}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        {isGemini && (
+          <p className="text-xs text-gray-400">Gemini uses the server-side <code className="bg-gray-100 px-1 rounded">GEMINI_API_KEY</code> environment variable — no vault key needed.</p>
+        )}
+      </div>
+
+      {/* Generation settings */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+        <h3 className="text-sm font-semibold text-gray-700">Generation Settings</h3>
 
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1.5">
@@ -103,6 +204,22 @@ export default function AiConfigSection() {
             onChange={(e) => handleChange('max_output_tokens', e.target.value)}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-32"
           />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1.5">Gemini Fallback Model</label>
+          <input
+            type="text"
+            list="gemini-models"
+            value={config['gemini_model'] ?? ''}
+            onChange={(e) => handleChange('gemini_model', e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-full max-w-xs"
+            placeholder="gemini-2.0-flash"
+          />
+          <datalist id="gemini-models">
+            {MODEL_SUGGESTIONS.gemini.map(m => <option key={m} value={m} />)}
+          </datalist>
+          <p className="text-xs text-gray-400 mt-1">Used as fallback if the primary provider fails.</p>
         </div>
       </div>
 

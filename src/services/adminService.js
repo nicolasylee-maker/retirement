@@ -51,6 +51,9 @@ export const adminApi = {
   getProviderKeyStatus: () =>
     callAdminFunction('admin-vault-update', { action: 'key-status' }),
 
+  fetchProviderModels: (provider) =>
+    callAdminFunction('admin-vault-update', { action: 'list-models', provider }),
+
   deleteUser: (userId) =>
     callAdminFunction('admin-users', { action: 'delete', userId }),
 

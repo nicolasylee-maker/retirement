@@ -60,6 +60,50 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ status: data })
     }
 
+    if (body.action === 'list-models') {
+      const { provider } = body
+      const validProviders = ['openrouter', 'openai', 'anthropic', 'xai', 'kimi', 'gemini']
+      if (!provider || !validProviders.includes(provider)) return jsonResponse({ error: `Unknown provider: ${provider}` }, 400)
+
+      // Gemini: return static list (no API call needed)
+      if (provider === 'gemini') {
+        return jsonResponse({ models: [
+          'gemini-2.5-pro-preview-05-06', 'gemini-2.0-flash', 'gemini-2.0-flash-lite',
+          'gemini-1.5-pro', 'gemini-1.5-flash',
+        ]})
+      }
+
+      // Other providers: read key from vault
+      const { data: apiKey, error: vaultErr } = await supabaseAdmin.rpc('admin_read_ai_secret', { p_name: `${provider}_api_key` })
+      if (vaultErr || !apiKey) return jsonResponse({ error: `No API key stored for ${provider}` }, 400)
+
+      const modelsEndpoints: Record<string, string> = {
+        openai: 'https://api.openai.com/v1/models',
+        openrouter: 'https://openrouter.ai/api/v1/models',
+        xai: 'https://api.x.ai/v1/models',
+        kimi: 'https://api.moonshot.cn/v1/models',
+        anthropic: 'https://api.anthropic.com/v1/models',
+      }
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (provider === 'anthropic') {
+        headers['x-api-key'] = apiKey
+        headers['anthropic-version'] = '2023-06-01'
+      } else {
+        headers['Authorization'] = `Bearer ${apiKey}`
+      }
+
+      const res = await fetch(modelsEndpoints[provider], { headers })
+      if (!res.ok) {
+        const err = await res.text()
+        return jsonResponse({ error: `${provider} models error ${res.status}: ${err.slice(0, 200)}` }, 502)
+      }
+      const data = await res.json()
+      const items = data.data ?? data.models ?? []
+      const models = items.map((m: { id: string }) => m.id).filter(Boolean).sort()
+      return jsonResponse({ models })
+    }
+
     return jsonResponse({ error: 'Unknown action' }, 400)
   } catch (err) {
     console.error('[admin-vault-update]', err)

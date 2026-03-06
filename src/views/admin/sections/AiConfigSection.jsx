@@ -41,6 +41,11 @@ export default function AiConfigSection() {
   const [keySaving, setKeySaving] = useState(false)
   const [keyMsg, setKeyMsg] = useState(null) // { type: 'ok'|'err', text }
 
+  // Fetched model list for current provider
+  const [fetchedModels, setFetchedModels] = useState([]) // string[]
+  const [modelsFetching, setModelsFetching] = useState(false)
+  const [modelsMsg, setModelsMsg] = useState(null) // { type: 'ok'|'err', text }
+
   useEffect(() => {
     adminApi.getConfig()
       .then(d => { setConfig(d.config || {}); setLoading(false) })
@@ -67,6 +72,21 @@ export default function AiConfigSection() {
       alert(`Save failed: ${e.message}`)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleFetchModels = async () => {
+    setModelsFetching(true)
+    setModelsMsg(null)
+    try {
+      const { models } = await adminApi.fetchProviderModels(selectedProvider)
+      setFetchedModels(models || [])
+      setModelsMsg({ type: 'ok', text: `${(models || []).length} models loaded` })
+      setTimeout(() => setModelsMsg(null), 3000)
+    } catch (e) {
+      setModelsMsg({ type: 'err', text: e.message })
+    } finally {
+      setModelsFetching(false)
     }
   }
 
@@ -120,7 +140,7 @@ export default function AiConfigSection() {
             <label className="block text-xs font-medium text-gray-600 mb-1.5">Provider</label>
             <select
               value={selectedProvider}
-              onChange={(e) => { handleChange('ai_provider', e.target.value); setKeyMsg(null) }}
+              onChange={(e) => { handleChange('ai_provider', e.target.value); setKeyMsg(null); setFetchedModels([]); setModelsMsg(null) }}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-full"
             >
               {PROVIDERS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -129,17 +149,30 @@ export default function AiConfigSection() {
 
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">Model</label>
-            <input
-              type="text"
-              list="ai-models"
-              value={config['ai_model'] ?? ''}
-              onChange={(e) => handleChange('ai_model', e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-full"
-              placeholder="model name"
-            />
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                list="ai-models"
+                value={config['ai_model'] ?? ''}
+                onChange={(e) => handleChange('ai_model', e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 flex-1"
+                placeholder="model name"
+              />
+              <button
+                type="button"
+                onClick={handleFetchModels}
+                disabled={modelsFetching}
+                className="px-3 py-2 text-xs bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-40 transition-colors whitespace-nowrap font-medium"
+              >
+                {modelsFetching ? 'Fetching...' : 'Fetch'}
+              </button>
+            </div>
             <datalist id="ai-models">
-              {(MODEL_SUGGESTIONS[selectedProvider] || []).map(m => <option key={m} value={m} />)}
+              {(fetchedModels.length ? fetchedModels : MODEL_SUGGESTIONS[selectedProvider] || []).map(m => <option key={m} value={m} />)}
             </datalist>
+            {modelsMsg && (
+              <p className={`text-xs mt-1 ${modelsMsg.type === 'ok' ? 'text-green-600' : 'text-red-600'}`}>{modelsMsg.text}</p>
+            )}
           </div>
         </div>
 

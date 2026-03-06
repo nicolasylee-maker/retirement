@@ -15,7 +15,7 @@ import CompareView from './views/compare/CompareView';
 import EstateView from './views/estate/EstateView';
 import DebtView from './views/debt/DebtView';
 import WhatIfPanel from './views/WhatIfPanel';
-import SaveNudgeScreen from './views/SaveNudgeScreen';
+import BetaWelcomeBanner from './components/BetaWelcomeBanner';
 import { LandingPage } from './views/LandingPage';
 import MyPlansView from './views/MyPlansView';
 import ReturningHomeView from './views/ReturningHomeView';
@@ -118,7 +118,7 @@ function loadSaved() {
 }
 
 export default function App() {
-  const { isPaid, isPastDue, refresh: refreshSubscription, simulateFreeUser, setSimulateFreeUser } = useSubscription();
+  const { isPaid, isPastDue, refresh: refreshSubscription, simulateFreeUser, setSimulateFreeUser, isOverride, override, overrideDaysRemaining } = useSubscription();
   const { user: authUser, isLoading: authLoading } = useAuth();
 
   const [scenarios, setScenarios] = useState(() => {
@@ -395,9 +395,10 @@ export default function App() {
 
   const handleWizardComplete = useCallback(() => {
     handleScenarioChange({ wizardMode: 'full' });
+    if (wizardIsNew) setAutoAiPending(true);
     setWizardIsNew(false);
     setView('readiness-rank');
-  }, [handleScenarioChange]);
+  }, [handleScenarioChange, wizardIsNew]);
 
   const handleModeSelect = useCallback((mode) => {
     sessionStorage.setItem(MODE_SEEN_KEY, '1');
@@ -420,9 +421,10 @@ export default function App() {
     handleScenarioChange({ wizardMode: 'basic' });
     localStorage.setItem(`rp-wiz-${currentScenarioId}`, '1');
     localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
+    if (wizardIsNew) setAutoAiPending(true);
     setWizardIsNew(false);
     setView('readiness-rank');
-  }, [handleScenarioChange, currentScenarioId]);
+  }, [handleScenarioChange, currentScenarioId, wizardIsNew]);
 
   const handleWizardExit = useCallback(() => {
     const hasMultiple = scenarios.length > 1;
@@ -563,6 +565,8 @@ export default function App() {
   const [contactOpen, setContactOpen] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(false);
+  const [autoAiPending, setAutoAiPending] = useState(false);
+  const [showBetaWelcome, setShowBetaWelcome] = useState(false);
   const GATED_TABS = new Set(['compare', 'estate', 'deep-dive']);
 
   useEffect(() => {
@@ -636,6 +640,45 @@ export default function App() {
     });
   }, [isPaid, checkoutPending]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // After new wizard completion, auto-generate AI insights for paid users (beta/stripe)
+  useEffect(() => {
+    if (!isPaid || !autoAiPending) return;
+    setAutoAiPending(false);
+
+    const scenario = scenarios.find(s => s.id === currentScenarioId) || scenarios[0];
+    if (!scenario) return;
+    const proj = projectScenario(scenario);
+
+    const jobs = [
+      { type: 'dashboard', data: buildDashboardAiData(scenario, proj) },
+      { type: 'debt',      data: buildDebtAiData(scenario, proj) },
+      { type: 'estate',    data: buildEstateAiData(scenario, proj) },
+    ];
+    if (scenarios.length >= 2) {
+      const cd = buildCompareAiData(scenarios);
+      if (cd) jobs.push({ type: 'compare', data: cd });
+    }
+
+    const scenarioId = scenario.id;
+    const markers = {};
+    jobs.forEach(({ type }) => { markers[type] = { _loading: true }; });
+    setScenarios(prev => prev.map(s =>
+      s.id === scenarioId ? { ...s, aiInsights: { ...s.aiInsights, ...markers } } : s
+    ));
+    jobs.forEach(({ type, data }) => {
+      const hash = computeHash(data);
+      getAiRecommendation(type, data, true)
+        .then(text => handleSaveInsight(type, text, hash))
+        .catch(() => {
+          setScenarios(prev => prev.map(s =>
+            s.id === scenarioId && s.aiInsights?.[type]?._loading
+              ? { ...s, aiInsights: { ...s.aiInsights, [type]: null } }
+              : s
+          ));
+        });
+    });
+  }, [isPaid, autoAiPending]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleTabClick = useCallback((tabKey) => {
     if (!isPaid && GATED_TABS.has(tabKey)) {
       setUpgradeModalOpen(true);
@@ -701,110 +744,190 @@ export default function App() {
           to keep access.
         </div>
       )}
-      {view !== 'wizard' && view !== 'wizard-basic' && view !== 'save-nudge' && view !== 'landing' && view !== 'admin'
+      {view !== 'wizard' && view !== 'wizard-basic' && view !== 'landing' && view !== 'admin'
         && view !== 'returning-home' && view !== 'scenario-picker' && (
       <header ref={headerRef} className="bg-white border-b border-gray-200 sticky top-0 z-20">
-        <div className="px-4 sm:px-6 lg:px-10 py-3">
-          {/* Row 1: logo + actions (all screen sizes) */}
-          <div className="flex items-center justify-between gap-3">
-            <h1 className="text-base sm:text-lg font-bold text-sunset-600 tracking-tight shrink-0">
+        <div ref={menuRef} className="px-4 sm:px-6 lg:px-10 py-2">
+
+          {/* Desktop (md+): single row — logo | inline tabs | actions */}
+          <div className="hidden md:flex items-center gap-3">
+            <h1 className="text-base font-bold text-sunset-600 tracking-tight shrink-0">
               RetirePlanner.ca
             </h1>
 
-            <div className="flex items-center gap-1 md:gap-2">
-            {/* Desktop: scenario picker + save status beside the 3-dots menu */}
-            {authUser && scenarios.length > 0 && (
-              <div className="hidden md:flex items-center gap-2 max-w-[200px]">
-                <select value={currentScenarioId || ''} onChange={(e) => handleSwitchScenario(e.target.value)}
-                  className="text-sm border border-gray-300 rounded-lg px-2 py-1.5
-                             focus:outline-none focus:ring-2 focus:ring-sunset-400 w-full min-w-0">
-                  {scenarios.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-                {saveStatus === 'saving' && <span className="text-xs text-gray-400 shrink-0">Saving...</span>}
-                {saveStatus === 'saved' && <span className="text-xs text-green-600 shrink-0">Saved</span>}
-                {saveStatus === 'error' && <span className="text-xs text-red-500 shrink-0">Save failed</span>}
-              </div>
-            )}
-            <div className="relative" ref={menuRef}>
-              <button type="button" onClick={() => setMenuOpen(v => !v)}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  menuOpen ? 'bg-gray-200 text-gray-800' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
-                }`} aria-label="Actions menu">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                </svg>
-              </button>
+            {/* Inline tabs */}
+            <nav className="flex items-center gap-0.5 flex-1 overflow-x-auto scrollbar-hide">
+              {NAV_TABS.map((tab) => (
+                <button key={tab.key} type="button" onClick={() => handleTabClick(tab.key)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+                    tab.special
+                      ? (view === tab.key ? 'bg-purple-50 text-purple-700' : 'text-purple-400 hover:text-purple-600 hover:bg-purple-50')
+                      : (view === tab.key ? 'bg-sunset-50 text-sunset-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100')
+                  }`}>
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
 
-              {menuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-xl
-                                border border-gray-200 py-1.5 z-50">
-                  {!authUser && (
-                    <>
-                      <button onClick={menuAction(() => setSignInOpen(true))}
-                        className="menu-item font-semibold text-orange-500">
-                        Sign in to save & manage →
-                      </button>
-                      <div className="border-t border-gray-100 my-1.5 mx-3" />
-                    </>
-                  )}
-
-                  {authUser && (
-                    <>
-                      <button onClick={menuAction(() => { setWizardStep(0); setWizardIsNew(false); setView('wizard'); })} className="menu-item">Edit Plan</button>
-                      <GatedButton featureName="Multiple Plans" onClick={menuAction(handleStartNew)} className="menu-item w-full text-left">New Plan</GatedButton>
-                      <button onClick={menuAction(() => handleRenameScenario())} className="menu-item">Rename Plan</button>
-                      <GatedButton featureName="Multiple Plans" onClick={menuAction(handleDuplicateScenario)} className="menu-item w-full text-left">Duplicate Plan</GatedButton>
-                      {currentScenario && (
-                        <GatedButton featureName="PDF Export" bypass={adminBypass}
-                          onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
-                          className="menu-item w-full text-left">PDF Report</GatedButton>
-                      )}
-                      {currentScenario && (
-                        <GatedButton featureName="Excel Report" bypass={adminBypass}
-                          onClick={menuAction(() => downloadExcelAudit(effectiveScenario, projectionData, optimizationResult))}
-                          className="menu-item w-full text-left">📊 Excel Report</GatedButton>
-                      )}
-                      {isAdmin && currentScenario && (
-                        <button onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData, optimizationResult))}
-                          className="menu-item">Calculation Audit</button>
-                      )}
-                      <button onClick={menuAction(handleExport)} className="menu-item">Export</button>
-                      <GatedButton featureName="Multiple Plans" onClick={menuAction(() => importInputRef.current?.click())} className="menu-item w-full text-left">Import</GatedButton>
-                      <div className="border-t border-gray-100 my-1.5 mx-3" />
-                    </>
-                  )}
-
-                  {authUser && scenarios.length > 1 && (
-                    <>
-                      <div className="border-t border-gray-100 my-1.5 mx-3" />
-                      <button onClick={menuAction(() => { if (confirm(`Delete "${currentScenario?.name}"?`)) handleDeleteScenario(currentScenarioId); })}
-                        className="menu-item text-red-600 hover:!bg-red-50">Delete Plan</button>
-                    </>
-                  )}
+            {/* Actions */}
+            <div className="flex items-center gap-2 shrink-0">
+              {authUser && scenarios.length > 0 && (
+                <div className="flex items-center gap-2 max-w-[180px]">
+                  <select value={currentScenarioId || ''} onChange={(e) => handleSwitchScenario(e.target.value)}
+                    className="text-sm border border-gray-300 rounded-lg px-2 py-1
+                               focus:outline-none focus:ring-2 focus:ring-sunset-400 w-full min-w-0">
+                    {scenarios.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  {saveStatus === 'saving' && <span className="text-xs text-gray-400 shrink-0">Saving...</span>}
+                  {saveStatus === 'saved' && <span className="text-xs text-green-600 shrink-0">Saved</span>}
+                  {saveStatus === 'error' && <span className="text-xs text-red-500 shrink-0">Save failed</span>}
                 </div>
               )}
+              <div className="relative">
+                <button type="button" onClick={() => setMenuOpen(v => !v)}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    menuOpen ? 'bg-gray-200 text-gray-800' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+                  }`} aria-label="Actions menu">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                  </svg>
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-xl
+                                  border border-gray-200 py-1.5 z-50">
+                    {!authUser && (
+                      <>
+                        <button onClick={menuAction(() => setSignInOpen(true))}
+                          className="menu-item font-semibold text-orange-500">
+                          Sign in to save & manage →
+                        </button>
+                        <div className="border-t border-gray-100 my-1.5 mx-3" />
+                      </>
+                    )}
+                    {authUser && (
+                      <>
+                        <button onClick={menuAction(() => { setWizardStep(0); setWizardIsNew(false); setView('wizard'); })} className="menu-item">Edit Plan</button>
+                        <GatedButton featureName="Multiple Plans" onClick={menuAction(handleStartNew)} className="menu-item w-full text-left">New Plan</GatedButton>
+                        <button onClick={menuAction(() => handleRenameScenario())} className="menu-item">Rename Plan</button>
+                        <GatedButton featureName="Multiple Plans" onClick={menuAction(handleDuplicateScenario)} className="menu-item w-full text-left">Duplicate Plan</GatedButton>
+                        {currentScenario && (
+                          <GatedButton featureName="PDF Export" bypass={adminBypass}
+                            onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
+                            className="menu-item w-full text-left">PDF Report</GatedButton>
+                        )}
+                        {currentScenario && (
+                          <GatedButton featureName="Excel Report" bypass={adminBypass}
+                            onClick={menuAction(() => downloadExcelAudit(effectiveScenario, projectionData, optimizationResult))}
+                            className="menu-item w-full text-left">📊 Excel Report</GatedButton>
+                        )}
+                        {isAdmin && currentScenario && (
+                          <button onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData, optimizationResult))}
+                            className="menu-item">Calculation Audit</button>
+                        )}
+                        <button onClick={menuAction(handleExport)} className="menu-item">Export</button>
+                        <GatedButton featureName="Multiple Plans" onClick={menuAction(() => importInputRef.current?.click())} className="menu-item w-full text-left">Import</GatedButton>
+                        <div className="border-t border-gray-100 my-1.5 mx-3" />
+                      </>
+                    )}
+                    {authUser && scenarios.length > 1 && (
+                      <>
+                        <div className="border-t border-gray-100 my-1.5 mx-3" />
+                        <button onClick={menuAction(() => { if (confirm(`Delete "${currentScenario?.name}"?`)) handleDeleteScenario(currentScenarioId); })}
+                          className="menu-item text-red-600 hover:!bg-red-50">Delete Plan</button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              <input ref={importInputRef} type="file" accept=".json,application/json"
+                onChange={handleImport} className="hidden" aria-label="Import scenario file" />
+              {isAdmin && (
+                <button type="button" onClick={() => setSimulateFreeUser(v => !v)}
+                  className={`text-xs font-medium px-2 py-0.5 rounded ${
+                    simulateFreeUser ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                  {simulateFreeUser ? 'Free Preview' : 'Pro View'}
+                </button>
+              )}
+              <EnvironmentBadge />
+              <SubscriptionBadge />
+              <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
             </div>
+          </div>
 
-            <input ref={importInputRef} type="file" accept=".json,application/json"
-              onChange={handleImport} className="hidden" aria-label="Import scenario file" />
+          {/* Mobile: row 1 — logo + actions */}
+          <div className="flex md:hidden items-center justify-between gap-3">
+            <h1 className="text-base font-bold text-sunset-600 tracking-tight shrink-0">
+              RetirePlanner.ca
+            </h1>
+            <div className="flex items-center gap-1">
+              <div className="relative">
+                <button type="button" onClick={() => setMenuOpen(v => !v)}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    menuOpen ? 'bg-gray-200 text-gray-800' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+                  }`} aria-label="Actions menu">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                  </svg>
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-xl
+                                  border border-gray-200 py-1.5 z-50">
+                    {!authUser && (
+                      <>
+                        <button onClick={menuAction(() => setSignInOpen(true))}
+                          className="menu-item font-semibold text-orange-500">
+                          Sign in to save & manage →
+                        </button>
+                        <div className="border-t border-gray-100 my-1.5 mx-3" />
+                      </>
+                    )}
+                    {authUser && (
+                      <>
+                        <button onClick={menuAction(() => { setWizardStep(0); setWizardIsNew(false); setView('wizard'); })} className="menu-item">Edit Plan</button>
+                        <GatedButton featureName="Multiple Plans" onClick={menuAction(handleStartNew)} className="menu-item w-full text-left">New Plan</GatedButton>
+                        <button onClick={menuAction(() => handleRenameScenario())} className="menu-item">Rename Plan</button>
+                        <GatedButton featureName="Multiple Plans" onClick={menuAction(handleDuplicateScenario)} className="menu-item w-full text-left">Duplicate Plan</GatedButton>
+                        {currentScenario && (
+                          <GatedButton featureName="PDF Export" bypass={adminBypass}
+                            onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
+                            className="menu-item w-full text-left">PDF Report</GatedButton>
+                        )}
+                        {currentScenario && (
+                          <GatedButton featureName="Excel Report" bypass={adminBypass}
+                            onClick={menuAction(() => downloadExcelAudit(effectiveScenario, projectionData, optimizationResult))}
+                            className="menu-item w-full text-left">📊 Excel Report</GatedButton>
+                        )}
+                        {isAdmin && currentScenario && (
+                          <button onClick={menuAction(() => downloadAudit(effectiveScenario, projectionData, optimizationResult))}
+                            className="menu-item">Calculation Audit</button>
+                        )}
+                        <button onClick={menuAction(handleExport)} className="menu-item">Export</button>
+                        <GatedButton featureName="Multiple Plans" onClick={menuAction(() => importInputRef.current?.click())} className="menu-item w-full text-left">Import</GatedButton>
+                        <div className="border-t border-gray-100 my-1.5 mx-3" />
+                      </>
+                    )}
+                    {authUser && scenarios.length > 1 && (
+                      <>
+                        <div className="border-t border-gray-100 my-1.5 mx-3" />
+                        <button onClick={menuAction(() => { if (confirm(`Delete "${currentScenario?.name}"?`)) handleDeleteScenario(currentScenarioId); })}
+                          className="menu-item text-red-600 hover:!bg-red-50">Delete Plan</button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              <input ref={importInputRef} type="file" accept=".json,application/json"
+                onChange={handleImport} className="hidden" aria-label="Import scenario file" />
+              <SubscriptionBadge />
+              <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
+            </div>
+          </div>
 
-            {isAdmin && (
-              <button type="button" onClick={() => setSimulateFreeUser(v => !v)}
-                className={`hidden md:inline-flex text-xs font-medium px-2 py-0.5 rounded ${
-                  simulateFreeUser ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'
-                }`}>
-                {simulateFreeUser ? 'Free Preview' : 'Pro View'}
-              </button>
-            )}
-            <span className="hidden md:inline-flex"><EnvironmentBadge /></span>
-            <span className="hidden md:inline-flex"><SubscriptionBadge /></span>
-            <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
-            </div>{/* end actions */}
-          </div>{/* end row 1 */}
-
-          {/* Row 2 (mobile only): scenario picker + save status */}
+          {/* Mobile: row 2 — scenario picker (if signed in) */}
           {authUser && scenarios.length > 0 && (
-            <div className="md:hidden mt-2 flex items-center gap-2">
+            <div className="md:hidden mt-1.5 flex items-center gap-2">
               <select value={currentScenarioId || ''} onChange={(e) => handleSwitchScenario(e.target.value)}
                 className="text-sm border border-gray-300 rounded-lg px-2 py-1.5
                            focus:outline-none focus:ring-2 focus:ring-sunset-400 flex-1">
@@ -817,15 +940,16 @@ export default function App() {
           )}
         </div>{/* end header inner */}
 
-        <nav className="px-4 sm:px-6 lg:px-10 pb-2 flex gap-0.5 sm:gap-1 overflow-x-auto scrollbar-hide">
+        {/* Mobile only: tab bar below */}
+        <nav className="md:hidden px-4 pb-1.5 flex gap-0.5 overflow-x-auto scrollbar-hide">
           {NAV_TABS.map((tab) => (
             <button key={tab.key} type="button" onClick={() => handleTabClick(tab.key)}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 whitespace-nowrap ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-md transition-colors duration-150 whitespace-nowrap ${
                 tab.special
                   ? (view === tab.key ? 'bg-purple-50 text-purple-700' : 'text-purple-400 hover:text-purple-600 hover:bg-purple-50')
                   : (view === tab.key ? 'bg-sunset-50 text-sunset-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100')
               }`}>
-              <span className="hidden sm:inline">{tab.icon}</span>
+              {tab.icon}
               {tab.label}
             </button>
           ))}
@@ -848,6 +972,15 @@ export default function App() {
           <ModePicker
             onSelectBasic={() => handleModeSelect('basic')}
             onSelectFull={() => handleModeSelect('full')}
+          />
+        )}
+        {showBetaWelcome && (
+          <BetaWelcomeBanner
+            overrideDaysRemaining={overrideDaysRemaining}
+            onDismiss={() => {
+              sessionStorage.setItem('beta-welcome-seen', '1');
+              setShowBetaWelcome(false);
+            }}
           />
         )}
         <div className="view-enter" key={view}>
@@ -889,7 +1022,12 @@ export default function App() {
           {view === 'readiness-rank' && currentScenario && (
             <ReadinessView
               scenario={currentScenario}
-              onContinue={() => setView('dashboard')}
+              onContinue={() => {
+                setView('dashboard');
+                if (isOverride && override === 'beta' && !sessionStorage.getItem('beta-welcome-seen')) {
+                  setShowBetaWelcome(true);
+                }
+              }}
             />
           )}
           {view === 'dashboard' && currentScenario && (
@@ -962,7 +1100,6 @@ export default function App() {
               }
             </div>
           )}
-          {view === 'save-nudge' && <SaveNudgeScreen onSkip={() => setView('dashboard')} />}
           {view === 'returning-home' && authUser && (
             <ReturningHomeView
               userName={authUser.user_metadata?.full_name || authUser.email}

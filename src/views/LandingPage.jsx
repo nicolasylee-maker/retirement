@@ -108,16 +108,17 @@ export function LandingPage({ onTryAnonymous }) {
       <div className="order-1 lg:order-2 lg:w-2/5 flex items-center justify-center px-8 py-12 bg-white lg:border-l border-b lg:border-b-0 border-gray-200">
         <div className="w-full max-w-sm">
 
+          <h2 className="text-3xl font-black text-gray-900 mb-2">Start your free plan</h2>
+          <p className="text-base text-gray-600 mb-4">5 minutes to know your retirement number — and whether you're on track.</p>
+
           {promo && (
-            <div className="mb-4 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-center">
-              <p className="text-sm font-semibold text-green-800">
-                Sign up before {new Date(promo.cutoff).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })} and get {promo.days} days of full access free
+            <div className="mb-6 flex items-center justify-center gap-2 bg-orange-50 border border-orange-200 rounded-full px-4 py-2">
+              <span className="text-orange-500 text-base">🎁</span>
+              <p className="text-sm font-semibold text-orange-800">
+                Sign up before {new Date(promo.cutoff).toLocaleDateString('en-CA', { month: 'long', day: 'numeric' })} — {promo.days} days free
               </p>
             </div>
           )}
-
-          <h2 className="text-3xl font-black text-gray-900 mb-2">Start your free plan</h2>
-          <p className="text-base text-gray-600 mb-8">5 minutes to know your retirement number — and whether you're on track.</p>
 
           {/* Google */}
           <button

@@ -51,7 +51,7 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  let body: { email?: string; override?: string | null }
+  let body: { email?: string; override?: string | null; overrideExpiresAt?: string | null }
   try {
     body = await req.json()
   } catch {
@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  const { email, override } = body
+  const { email, override, overrideExpiresAt } = body
   if (!email || typeof email !== 'string') {
     return new Response(JSON.stringify({ error: 'email is required' }), {
       status: 400,
@@ -71,10 +71,15 @@ Deno.serve(async (req: Request) => {
 
   const adminClient = createClient(supabaseUrl, serviceRoleKey)
 
+  const appUrl = Deno.env.get('APP_URL') ?? 'https://retireplanner.ca'
+
+  // Normalise expiry — only relevant for trial, clear it for permanent overrides
+  const expiresAt = override === 'trial' ? (overrideExpiresAt ?? null) : null
+
   // Attempt to invite the user
   const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
     email,
-    { data: { subscription_override: override ?? null } },
+    { data: { subscription_override: override ?? null }, redirectTo: appUrl },
   )
 
   if (inviteError) {
@@ -93,7 +98,7 @@ Deno.serve(async (req: Request) => {
     // User already exists — update their override and send a magic link
     const { error: updateError } = await adminClient
       .from('users')
-      .update({ subscription_override: override ?? null })
+      .update({ subscription_override: override ?? null, override_expires_at: expiresAt })
       .eq('email', email)
 
     if (updateError) {
@@ -103,8 +108,11 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const appUrl = Deno.env.get('APP_URL') ?? 'https://retireplanner.ca'
-    const tierLabel = override === 'lifetime' ? 'lifetime' : override === 'beta' ? 'beta' : 'free'
+    const tierLabel = override === 'lifetime' ? 'lifetime'
+      : override === 'beta' ? 'beta'
+      : override === 'trial' && expiresAt
+        ? `${Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))}-day trial`
+      : 'free'
     const resendKey = Deno.env.get('RESEND_API_KEY') ?? ''
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -114,8 +122,22 @@ Deno.serve(async (req: Request) => {
         to: [email],
         subject: "Your RetirePlanner.ca access has been updated",
         text: `Hi,\n\nYour account has been granted ${tierLabel} access to RetirePlanner.ca.\n\nSign in to get started:\n${appUrl}\n\n— The RetirePlanner Team`,
+        html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#111">
+  <p style="font-size:20px;font-weight:600;margin:0 0 16px">RetirePlanner.ca</p>
+  <p style="margin:0 0 12px">Your account has been granted <strong>${tierLabel}</strong> access to RetirePlanner.ca.</p>
+  <a href="${appUrl}" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;font-weight:500">Sign in to RetirePlanner.ca</a>
+  <p style="margin:24px 0 0;color:#666;font-size:13px">— The RetirePlanner Team</p>
+</div>`,
       }),
     })
+  }
+
+  // New user — write override_expires_at (trigger only writes subscription_override)
+  if (inviteData?.user?.id && expiresAt) {
+    await adminClient
+      .from('users')
+      .update({ override_expires_at: expiresAt })
+      .eq('id', inviteData.user.id)
   }
 
   return new Response(JSON.stringify({ success: true, userId: inviteData?.user?.id ?? null }), {

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../../contexts/AuthContext'
 import { adminApi } from '../../../services/adminService'
+import { buildOverrideExpiresAt } from '../../../utils/trialOverride.js'
 import InviteModal from '../components/InviteModal'
 import UserScenariosPanel from '../components/UserScenariosPanel'
 
@@ -72,13 +73,85 @@ function ResendInviteButton({ user, session }) {
 
 function OverrideSelect({ user, session, onChanged }) {
   const [saving, setSaving] = useState(false)
+  const [pendingTrial, setPendingTrial] = useState(false)
+  const [trialDays, setTrialDays] = useState(7)
 
-  const handleChange = async (e) => {
-    const val = e.target.value === 'null' ? null : e.target.value
+  const applyOverride = async (val, expiresAt = null) => {
     setSaving(true)
     try {
-      await adminApi.setOverride(user.email, val, session.access_token)
+      await adminApi.setOverride(user.email, val, session.access_token, expiresAt)
       onChanged()
+    } catch (err) {
+      alert(`Failed: ${err.message}`)
+    } finally {
+      setSaving(false)
+      setPendingTrial(false)
+    }
+  }
+
+  const handleChange = (e) => {
+    const val = e.target.value === 'null' ? null : e.target.value
+    if (val === 'trial') {
+      setPendingTrial(true)
+    } else {
+      applyOverride(val)
+    }
+  }
+
+  const confirmTrial = () => {
+    const days = Math.max(1, trialDays)
+    applyOverride('trial', buildOverrideExpiresAt('trial', days))
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <select
+        value={pendingTrial ? 'trial' : (user.subscription_override ?? 'null')}
+        onChange={handleChange}
+        disabled={saving}
+        className="text-xs border border-gray-300 rounded-md px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-purple-400 disabled:opacity-50"
+      >
+        <option value="null">free</option>
+        <option value="trial">trial</option>
+        <option value="beta">beta</option>
+        <option value="lifetime">lifetime</option>
+      </select>
+      {pendingTrial && (
+        <>
+          <input
+            type="number" min={1} max={365} value={trialDays}
+            onChange={(e) => setTrialDays(Math.max(1, parseInt(e.target.value) || 7))}
+            className="w-14 text-xs border border-gray-300 rounded-md px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-purple-400"
+          />
+          <span className="text-xs text-gray-400">d</span>
+          <button onClick={confirmTrial} disabled={saving}
+            className="text-xs text-white bg-purple-600 hover:bg-purple-700 px-2 py-0.5 rounded disabled:opacity-50">
+            {saving ? '…' : 'Set'}
+          </button>
+          <button onClick={() => setPendingTrial(false)}
+            className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+        </>
+      )}
+    </div>
+  )
+}
+
+function RenewTrialButton({ user, session, onChanged }) {
+  const [open, setOpen] = useState(false)
+  const [days, setDays] = useState(7)
+  const [saving, setSaving] = useState(false)
+
+  if (user.subscription_override !== 'trial') return null
+
+  const handleRenew = async () => {
+    setSaving(true)
+    try {
+      await adminApi.setOverride(
+        user.email, 'trial', session.access_token,
+        buildOverrideExpiresAt('trial', Math.max(1, days)),
+      )
+      onChanged()
+      setOpen(false)
     } catch (err) {
       alert(`Failed: ${err.message}`)
     } finally {
@@ -86,17 +159,29 @@ function OverrideSelect({ user, session, onChanged }) {
     }
   }
 
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)}
+        className="text-xs text-amber-600 hover:text-amber-800 transition-colors whitespace-nowrap">
+        Renew
+      </button>
+    )
+  }
+
   return (
-    <select
-      value={user.subscription_override ?? 'null'}
-      onChange={handleChange}
-      disabled={saving}
-      className="text-xs border border-gray-300 rounded-md px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-purple-400 disabled:opacity-50"
-    >
-      <option value="null">free</option>
-      <option value="beta">beta</option>
-      <option value="lifetime">lifetime</option>
-    </select>
+    <div className="flex items-center gap-1.5">
+      <input
+        type="number" min={1} max={365} value={days}
+        onChange={(e) => setDays(Math.max(1, parseInt(e.target.value) || 7))}
+        className="w-14 text-xs border border-gray-300 rounded-md px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-purple-400"
+      />
+      <span className="text-xs text-gray-400">d</span>
+      <button onClick={handleRenew} disabled={saving}
+        className="text-xs text-white bg-amber-500 hover:bg-amber-600 px-2 py-0.5 rounded disabled:opacity-50">
+        {saving ? '…' : 'Renew'}
+      </button>
+      <button onClick={() => setOpen(false)} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+    </div>
   )
 }
 
@@ -170,6 +255,7 @@ export default function UsersSection() {
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Email</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Plan</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Trial Expires</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Signup</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">AI/mo</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Scenarios</th>
@@ -183,6 +269,14 @@ export default function UsersSection() {
                     <td className="px-4 py-3">
                       <OverrideSelect user={u} session={session} onChanged={() => load(page, search)} />
                     </td>
+                    <td className="px-4 py-3 text-xs whitespace-nowrap">
+                      {u.subscription_override === 'trial' && u.override_expires_at ? (
+                        <span className={new Date(u.override_expires_at) < new Date() ? 'text-red-500' : 'text-gray-500'}>
+                          {new Date(u.override_expires_at).toLocaleDateString('en-CA')}
+                          {new Date(u.override_expires_at) < new Date() ? ' (expired)' : ''}
+                        </span>
+                      ) : '—'}
+                    </td>
                     <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
                       {u.created_at ? new Date(u.created_at).toLocaleDateString('en-CA') : '—'}
                     </td>
@@ -190,6 +284,7 @@ export default function UsersSection() {
                     <td className="px-4 py-3 text-gray-600">{u.scenario_count ?? 0}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
+                        <RenewTrialButton user={u} session={session} onChanged={() => load(page, search)} />
                         <ResendInviteButton user={u} session={session} />
                         <button
                           onClick={() => setScenariosUser({ id: u.id, email: u.email })}

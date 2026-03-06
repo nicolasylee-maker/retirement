@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
+import { buildOverrideExpiresAt } from '../../../utils/trialOverride.js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 export default function InviteModal({ session, onClose, onInvited }) {
   const [email, setEmail] = useState('')
   const [override, setOverride] = useState('beta')
+  const [trialDays, setTrialDays] = useState(7)
   const [status, setStatus] = useState(null) // null | 'loading' | 'success' | 'error'
   const [message, setMessage] = useState('')
 
@@ -13,6 +15,7 @@ export default function InviteModal({ session, onClose, onInvited }) {
     if (!email.trim()) return
     setStatus('loading')
     setMessage('')
+    const overrideExpiresAt = buildOverrideExpiresAt(override || null, trialDays)
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/send-invite`, {
         method: 'POST',
@@ -20,7 +23,7 @@ export default function InviteModal({ session, onClose, onInvited }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ email: email.trim(), override: override || null }),
+        body: JSON.stringify({ email: email.trim(), override: override || null, overrideExpiresAt }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Unknown error')
@@ -59,8 +62,9 @@ export default function InviteModal({ session, onClose, onInvited }) {
             <div className="space-y-1.5">
               {[
                 { value: null, label: 'No override (free tier)' },
-                { value: 'beta', label: 'Beta access' },
-                { value: 'lifetime', label: 'Lifetime access' },
+                { value: 'trial', label: 'Trial access' },
+                { value: 'beta', label: 'Beta access (permanent)' },
+                { value: 'lifetime', label: 'Lifetime access (permanent)' },
               ].map(({ value, label }) => (
                 <label key={String(value)} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                   <input type="radio" name="override" checked={override === value}
@@ -69,6 +73,17 @@ export default function InviteModal({ session, onClose, onInvited }) {
                 </label>
               ))}
             </div>
+            {override === 'trial' && (
+              <div className="mt-3 flex items-center gap-2">
+                <label className="text-sm text-gray-600 whitespace-nowrap">Trial duration:</label>
+                <input
+                  type="number" min={1} max={365} value={trialDays}
+                  onChange={(e) => setTrialDays(Math.max(1, parseInt(e.target.value) || 7))}
+                  className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                />
+                <span className="text-sm text-gray-500">days</span>
+              </div>
+            )}
           </fieldset>
           <div className="flex items-center gap-3 pt-2">
             <button type="submit" disabled={status === 'loading'}

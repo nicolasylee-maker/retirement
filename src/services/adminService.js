@@ -48,7 +48,7 @@ export const adminApi = {
   deleteUser: (userId) =>
     callAdminFunction('admin-users', { action: 'delete', userId }),
 
-  setOverride: (email, override, accessToken) => {
+  setOverride: (email, override, accessToken, overrideExpiresAt = null) => {
     // Uses the existing send-invite edge function
     return fetch(`${SUPABASE_URL}/functions/v1/send-invite`, {
       method: 'POST',
@@ -56,7 +56,7 @@ export const adminApi = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ email, override }),
+      body: JSON.stringify({ email, override, overrideExpiresAt }),
     }).then(async res => {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Override update failed')

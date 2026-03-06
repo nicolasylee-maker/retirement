@@ -61,7 +61,7 @@ retirement/
 │   │
 │   ├── contexts/
 │   │   ├── AuthContext.jsx                 ← Supabase session; provides user, isLoading, signOut, signInWithGoogle/MagicLink
-│   │   ├── SubscriptionContext.jsx         ← Stripe sub state; provides isPaid, isTrial, isPastDue, isOverride
+│   │   ├── SubscriptionContext.jsx         ← Stripe sub state; provides isPaid, isTrial, isPastDue, isOverride, isOverrideTrial, overrideDaysRemaining
 │   │   └── TaxDataContext.jsx              ← Fetches tax_data from DB on startup; calls _injectLiveTaxData; falls back to bundled JSON
 │   │
 │   ├── hooks/
@@ -72,7 +72,7 @@ retirement/
 │   │   ├── scenarioService.js              ← fetchScenarios, saveScenario — Supabase CRUD for scenarios table
 │   │   ├── stripeService.js                ← startCheckout(priceId), openBillingPortal() — calls edge fns
 │   │   ├── geminiService.js                ← Sends {type, context} to gemini-proxy edge fn; in-memory cache
-│   │   └── adminService.js                 ← adminApi: stats, users, config, subscriptions, tax data, legislation
+│   │   └── adminService.js                 ← adminApi: stats, users, config, subscriptions, tax data, legislation; setOverride accepts overrideExpiresAt
 │   │
 │   ├── utils/
 │   │   ├── analytics.js                    ← Plausible custom event helper (no-ops if window.plausible absent)
@@ -89,6 +89,7 @@ retirement/
 │   │   ├── openPrintReport.js              ← Opens new window, renders PrintReportView via React createRoot
 │   │   ├── responsiveChartHeight.js        ← Pure fn: returns mobileH when windowWidth<640, else desktopH
 │   │   ├── returningUserFlow.js            ← Pure helpers: getSignInRoute, getPickerTarget, formatScenarioMeta
+│   │   ├── trialOverride.js               ← Pure helpers: computeOverrideDaysRemaining, isOverrideExpired, buildOverrideExpiresAt
 │   │   └── excel/                          ← Excel audit workbook (premium)
 │   │       ├── index.js                    ← downloadExcelAudit: orchestrator, creates multi-sheet workbook
 │   │       ├── styles.js                   ← Shared Excel cell styles (fonts, borders, fills)
@@ -236,6 +237,7 @@ retirement/
 │   ├── taxDataHelpers.test.js              ← parseTaxJson, runTaxSmokeTest
 │   ├── aiInsightsPersistence.test.js       ← AI insight caching, hash staleness
 │   ├── returningUserFlow.test.js           ← Sign-in routing, picker target
+│   ├── trialOverride.test.js              ← Pure helpers: days remaining, expiry, build expiry date
 │   ├── mobilePolish.test.js                ← Mobile-specific UI helpers
 │   ├── optimizerEngine.test.js             ← All 8 optimization dimensions
 │   ├── compareAnalysis.test.js             ← Diff drivers, phase ranges, phase summaries, monthly snapshots

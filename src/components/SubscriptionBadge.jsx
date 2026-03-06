@@ -13,13 +13,27 @@ import { useSubscription } from '../contexts/SubscriptionContext'
  */
 export default function SubscriptionBadge() {
   const { user } = useAuth()
-  const { isTrial, isOverride, override, trialDaysRemaining, isLoading } = useSubscription()
+  const { isTrial, isOverride, isOverrideTrial, override, trialDaysRemaining, overrideDaysRemaining, isLoading } = useSubscription()
 
   if (!user || isLoading) return null
 
   if (isTrial) {
     const label = trialDaysRemaining != null
       ? `Trial (${trialDaysRemaining}d left)`
+      : 'Trial'
+    return (
+      <span
+        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+                   bg-orange-100 text-orange-700 border border-orange-200"
+      >
+        {label}
+      </span>
+    )
+  }
+
+  if (isOverride && isOverrideTrial) {
+    const label = overrideDaysRemaining != null
+      ? `Trial (${overrideDaysRemaining}d left)`
       : 'Trial'
     return (
       <span

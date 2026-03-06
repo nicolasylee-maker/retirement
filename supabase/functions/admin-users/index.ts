@@ -118,7 +118,7 @@ Deno.serve(async (req: Request) => {
     if (action === 'list') {
       let query = supabaseAdmin
         .from('users')
-        .select('id, email, display_name, subscription_override, created_at')
+        .select('id, email, display_name, subscription_override, override_expires_at, created_at')
       let countQuery = supabaseAdmin
         .from('users')
         .select('*', { count: 'exact', head: true })
@@ -169,11 +169,12 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      const enriched = users.map((u: { id: string; email: string; display_name: string | null; subscription_override: string | null; created_at: string }) => ({
+      const enriched = users.map((u: { id: string; email: string; display_name: string | null; subscription_override: string | null; override_expires_at: string | null; created_at: string }) => ({
         id: u.id,
         email: u.email,
         display_name: u.display_name,
         subscription_override: u.subscription_override,
+        override_expires_at: u.override_expires_at,
         created_at: u.created_at,
         stripe_status: subByUser[u.id] ?? null,
         ai_usage_this_month: aiByUser[u.id] ?? 0,

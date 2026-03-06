@@ -57,9 +57,11 @@ export default function FormField({
         return;
       }
       if (!/^-?\d*\.?\d*$/.test(raw)) return;
+      const num = Number(raw);
+      if (isNaN(num)) return;
       const formatted = addCommas(raw);
       setEditVal(formatted);
-      onChange(Number(raw));
+      onChange(num);
       // Restore cursor: count raw chars before cursor in proposed value, then find that
       // position in the reformatted string (accounting for added/removed commas).
       const rawCursorPos = proposedValue.slice(0, cursorPos).replace(/,/g, '').length;
@@ -83,7 +85,19 @@ export default function FormField({
 
   const handleBlur = useCallback(() => {
     setEditing(false);
-  }, []);
+    if (!isNum || !onChange) return;
+    const raw = stripCommas(editVal);
+    if (raw === '' || raw === '-') return;
+    const num = Number(raw);
+    if (isNaN(num)) return;
+    let clamped = num;
+    if (min !== undefined && clamped < min) clamped = min;
+    if (max !== undefined && clamped > max) clamped = max;
+    if (clamped !== num) {
+      onChange(clamped);
+      setEditVal(addCommas(String(clamped)));
+    }
+  }, [isNum, onChange, editVal, min, max]);
 
   const displayValue = isNum
     ? (editing ? editVal : addCommas(value))

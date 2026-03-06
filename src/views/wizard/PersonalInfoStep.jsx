@@ -9,6 +9,14 @@ export default function PersonalInfoStep({ scenario, onChange, dismissedDots, di
     onChange({ [field]: value });
   };
 
+  const lifeExpError = scenario.lifeExpectancy <= scenario.retirementAge
+    ? 'Must be greater than retirement age' : null;
+  const spouseRetireError = scenario.isCouple && scenario.spouseRetirementAge < scenario.spouseAge
+    ? 'Must be greater than spouse current age' : null;
+  const nonTaxedAgeError = (scenario.nonTaxedIncome || 0) > 0
+    && scenario.nonTaxedIncomeEndAge < scenario.nonTaxedIncomeStartAge
+    ? 'End age must be after start age' : null;
+
   const handleCoupleToggle = () => {
     onChange({ isCouple: !scenario.isCouple });
   };
@@ -72,7 +80,8 @@ export default function PersonalInfoStep({ scenario, onChange, dismissedDots, di
             onChange={handleChange('lifeExpectancy')}
             min={70}
             max={110}
-            helper="Plan conservatively -- aim high"
+            helper={lifeExpError ? null : "Plan conservatively -- aim high"}
+            error={lifeExpError}
           />
         </div>
       </Card>
@@ -188,7 +197,8 @@ export default function PersonalInfoStep({ scenario, onChange, dismissedDots, di
                 onChange={handleChange('nonTaxedIncomeEndAge')}
                 min={scenario.nonTaxedIncomeStartAge ?? scenario.currentAge}
                 max={scenario.lifeExpectancy}
-                helper="When this income stops"
+                helper={nonTaxedAgeError ? null : "When this income stops"}
+                error={nonTaxedAgeError}
               />
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
@@ -252,7 +262,8 @@ export default function PersonalInfoStep({ scenario, onChange, dismissedDots, di
               onChange={handleChange('spouseRetirementAge')}
               min={scenario.spouseAge}
               max={80}
-              helper="When your partner plans to retire"
+              helper={spouseRetireError ? null : "When your partner plans to retire"}
+              error={spouseRetireError}
             />
           </div>
           {/* Spouse employment income */}

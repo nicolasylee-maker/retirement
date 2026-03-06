@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import AiInsight from '../../components/AiInsight';
 import Button from '../../components/Button';
 import { projectScenario } from '../../engines/projectionEngine';
@@ -25,6 +25,12 @@ export default function CompareView({ scenarios, onNavigate, aiInsights, onSaveI
       return next;
     });
   };
+
+  // Reset stale IDs when scenarios change (e.g. after deletion)
+  useEffect(() => {
+    const validIds = scenarios.map(s => s.id);
+    setSelectedIds(prev => prev.map(id => validIds.includes(id) ? id : (scenarios[0]?.id ?? null)).filter(Boolean));
+  }, [scenarios]);
 
   const addSlot = () => {
     if (selectedIds.length >= MAX_COMPARE) return;
@@ -100,7 +106,7 @@ export default function CompareView({ scenarios, onNavigate, aiInsights, onSaveI
                       className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm
                                  text-gray-700 focus:outline-none focus:ring-2 focus:ring-sunset-500"
                     >
-                      {scenarios.map(s => (
+                      {scenarios.filter(s => s.id === id || !selectedIds.includes(s.id)).map(s => (
                         <option key={s.id} value={s.id}>{s.name || 'Unnamed'}</option>
                       ))}
                     </select>

@@ -233,7 +233,9 @@ export default function App() {
   }, [authLoading, authUser, scenarios.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (view !== 'dashboard' && view !== 'wizard' && view !== 'save-nudge') return;
+    const DATA_VIEWS = ['dashboard', 'wizard', 'wizard-basic', 'save-nudge', 'compare', 'estate', 'deep-dive', 'recommendations', 'debt'];
+    if (!DATA_VIEWS.includes(view)) return;
+    if (scenarios.length === 0) { setView('landing'); return; }
     const hasValidCurrent = scenarios.some((s) => s.id === currentScenarioId);
     if (scenarios.length >= 2 && !hasValidCurrent) setView('my-plans');
   }, [scenarios, currentScenarioId, view]);

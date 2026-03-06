@@ -11,6 +11,7 @@ export default function AccountMenu({ onAdmin, open, onOpenChange }) {
   const { isPaid, isTrial, isOverrideTrial, overrideDaysRemaining } = useSubscription()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [panelOpenInternal, setPanelOpenInternal] = useState(false)
+  const [billingError, setBillingError] = useState(false)
   const dropdownRef = useRef(null)
 
   // Support controlled mode (open/onOpenChange) or internal uncontrolled mode
@@ -106,17 +107,25 @@ export default function AccountMenu({ onAdmin, open, onOpenChange }) {
             </p>
           )}
           {(isPaid || isTrial) && !isOverrideTrial && (
-            <button
-              type="button"
-              onClick={async () => {
-                setDropdownOpen(false);
-                try { await openBillingPortal(); }
-                catch { alert('Could not open billing portal. Please try again.'); }
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Manage Subscription
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={async () => {
+                  setDropdownOpen(false);
+                  try { await openBillingPortal(); }
+                  catch {
+                    setBillingError(true);
+                    setTimeout(() => setBillingError(false), 4000);
+                  }
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Manage Subscription
+              </button>
+              {billingError && (
+                <p className="text-xs text-red-500 px-4 pb-2">Could not open billing portal. Try again.</p>
+              )}
+            </>
           )}
           <button
             type="button"

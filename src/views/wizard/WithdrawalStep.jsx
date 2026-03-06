@@ -16,6 +16,10 @@ export default function WithdrawalStep({ scenario, onChange }) {
     onChange({ [field]: value });
   };
 
+  const meltdownAgeError = scenario.rrspMeltdownEnabled
+    && scenario.rrspMeltdownTargetAge <= scenario.rrspMeltdownStartAge
+    ? 'Target age must be after start age' : null;
+
   const moveItem = (index, direction) => {
     const order = [...scenario.withdrawalOrder];
     const newIndex = index + direction;
@@ -203,7 +207,8 @@ export default function WithdrawalStep({ scenario, onChange }) {
                 onChange={handleChange('rrspMeltdownTargetAge')}
                 min={scenario.currentAge}
                 max={95}
-                helper="Defaults to 71 (RRIF conversion). You can extend beyond 71 to continue withdrawing above RRIF minimums at a controlled rate."
+                helper={meltdownAgeError ? null : "Defaults to 71 (RRIF conversion). You can extend beyond 71 to continue withdrawing above RRIF minimums at a controlled rate."}
+                error={meltdownAgeError}
               />
               <FormField
                 label="Annual Withdrawal"

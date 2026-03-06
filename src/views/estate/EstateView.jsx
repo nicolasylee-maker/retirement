@@ -10,9 +10,10 @@ import EstateBreakdown from './EstateBreakdown';
 export default function EstateView({ scenario, projectionData, onNavigate, lifeExpectancyOverride, onLifeExpectancyChange, aiInsights, onSaveInsight }) {
   // Use the what-if life expectancy override if present, otherwise scenario value
   const effectiveLifeExpectancy = lifeExpectancyOverride ?? scenario.lifeExpectancy ?? 90;
-  const [ageAtDeath, setAgeAtDeath] = useState(
-    () => Math.min(effectiveLifeExpectancy, 85),
-  );
+  const [ageAtDeath, setAgeAtDeath] = useState(() => {
+    const minAge = scenario.currentAge;
+    return Math.min(Math.max(Math.min(effectiveLifeExpectancy, 85), minAge), 100);
+  });
   const [hasWillOverride, setHasWillOverride] = useState(
     () => scenario.hasWill ?? true,
   );
@@ -21,7 +22,7 @@ export default function EstateView({ scenario, projectionData, onNavigate, lifeE
   const prevLifeExp = React.useRef(effectiveLifeExpectancy);
   React.useEffect(() => {
     if (effectiveLifeExpectancy !== prevLifeExp.current) {
-      setAgeAtDeath(Math.min(effectiveLifeExpectancy, 85));
+      setAgeAtDeath(Math.min(Math.max(Math.min(effectiveLifeExpectancy, 85), scenario.currentAge), 100));
       prevLifeExp.current = effectiveLifeExpectancy;
     }
   }, [effectiveLifeExpectancy]);

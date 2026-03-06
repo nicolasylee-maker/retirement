@@ -157,7 +157,7 @@ export default function App() {
   });
   const [showModePicker, setShowModePicker] = useState(false);
   const [whatIfOverrides, setWhatIfOverrides] = useState({});
-  const [whatIfExpanded, setWhatIfExpanded] = useState(true);
+  const [whatIfExpanded, setWhatIfExpanded] = useState(false);
   const [pickerAction, setPickerAction] = useState('results');
   const [wizardIsNew, setWizardIsNew] = useState(false);
   const importInputRef = useRef(null);
@@ -1062,6 +1062,7 @@ export default function App() {
               scenario={currentScenario}
               onContinue={() => {
                 window.scrollTo({ top: 0, behavior: 'instant' });
+                setWhatIfExpanded(false);
                 setView('dashboard');
               }}
             />

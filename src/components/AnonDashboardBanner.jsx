@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 function GoogleIcon() {
@@ -23,13 +23,33 @@ function formatCutoff(dateStr) {
 }
 
 export default function AnonDashboardBanner({ betaPromo }) {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInWithMagicLink } = useAuth();
+  const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleMagicLink(e) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setSending(true);
+    setError('');
+    try {
+      await signInWithMagicLink(email.trim());
+      setSent(true);
+    } catch (err) {
+      setError(err.message || 'Failed to send link. Try again.');
+    } finally {
+      setSending(false);
+    }
+  }
 
   const hasPromo = !!betaPromo;
 
   return (
-    <div className="mx-4 sm:mx-6 lg:mx-10 mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
-      <div className="flex-1 min-w-0">
+    <div className="mx-4 sm:mx-6 lg:mx-10 mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-5">
+      {/* Headline */}
+      <div className="mb-4">
         {hasPromo ? (
           <>
             <p className="text-sm font-semibold text-indigo-900">
@@ -50,14 +70,52 @@ export default function AnonDashboardBanner({ betaPromo }) {
           </>
         )}
       </div>
-      <button
-        type="button"
-        onClick={() => signInWithGoogle()}
-        className="inline-flex items-center gap-2 shrink-0 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
-      >
-        <GoogleIcon />
-        Sign in with Google
-      </button>
+
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+        {/* Google */}
+        <button
+          type="button"
+          onClick={() => signInWithGoogle()}
+          className="inline-flex items-center justify-center gap-2 shrink-0 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
+        >
+          <GoogleIcon />
+          Sign in with Google
+        </button>
+
+        {/* Divider */}
+        <div className="flex sm:flex-col items-center gap-2 sm:pt-2">
+          <div className="flex-1 sm:flex-none h-px sm:h-4 sm:w-px w-full bg-indigo-200" />
+          <span className="text-xs text-indigo-500 font-medium shrink-0">or</span>
+          <div className="flex-1 sm:flex-none h-px sm:h-4 sm:w-px w-full bg-indigo-200" />
+        </div>
+
+        {/* Magic link */}
+        {sent ? (
+          <p className="text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2">
+            Check your inbox — link sent to {email}
+          </p>
+        ) : (
+          <form onSubmit={handleMagicLink} className="flex flex-1 gap-2 min-w-0">
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              required
+              className="flex-1 min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+            />
+            <button
+              type="submit"
+              disabled={sending}
+              className="shrink-0 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium px-4 py-2 transition-colors"
+            >
+              {sending ? 'Sending…' : 'Send link'}
+            </button>
+          </form>
+        )}
+      </div>
+
+      {error && <p className="mt-2 text-sm text-red-600 font-medium">{error}</p>}
     </div>
   );
 }

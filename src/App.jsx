@@ -160,6 +160,7 @@ export default function App() {
   const [wizardIsNew, setWizardIsNew] = useState(false);
   const importInputRef = useRef(null);
   const prevAuthUserRef = useRef(authUser);
+  const wasAnonRef = useRef(false);
 
   useEffect(() => {
     // Persist the current view. readiness-rank is a one-time transition screen — always
@@ -196,9 +197,12 @@ export default function App() {
       sessionStorage.removeItem(ANON_SESSION_KEY);
     }
 
-    if (justLoggedIn && sessionStorage.getItem(ANON_SESSION_KEY)) {
-      sessionStorage.removeItem(ANON_SESSION_KEY);
-      setView(v => (v === 'wizard' || v === 'wizard-basic') ? 'dashboard' : v);
+    if (justLoggedIn) {
+      wasAnonRef.current = !!sessionStorage.getItem(ANON_SESSION_KEY);
+      if (wasAnonRef.current) {
+        sessionStorage.removeItem(ANON_SESSION_KEY);
+        setView(v => (v === 'wizard' || v === 'wizard-basic') ? 'dashboard' : v);
+      }
     }
   }, [authUser]);
 
@@ -287,10 +291,19 @@ export default function App() {
       // Fetch failed — don't create a fallback "My Plan" that would auto-save as a ghost row.
       return;
     }
-    // Cloud genuinely empty — new user
+    // Cloud genuinely empty
     const fallback = createDefaultScenario('My Plan');
-    setScenarios(prev => prev.length > 0 ? prev : [fallback]);
-    setCurrentScenarioId(prev => prev || fallback.id);
+    if (wasAnonRef.current) {
+      // Converting anon user — keep their local scenarios, they'll auto-save to cloud
+      setScenarios(prev => prev.length > 0 ? prev : [fallback]);
+      setCurrentScenarioId(prev => prev || fallback.id);
+    } else {
+      // Deleted or brand-new user — trust cloud, start fresh
+      setScenarios([fallback]);
+      setCurrentScenarioId(fallback.id);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    wasAnonRef.current = false;
     sessionStorage.setItem(CHOICE_SEEN_KEY, '1'); // skip returning-home for new users
     setView(prev => {
       if (prev !== 'landing') return prev;

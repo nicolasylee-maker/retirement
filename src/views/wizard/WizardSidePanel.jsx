@@ -135,7 +135,6 @@ export default function WizardSidePanel({
           <Button
             variant="secondary"
             onClick={onBack}
-            disabled={isFirstStep}
             className="flex-1 text-sm"
           >
             Back

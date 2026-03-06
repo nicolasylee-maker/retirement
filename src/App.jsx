@@ -133,7 +133,9 @@ export default function App() {
   const [view, setView] = useState(() => {
     const saved = loadSaved();
     if (saved?.scenarios?.length > 0) {
-      if (sessionStorage.getItem(ANON_SESSION_KEY)) return 'wizard'; // anonymous: never start at dashboard
+      if (sessionStorage.getItem(ANON_SESSION_KEY)) {
+        return saved.view === 'wizard-basic' ? 'wizard-basic' : 'wizard'; // anonymous: restore correct wizard mode
+      }
       return saved.view || 'dashboard';
     }
     return 'landing';
@@ -383,6 +385,11 @@ export default function App() {
     setWizardIsNew(false);
     setView('readiness-rank');
   }, [handleScenarioChange, currentScenarioId]);
+
+  const handleWizardExit = useCallback(() => {
+    const hasMultiple = scenarios.length > 1;
+    setView(authUser && hasMultiple ? 'my-plans' : 'landing');
+  }, [authUser, scenarios.length]);
 
   const handleChoiceViewResults = useCallback(() => {
     sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
@@ -827,13 +834,14 @@ export default function App() {
           {view === 'wizard' && currentScenario && (
             <WizardShell scenario={currentScenario} onChange={handleScenarioChange}
               onComplete={handleWizardComplete} currentStep={wizardStep} onStepChange={setWizardStep}
-              isNewScenario={wizardIsNew} />
+              isNewScenario={wizardIsNew} onExit={handleWizardExit} />
           )}
           {view === 'wizard-basic' && currentScenario && (
             <BasicWizardView
               scenario={currentScenario}
               onChange={handleScenarioChange}
               onComplete={handleBasicComplete}
+              onExit={handleWizardExit}
             />
           )}
           {view === 'readiness-rank' && currentScenario && (

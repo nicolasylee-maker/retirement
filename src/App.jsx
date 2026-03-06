@@ -134,7 +134,11 @@ export default function App() {
     const saved = loadSaved();
     if (saved?.scenarios?.length > 0) {
       if (sessionStorage.getItem(ANON_SESSION_KEY)) {
-        return saved.view === 'wizard-basic' ? 'wizard-basic' : 'wizard'; // anonymous: restore correct wizard mode
+        // Restore the exact wizard mode the anon user was in.
+        // 'landing' means they clicked Skip but hadn't chosen a mode yet — keep them there.
+        if (saved.view === 'wizard-basic') return 'wizard-basic';
+        if (saved.view === 'landing') return 'landing';
+        return 'wizard';
       }
       return saved.view || 'dashboard';
     }

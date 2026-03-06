@@ -34,6 +34,7 @@ export default function WizardShell({
   currentStep,
   onStepChange,
   isNewScenario,
+  onExit,
 }) {
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === WIZARD_STEPS - 1;
@@ -62,7 +63,11 @@ export default function WizardShell({
   }, [currentStep]);
 
   const handleBack = () => {
-    if (!isFirstStep) onStepChange(currentStep - 1);
+    if (isFirstStep) {
+      onExit?.();
+    } else {
+      onStepChange(currentStep - 1);
+    }
   };
 
   const handleNext = () => {
@@ -219,7 +224,6 @@ export default function WizardShell({
           <Button
             variant="secondary"
             onClick={handleBack}
-            disabled={isFirstStep}
             className="min-h-[44px] flex-1"
           >
             Back

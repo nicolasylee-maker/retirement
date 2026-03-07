@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Happy Birthday Tiffany — The Detox Market</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream:   #faf8f3;
+      --ivory:   #f3ede3;
+      --sand:    #e6ddd0;
+      --sage:    #d8e0d4;
+      --gold:    #b89a6a;
+      --gold-dk: #9a7d4f;
+      --char:    #1c1b18;
+      --mid:     #5a5248;
+      --lt:      #8a8070;
+    }
+
+    @media print {
+      @page { size: letter portrait; margin: 0; }
+      html, body { height: 100%; }
+    }
+
+    html, body {
+      width: 100%;
+      background: var(--sand);
+      display: flex;
+      justify-content: center;
+      font-family: 'DM Sans', sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      width: 8.5in;
+      min-height: 11in;
+      background: var(--cream);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── Borders ── */
+    .stripe { height: 4px; background: linear-gradient(90deg, var(--gold) 0%, var(--gold-dk) 50%, var(--gold) 100%); }
+
+    /* ── Botanical SVG corners ── */
+    .bot-tl { position: absolute; top: 0; left: 0; width: 260px; opacity: 0.14; pointer-events: none; }
+    .bot-br { position: absolute; bottom: 0; right: 0; width: 260px; opacity: 0.14; transform: rotate(180deg); pointer-events: none; }
+
+    /* ── Header ── */
+    .header {
+      padding: 28px 64px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 2;
+    }
+    .header img.logo { height: 32px; filter: brightness(0); opacity: 0.82; }
+    .header-tag {
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-dk);
+    }
+
+    /* ── Divider ── */
+    .rule {
+      display: flex; align-items: center; gap: 14px;
+      padding: 0 64px; margin: 22px 0 0;
+      position: relative; z-index: 2;
+    }
+    .rule-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+    .rule-dia { width: 6px; height: 6px; background: var(--gold); transform: rotate(45deg); flex-shrink: 0; }
+
+    /* ── HERO ── */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      margin: 28px 64px 0;
+      position: relative;
+      z-index: 2;
+      border: 1px solid var(--sand);
+    }
+
+    .hero-left {
+      background: var(--char);
+      color: white;
+      padding: 42px 40px 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .hero-eyebrow {
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 16px;
+    }
+    .hero-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 42px;
+      font-weight: 300;
+      line-height: 1.08;
+      color: white;
+      margin-bottom: 8px;
+    }
+    .hero-subtitle {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 16px;
+      font-style: italic;
+      font-weight: 300;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 36px;
+    }
+    .apt-details { display: flex; flex-direction: column; gap: 14px; }
+    .apt-row { display: flex; flex-direction: column; gap: 3px; }
+    .apt-lbl {
+      font-size: 8.5px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    .apt-val {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 17px;
+      font-weight: 500;
+      color: white;
+      line-height: 1.3;
+    }
+    .apt-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 1px; }
+
+    .hero-right {
+      position: relative;
+      overflow: hidden;
+      min-height: 320px;
+    }
+    .hero-right img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+    }
+    .hero-right-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(28,27,24,0.18) 0%, transparent 60%);
+    }
+
+    /* ── Makeup Lessons section ── */
+    .lessons {
+      margin: 32px 64px 0;
+      display: grid;
+      grid-template-columns: 2fr 3fr;
+      gap: 40px;
+      position: relative;
+      z-index: 2;
+      align-items: start;
+    }
+    .lessons-label {
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-dk);
+      margin-bottom: 10px;
+    }
+    .lessons-heading {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 30px;
+      font-weight: 400;
+      line-height: 1.15;
+      color: var(--char);
+    }
+    .lessons-body {
+      font-size: 13px;
+      color: var(--mid);
+      line-height: 1.75;
+    }
+    .lessons-body strong {
+      color: var(--char);
+      font-weight: 500;
+    }
+
+    /* ── Standards section ── */
+    .standards {
+      margin: 32px 64px 0;
+      padding: 30px 36px;
+      background: var(--ivory);
+      border-top: 2px solid var(--gold);
+      position: relative;
+      z-index: 2;
+    }
+    .standards-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .standards-eyebrow {
+      font-size: 8.5px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--gold-dk);
+      margin-bottom: 6px;
+    }
+    .standards-heading {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--char);
+      font-style: italic;
+    }
+    .standards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 24px;
+    }
+    .std-pillar-title {
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-dk);
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--sand);
+    }
+    .std-item { margin-bottom: 12px; }
+    .std-item-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--char);
+      margin-bottom: 3px;
+    }
+    .std-item-desc {
+      font-size: 11.5px;
+      color: var(--mid);
+      line-height: 1.55;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: auto;
+      padding: 20px 64px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 2;
+    }
+    .footer-tag { font-size: 10px; color: var(--lt); letter-spacing: 0.04em; }
+    .footer-url { font-size: 10px; color: var(--gold-dk); letter-spacing: 0.04em; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Botanical corners -->
+  <svg class="bot-tl" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15 285 Q55 160 190 15" stroke="#9a7d4f" stroke-width="1.2" fill="none"/>
+    <path d="M15 285 Q35 200 130 70" stroke="#9a7d4f" stroke-width="0.8" fill="none"/>
+    <path d="M65 215 Q40 190 70 165 Q88 190 65 215Z" fill="#9a7d4f" opacity="0.7"/>
+    <path d="M95 170 Q68 148 97 125 Q113 148 95 170Z" fill="#9a7d4f" opacity="0.6"/>
+    <path d="M125 130 Q100 105 132 87 Q145 107 125 130Z" fill="#9a7d4f" opacity="0.55"/>
+    <path d="M150 96 Q128 70 160 55 Q168 76 150 96Z" fill="#9a7d4f" opacity="0.45"/>
+    <path d="M42 252 Q20 228 48 205 Q64 228 42 252Z" fill="#9a7d4f" opacity="0.4"/>
+    <ellipse cx="38" cy="268" rx="7" ry="12" fill="#9a7d4f" opacity="0.3" transform="rotate(-25 38 268)"/>
+    <ellipse cx="80" cy="195" rx="5" ry="9" fill="#9a7d4f" opacity="0.28" transform="rotate(18 80 195)"/>
+    <circle cx="50" cy="240" r="2" fill="#9a7d4f" opacity="0.4"/>
+    <circle cx="105" cy="158" r="1.5" fill="#9a7d4f" opacity="0.35"/>
+    <circle cx="142" cy="112" r="1.5" fill="#9a7d4f" opacity="0.3"/>
+    <!-- top flower -->
+    <circle cx="190" cy="15" r="5" fill="none" stroke="#9a7d4f" stroke-width="0.9"/>
+    <circle cx="190" cy="15" r="2" fill="#9a7d4f" opacity="0.6"/>
+    <path d="M187 11 Q190 5 193 11" stroke="#9a7d4f" stroke-width="0.7" fill="none"/>
+    <path d="M187 19 Q190 25 193 19" stroke="#9a7d4f" stroke-width="0.7" fill="none"/>
+    <path d="M186 15 Q180 12 186 9" stroke="#9a7d4f" stroke-width="0.7" fill="none"/>
+    <path d="M194 15 Q200 12 194 9" stroke="#9a7d4f" stroke-width="0.7" fill="none"/>
+  </svg>
+  <svg class="bot-br" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15 285 Q55 160 190 15" stroke="#9a7d4f" stroke-width="1.2" fill="none"/>
+    <path d="M15 285 Q35 200 130 70" stroke="#9a7d4f" stroke-width="0.8" fill="none"/>
+    <path d="M65 215 Q40 190 70 165 Q88 190 65 215Z" fill="#9a7d4f" opacity="0.7"/>
+    <path d="M95 170 Q68 148 97 125 Q113 148 95 170Z" fill="#9a7d4f" opacity="0.6"/>
+    <path d="M125 130 Q100 105 132 87 Q145 107 125 130Z" fill="#9a7d4f" opacity="0.55"/>
+    <path d="M150 96 Q128 70 160 55 Q168 76 150 96Z" fill="#9a7d4f" opacity="0.45"/>
+    <path d="M42 252 Q20 228 48 205 Q64 228 42 252Z" fill="#9a7d4f" opacity="0.4"/>
+    <ellipse cx="38" cy="268" rx="7" ry="12" fill="#9a7d4f" opacity="0.3" transform="rotate(-25 38 268)"/>
+    <circle cx="50" cy="240" r="2" fill="#9a7d4f" opacity="0.4"/>
+    <circle cx="105" cy="158" r="1.5" fill="#9a7d4f" opacity="0.35"/>
+  </svg>
+
+  <div class="stripe"></div>
+
+  <!-- Header -->
+  <div class="header">
+    <img class="logo" src="https://www.thedetoxmarket.ca/cdn/shop/files/LOGO_2_7a5ce5e7-c448-4b3b-ae2f-5ffa6145098b.png?v=1771253105&width=426" alt="The Detox Market">
+    <div class="header-tag">Beauty you can trust.</div>
+  </div>
+
+  <!-- Rule -->
+  <div class="rule">
+    <div class="rule-line"></div>
+    <div class="rule-dia"></div>
+    <div class="rule-line"></div>
+  </div>
+
+  <!-- Hero: appointment card + store photo -->
+  <div class="hero">
+    <!-- Left: appointment details on dark bg -->
+    <div class="hero-left">
+      <div>
+        <div class="hero-eyebrow">Your Appointment</div>
+        <div class="hero-title">Makeup Lesson<br>&amp; Pro Lash<br>Application</div>
+        <div class="hero-subtitle">60 min + Pro Lash Application</div>
+      </div>
+      <div class="apt-details">
+        <div class="apt-row">
+          <div class="apt-lbl">Date &amp; Time</div>
+          <div class="apt-val">Saturday, March 7, 2026</div>
+          <div class="apt-sub">1:00 pm EST &nbsp;·&nbsp; 1 hr 15 min</div>
+        </div>
+        <div class="apt-row">
+          <div class="apt-lbl">Location</div>
+          <div class="apt-val">Toronto Summerhill</div>
+          <div class="apt-sub">1170 Yonge St, Toronto, ON M4W 2L9</div>
+          <div class="apt-sub">Mon–Sat 10am–6pm &nbsp;·&nbsp; (647) 692-1170</div>
+        </div>
+        <div class="apt-row">
+          <div class="apt-lbl">Booked Under</div>
+          <div class="apt-val">Tiffany</div>
+        </div>
+      </div>
+    </div>
+    <!-- Right: Summerhill store photo -->
+    <div class="hero-right">
+      <img src="https://www.thedetoxmarket.ca/cdn/shop/files/5828918d-cce2-4f72-aced-f5b292130c9e_680x400_crop_top.jpg?v=1657626643" alt="The Detox Market Summerhill">
+      <div class="hero-right-overlay"></div>
+    </div>
+  </div>
+
+  <!-- Makeup Lessons description -->
+  <div class="lessons">
+    <div>
+      <div class="lessons-label">The Detox Market</div>
+      <div class="lessons-heading">Makeup<br>Lessons</div>
+    </div>
+    <div class="lessons-body">
+      We love YouTube and TikTok tutorials, too. But nothing beats having a <strong>skilled makeup artist right in front of you</strong>. You can experiment with new makeup in professional lighting, ask questions, and get a custom experience tailored to your unique needs.<br><br>
+      Whether you want to create a look for your wedding that you can recreate on your own, master a classic (it's time to finally nail that <strong>cat-eye and iconic red lip</strong>), or test drive the latest makeup trend — we're here for all of it.
+    </div>
+  </div>
+
+  <!-- Rule -->
+  <div class="rule" style="margin-top: 30px; margin-bottom: 0;">
+    <div class="rule-line"></div>
+    <div class="rule-dia"></div>
+    <div class="rule-line"></div>
+  </div>
+
+  <!-- Standards -->
+  <div class="standards">
+    <div class="standards-header">
+      <div class="standards-eyebrow">Our Promise to You</div>
+      <div class="standards-heading">Meaningful change through curation, collaboration, and community</div>
+    </div>
+    <div class="standards-grid">
+      <!-- Curation -->
+      <div>
+        <div class="std-pillar-title">Curation</div>
+        <div class="std-item">
+          <div class="std-item-name">Pure Ingredients</div>
+          <div class="std-item-desc">Every product is meticulously vetted, partnering with The Good Face Project to ensure everything on our shelves is safe and effective.</div>
+        </div>
+        <div class="std-item">
+          <div class="std-item-name">Exceptional Performance</div>
+          <div class="std-item-desc">Less than 2% of submissions make the cut — free from our Banned Ingredients List, made with love by brands that share our passion.</div>
+        </div>
+        <div class="std-item">
+          <div class="std-item-name">Verified Claims</div>
+          <div class="std-item-desc">Shop confidently with evidenced product claims, reducing the risk of greenwashing at every step of your clean beauty journey.</div>
+        </div>
+      </div>
+      <!-- Collaboration -->
+      <div>
+        <div class="std-pillar-title">Collaboration</div>
+        <div class="std-item">
+          <div class="std-item-name">Partnering for Progress</div>
+          <div class="std-item-desc">We partner with like-minded brands and organizations to amplify our collective positive impact on the beauty industry.</div>
+        </div>
+        <div class="std-item">
+          <div class="std-item-name">Sharing Knowledge</div>
+          <div class="std-item-desc">We empower our community and the brands we work with by sharing insights, tips, and the latest in clean beauty research.</div>
+        </div>
+        <div class="std-item">
+          <div class="std-item-name">Understanding Our Impact</div>
+          <div class="std-item-desc">Working with CleanHub, Pact, and Vaayu to assess our environmental footprint and improve our positive impact on the planet.</div>
+        </div>
+      </div>
+      <!-- Community -->
+      <div>
+        <div class="std-pillar-title">Community</div>
+        <div class="std-item">
+          <div class="std-item-name">Celebrating Beauty</div>
+          <div class="std-item-desc">We celebrate each individual's unique inner beauty and personal growth, fostering a culture dedicated to advancing clean beauty.</div>
+        </div>
+        <div class="std-item">
+          <div class="std-item-name">Community Empowerment</div>
+          <div class="std-item-desc">Through the Launchpad, our BIPOC brand accelerator program, we amplify diverse voices with creative resources and mentorship.</div>
+        </div>
+        <div class="std-item">
+          <div class="std-item-name">Awareness &amp; Education</div>
+          <div class="std-item-desc">We educate through insightful campaigns and editorial content, offering resources to promote awareness at every step.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-tag">Toronto Summerhill &nbsp;·&nbsp; 1170 Yonge St &nbsp;·&nbsp; (647) 692-1170</div>
+    <div class="footer-url">thedetoxmarket.ca</div>
+  </div>
+
+  <div class="stripe"></div>
+</div>
+</body>
+</html>

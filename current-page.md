@@ -1,0 +1,350 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e335]:
+      - heading "RetirePlanner.ca" [level=1] [ref=e338]
+      - navigation [ref=e345]:
+        - button "Dashboard" [ref=e346] [cursor=pointer]:
+          - img [ref=e347]
+          - text: Dashboard
+        - button "Debt" [ref=e349] [cursor=pointer]:
+          - img [ref=e350]
+          - text: Debt
+        - button "Compare" [ref=e352] [cursor=pointer]:
+          - img [ref=e353]
+          - text: Compare
+        - button "Estate" [ref=e355] [cursor=pointer]:
+          - img [ref=e356]
+          - text: Estate
+        - button "Deep Dive" [ref=e358] [cursor=pointer]:
+          - img [ref=e359]
+          - text: Deep Dive
+        - button "Optimize" [ref=e361] [cursor=pointer]:
+          - img [ref=e362]
+          - text: Optimize
+      - generic [ref=e1498]:
+        - generic:
+          - paragraph: Sign in before June 1, 2026 — get 60 days of free beta access
+          - paragraph: Includes AI Insights, Compare scenarios, Estate planning, Deep Dive & more.
+        - generic [ref=e1499]:
+          - button "Sign in with Google" [ref=e1500] [cursor=pointer]:
+            - img [ref=e1501]
+            - text: Sign in with Google
+          - generic [ref=e1506]: or
+          - generic [ref=e1507]:
+            - textbox "your@email.com" [ref=e1508]
+            - button "Send link" [ref=e1509] [cursor=pointer]
+    - main [ref=e4]:
+      - generic [ref=e1511]:
+        - button "Open What If panel" [ref=e1513] [cursor=pointer]:
+          - generic [ref=e1514]:
+            - img [ref=e1516]
+            - generic [ref=e1518]: What If?
+          - img [ref=e1519]
+        - generic [ref=e1521]:
+          - heading "My Plan" [level=1] [ref=e1522]
+          - paragraph [ref=e1523]:
+            - text: Quick Start plan active —
+            - button "Full Setup for better accuracy →" [ref=e1524] [cursor=pointer]
+          - generic [ref=e1526]:
+            - generic [ref=e1528]:
+              - button "AI Insights" [ref=e1529] [cursor=pointer]:
+                - img [ref=e1531]
+                - generic [ref=e1534]: AI Insights
+                - img [ref=e1535]
+              - button "Generate insights" [ref=e1537] [cursor=pointer]:
+                - img [ref=e1538]
+            - button "Generate Insights" [ref=e1541] [cursor=pointer]:
+              - img [ref=e1542]
+              - text: Generate Insights
+          - generic [ref=e1546]:
+            - generic [ref=e1548]:
+              - generic [ref=e1551]:
+                - paragraph [ref=e1552]: Net Worth
+                - paragraph [ref=e1553]: $0
+                - paragraph [ref=e1554]: At age 65
+              - generic [ref=e1557]:
+                - paragraph [ref=e1558]: Income
+                - paragraph [ref=e1559]: $20,745
+                - paragraph [ref=e1560]: Annual, age 65
+              - generic [ref=e1563]:
+                - paragraph [ref=e1564]: Tax
+                - paragraph [ref=e1565]: $90
+                - paragraph [ref=e1566]: Annual, age 65
+              - generic [ref=e1569]:
+                - paragraph [ref=e1570]: Shortfall
+                - paragraph [ref=e1571]: "-$40,440/yr"
+                - paragraph [ref=e1572]: Funded from savings
+              - generic [ref=e1575]:
+                - paragraph [ref=e1576]: Safe Spend
+                - paragraph [ref=e1577]: $1,791
+                - paragraph [ref=e1578]: Monthly to age 95
+            - generic [ref=e1580]:
+              - generic [ref=e1581]:
+                - heading "Total Portfolio Over Time" [level=3] [ref=e1582]
+                - generic [ref=e1584]:
+                  - button "Balance" [ref=e1585] [cursor=pointer]
+                  - button "Accounts" [ref=e1586] [cursor=pointer]
+              - generic [ref=e1588]: Portfolio
+              - generic [ref=e1590]:
+                - img [ref=e1594]:
+                  - generic [ref=e1598]:
+                    - generic [ref=e1600]: "60"
+                    - generic [ref=e1602]: "63"
+                    - generic [ref=e1604]: "66"
+                    - generic [ref=e1606]: "69"
+                    - generic [ref=e1608]: "72"
+                    - generic [ref=e1610]: "75"
+                    - generic [ref=e1612]: "78"
+                    - generic [ref=e1614]: "81"
+                    - generic [ref=e1616]: "84"
+                    - generic [ref=e1618]: "87"
+                    - generic [ref=e1620]: "90"
+                  - generic [ref=e1622]:
+                    - generic [ref=e1624]: $0
+                    - generic [ref=e1626]: $1
+                    - generic [ref=e1628]: $2
+                    - generic [ref=e1630]: $3
+                    - generic [ref=e1632]: $4
+                  - generic [ref=e1634]: Retire
+                - generic:
+                  - generic:
+                    - generic:
+                      - img:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "60"
+                            - generic:
+                              - generic: "63"
+                            - generic:
+                              - generic: "66"
+                            - generic:
+                              - generic: "69"
+                            - generic:
+                              - generic: "72"
+                            - generic:
+                              - generic: "75"
+                            - generic:
+                              - generic: "78"
+                            - generic:
+                              - generic: "81"
+                            - generic:
+                              - generic: "84"
+                            - generic:
+                              - generic: "87"
+                            - generic:
+                              - generic: "90"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: $0
+                            - generic:
+                              - generic: $1
+                            - generic:
+                              - generic: $2
+                            - generic:
+                              - generic: $3
+                            - generic:
+                              - generic: $4
+                        - generic:
+                          - generic: Retire
+              - generic [ref=e1639]:
+                - generic [ref=e1640]:
+                  - paragraph [ref=e1641]: Key Assumptions
+                  - button "See all ▼" [ref=e1642] [cursor=pointer]
+                - generic [ref=e1643]:
+                  - generic [ref=e1644]:
+                    - text: "Return:"
+                    - strong [ref=e1645]: 4.0%
+                  - generic [ref=e1646]:
+                    - text: "Inflation:"
+                    - strong [ref=e1647]: 2.5%
+                  - generic [ref=e1648]:
+                    - text: "Expenses:"
+                    - strong [ref=e1649]: $5,000/mo
+                  - generic [ref=e1650]:
+                    - text: "CPP:"
+                    - strong [ref=e1651]: $815/mo @ 65
+                  - generic [ref=e1652]:
+                    - text: "OAS:"
+                    - strong [ref=e1653]: $713/mo @ 65
+                  - generic [ref=e1654]:
+                    - text: Depleted at age
+                    - strong [ref=e1655]: "61"
+                  - generic [ref=e1656]:
+                    - text: "Tax tables:"
+                    - strong [ref=e1657]: 2025 federal + provincial
+            - generic [ref=e1659]:
+              - heading "Income vs Expenses Over Time" [level=3] [ref=e1660]
+              - generic [ref=e1661]:
+                - generic [ref=e1662]: Employment
+                - generic [ref=e1664]: CPP
+                - generic [ref=e1666]: OAS
+                - generic [ref=e1668]: Expenses
+                - generic [ref=e1670]: Tax
+                - generic [ref=e1672]:
+                  - img [ref=e1673]
+                  - text: Portfolio
+              - paragraph [ref=e1674]: Bars show income (above) and costs (below); line shows portfolio value.
+              - img [ref=e1677]:
+                - generic [ref=e1681]:
+                  - generic [ref=e1683]: "62"
+                  - generic [ref=e1685]: "66"
+                  - generic [ref=e1687]: "70"
+                  - generic [ref=e1689]: "74"
+                  - generic [ref=e1691]: "78"
+                  - generic [ref=e1693]: "82"
+                  - generic [ref=e1695]: "86"
+                  - generic [ref=e1697]: "90"
+                - generic [ref=e1699]:
+                  - generic [ref=e1701]: "-$120K"
+                  - generic [ref=e1703]: "-$60K"
+                  - generic [ref=e1705]: $0
+                  - generic [ref=e1707]: $60K
+                  - generic [ref=e1709]: $120K
+                - generic [ref=e1713]: $0
+              - generic [ref=e1967]:
+                - paragraph [ref=e1968]: Key Assumptions
+                - generic [ref=e1969]:
+                  - generic [ref=e1970]:
+                    - text: "Return:"
+                    - strong [ref=e1971]: 4.0%
+                  - generic [ref=e1972]:
+                    - text: "Inflation:"
+                    - strong [ref=e1973]: 2.5%
+                  - generic [ref=e1974]:
+                    - text: "Expenses:"
+                    - strong [ref=e1975]: $5,000/mo
+                  - generic [ref=e1976]:
+                    - text: "CPP:"
+                    - strong [ref=e1977]: $815/mo @ 65
+                  - generic [ref=e1978]:
+                    - text: "OAS:"
+                    - strong [ref=e1979]: $713/mo @ 65
+                  - generic [ref=e1980]:
+                    - text: "Tax tables:"
+                    - strong [ref=e1981]: 2025 federal + provincial
+            - generic [ref=e1983]:
+              - heading "Annual Withdrawals by Account" [level=3] [ref=e1984]
+              - img [ref=e1987]:
+                - generic [ref=e1991]:
+                  - generic [ref=e1993]: "66"
+                  - generic [ref=e1995]: "69"
+                  - generic [ref=e1997]: "72"
+                  - generic [ref=e1999]: "75"
+                  - generic [ref=e2001]: "78"
+                  - generic [ref=e2003]: "81"
+                  - generic [ref=e2005]: "84"
+                  - generic [ref=e2007]: "87"
+                  - generic [ref=e2009]: "90"
+              - generic [ref=e2010]:
+                - paragraph [ref=e2011]: Key Assumptions
+                - generic [ref=e2012]:
+                  - generic [ref=e2013]:
+                    - text: "Return:"
+                    - strong [ref=e2014]: 4.0%
+                  - generic [ref=e2015]:
+                    - text: "Inflation:"
+                    - strong [ref=e2016]: 2.5%
+                  - generic [ref=e2017]:
+                    - text: "Expenses:"
+                    - strong [ref=e2018]: $5,000/mo
+                  - generic [ref=e2019]:
+                    - text: "CPP:"
+                    - strong [ref=e2020]: $815/mo @ 65
+                  - generic [ref=e2021]:
+                    - text: "OAS:"
+                    - strong [ref=e2022]: $713/mo @ 65
+                  - generic [ref=e2023]:
+                    - text: "Order:"
+                    - strong [ref=e2024]: TFSA → Non-Reg → RRSP → Other
+                - generic [ref=e2025]:
+                  - paragraph [ref=e2026]: Withdrawals increase over time because expenses grow with inflation while CPP/OAS stay flat in this model (conservative).
+                  - paragraph [ref=e2027]: After age 72, RRIF minimum withdrawal percentages rise (5.28% → 20%), forcing larger taxable withdrawals.
+                  - paragraph [ref=e2028]: When one account is depleted, the next in your withdrawal order takes over.
+            - generic [ref=e2029]:
+              - heading "Portfolio Milestones" [level=2] [ref=e2030]
+              - generic [ref=e2031]:
+                - generic [ref=e2032]:
+                  - generic [ref=e2033]:
+                    - generic [ref=e2034]: "85"
+                    - generic [ref=e2035]:
+                      - paragraph [ref=e2036]: Age 85
+                      - paragraph [ref=e2037]: Depleted
+                  - generic [ref=e2038]:
+                    - generic [ref=e2039]:
+                      - generic [ref=e2040]: After-tax income
+                      - generic [ref=e2041]: $2,663/mo
+                    - generic [ref=e2042]:
+                      - generic [ref=e2043]: Expenses + debt
+                      - generic [ref=e2044]: $8,343/mo
+                    - generic [ref=e2045]:
+                      - generic [ref=e2046]: Monthly shortfall
+                      - generic [ref=e2047]: "-$5,680/mo"
+                  - generic [ref=e2048]:
+                    - generic [ref=e2049]: CPP $1,511/mo
+                    - generic [ref=e2050]: OAS $1,322/mo
+                  - generic [ref=e2051]:
+                    - paragraph [ref=e2054]: Your savings ran out at age 60 — that's -5 years into retirement.
+                    - paragraph [ref=e2057]: A $5,000/mo budget requires $60,000/yr, which is hard to sustain without a large portfolio.
+                    - paragraph [ref=e2060]: At age 85, you're living on CPP ($1,511/mo) + OAS ($1,322/mo) = $2,663/mo after tax.
+                    - paragraph [ref=e2063]: But expenses have grown to $8,343/mo with 2.5% annual inflation over 25 years.
+                - generic [ref=e2064]:
+                  - generic [ref=e2065]:
+                    - generic [ref=e2066]: "90"
+                    - generic [ref=e2067]:
+                      - paragraph [ref=e2068]: Age 90
+                      - paragraph [ref=e2069]: Depleted
+                  - generic [ref=e2070]:
+                    - generic [ref=e2071]:
+                      - generic [ref=e2072]: After-tax income
+                      - generic [ref=e2073]: $2,962/mo
+                    - generic [ref=e2074]:
+                      - generic [ref=e2075]: Expenses + debt
+                      - generic [ref=e2076]: $9,439/mo
+                    - generic [ref=e2077]:
+                      - generic [ref=e2078]: Monthly shortfall
+                      - generic [ref=e2079]: "-$6,477/mo"
+                  - generic [ref=e2080]:
+                    - generic [ref=e2081]: CPP $1,710/mo
+                    - generic [ref=e2082]: OAS $1,496/mo
+                  - generic [ref=e2083]:
+                    - paragraph [ref=e2086]: Your savings ran out at age 60 — that's -5 years into retirement.
+                    - paragraph [ref=e2089]: A $5,000/mo budget requires $60,000/yr, which is hard to sustain without a large portfolio.
+                    - paragraph [ref=e2092]: At age 90, you're living on CPP ($1,710/mo) + OAS ($1,496/mo) = $2,962/mo after tax.
+                    - paragraph [ref=e2095]: But expenses have grown to $9,439/mo with 2.5% annual inflation over 30 years.
+                - generic [ref=e2096]:
+                  - generic [ref=e2097]:
+                    - generic [ref=e2098]: "90"
+                    - generic [ref=e2099]:
+                      - paragraph [ref=e2100]: Age 90
+                      - paragraph [ref=e2101]: Depleted
+                  - generic [ref=e2102]:
+                    - generic [ref=e2103]:
+                      - generic [ref=e2104]: After-tax income
+                      - generic [ref=e2105]: $2,962/mo
+                    - generic [ref=e2106]:
+                      - generic [ref=e2107]: Expenses + debt
+                      - generic [ref=e2108]: $9,439/mo
+                    - generic [ref=e2109]:
+                      - generic [ref=e2110]: Monthly shortfall
+                      - generic [ref=e2111]: "-$6,477/mo"
+                  - generic [ref=e2112]:
+                    - generic [ref=e2113]: CPP $1,710/mo
+                    - generic [ref=e2114]: OAS $1,496/mo
+                  - generic [ref=e2115]:
+                    - paragraph [ref=e2118]: Your savings ran out at age 60 — that's -5 years into retirement.
+                    - paragraph [ref=e2121]: A $5,000/mo budget requires $60,000/yr, which is hard to sustain without a large portfolio.
+                    - paragraph [ref=e2124]: At age 95, you're living on CPP ($1,710/mo) + OAS ($1,496/mo) = $2,962/mo after tax.
+                    - paragraph [ref=e2127]: But expenses have grown to $9,439/mo with 2.5% annual inflation over 35 years.
+    - contentinfo [ref=e330]:
+      - paragraph [ref=e331]:
+        - text: RetirePlanner.ca · Not financial advice ·
+        - link "Privacy" [ref=e332] [cursor=pointer]:
+          - /url: /privacy
+        - text: ·
+        - link "Terms" [ref=e333] [cursor=pointer]:
+          - /url: /terms
+        - text: ·
+        - button "Contact" [ref=e334] [cursor=pointer]
+  - generic [ref=e161]: "70"

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import App from './App';
+import BlogApp from './views/blog/BlogApp';
 import ErrorFallback from './components/ErrorFallback';
 import { AuthProvider } from './contexts/AuthContext';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
@@ -23,16 +24,20 @@ if (import.meta.env.PROD) {
   });
 }
 
+const isBlog = window.location.pathname.startsWith('/blog')
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
-      <AuthProvider>
-        <TaxDataProvider>
-          <SubscriptionProvider>
-            <App />
-          </SubscriptionProvider>
-        </TaxDataProvider>
-      </AuthProvider>
+      {isBlog ? <BlogApp /> : (
+        <AuthProvider>
+          <TaxDataProvider>
+            <SubscriptionProvider>
+              <App />
+            </SubscriptionProvider>
+          </TaxDataProvider>
+        </AuthProvider>
+      )}
     </Sentry.ErrorBoundary>
   </React.StrictMode>
 );

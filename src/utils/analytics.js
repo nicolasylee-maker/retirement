@@ -1,9 +1,21 @@
 /**
- * Thin wrapper around Plausible Analytics custom events.
- * No-ops silently when window.plausible is undefined (dev, ad-blockers).
+ * GA4 event tracking helpers.
+ * All events flow through gtag() which is loaded in index.html.
+ * Safe to call even if gtag hasn't loaded yet (window.gtag guard).
  */
-export function trackEvent(name, props = {}) {
-  if (typeof window.plausible !== 'undefined') {
-    window.plausible(name, { props });
-  }
+
+const GA_ID = 'G-B91FHSWDRX'
+
+export function trackEvent(eventName, params = {}) {
+  if (typeof window.gtag !== 'function') return
+  window.gtag('event', eventName, { send_to: GA_ID, ...params })
+}
+
+export const GA = {
+  signUp:            () => trackEvent('sign_up'),
+  scenarioCreated:   () => trackEvent('scenario_created'),
+  upgradeClick:      (location = '') => trackEvent('upgrade_click', { location }),
+  subscriptionStart: () => trackEvent('subscription_start'),
+  exportExcel:       () => trackEvent('export_excel'),
+  exportPdf:         () => trackEvent('export_pdf'),
 }

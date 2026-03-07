@@ -3,6 +3,7 @@ import { useSubscription } from '../contexts/SubscriptionContext'
 import { useAuth } from '../contexts/AuthContext'
 import { startCheckout } from '../services/stripeService'
 import AuthPanel from './AuthPanel'
+import { GA } from '../utils/analytics'
 
 const MONTHLY_PRICE_ID = import.meta.env.VITE_STRIPE_PRICE_MONTHLY
 const YEARLY_PRICE_ID = import.meta.env.VITE_STRIPE_PRICE_YEARLY
@@ -128,6 +129,7 @@ export default function UpgradePrompt({ variant = 'full', featureName, feature, 
   if (isLoading) return null
 
   async function handleCheckout() {
+    GA.upgradeClick(featureName || 'upgrade_prompt')
     if (!user) {
       // Both Google OAuth and magic link redirect away from the page, wiping React state.
       // Persist the chosen priceId in sessionStorage so App.jsx can resume checkout on return.

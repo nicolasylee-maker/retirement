@@ -5,6 +5,7 @@ import { projectScenario } from './engines/projectionEngine';
 import { openPrintReport } from './utils/openPrintReport';
 import { downloadAudit } from './utils/downloadAudit';
 import { downloadExcelAudit } from './utils/excel/index.js';
+import { GA } from './utils/analytics';
 import VisualAudit from './views/audit/VisualAudit';
 import { openBillingPortal, startCheckout } from './services/stripeService';
 import WizardShell from './views/wizard/WizardShell';
@@ -604,6 +605,7 @@ export default function App() {
       // authenticated users; anyone reaching Stripe checkout should go to dashboard.
       setView(v => v === 'wizard' ? 'dashboard' : v);
     } else if (params.get('checkout') === 'success') {
+      GA.subscriptionStart();
       setCheckoutSuccess(true);
       setCheckoutPending(true);
       history.replaceState(null, '', window.location.pathname);
@@ -849,12 +851,12 @@ export default function App() {
                         <GatedButton featureName="Multiple Plans" onClick={menuAction(handleDuplicateScenario)} className="menu-item w-full text-left">Duplicate Plan</GatedButton>
                         {currentScenario && (
                           <GatedButton featureName="PDF Export" bypass={adminBypass}
-                            onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
+                            onClick={menuAction(() => { GA.exportPdf(); openPrintReport(effectiveScenario, projectionData, currentScenario.name); })}
                             className="menu-item w-full text-left">PDF Report</GatedButton>
                         )}
                         {currentScenario && (
                           <GatedButton featureName="Excel Report" bypass={adminBypass}
-                            onClick={menuAction(() => downloadExcelAudit(effectiveScenario, projectionData, optimizationResult))}
+                            onClick={menuAction(() => { GA.exportExcel(); downloadExcelAudit(effectiveScenario, projectionData, optimizationResult); })}
                             className="menu-item w-full text-left">📊 Excel Report</GatedButton>
                         )}
                         {isAdmin && currentScenario && (
@@ -943,12 +945,12 @@ export default function App() {
                         <GatedButton featureName="Multiple Plans" onClick={menuAction(handleDuplicateScenario)} className="menu-item w-full text-left">Duplicate Plan</GatedButton>
                         {currentScenario && (
                           <GatedButton featureName="PDF Export" bypass={adminBypass}
-                            onClick={menuAction(() => openPrintReport(effectiveScenario, projectionData, currentScenario.name))}
+                            onClick={menuAction(() => { GA.exportPdf(); openPrintReport(effectiveScenario, projectionData, currentScenario.name); })}
                             className="menu-item w-full text-left">PDF Report</GatedButton>
                         )}
                         {currentScenario && (
                           <GatedButton featureName="Excel Report" bypass={adminBypass}
-                            onClick={menuAction(() => downloadExcelAudit(effectiveScenario, projectionData, optimizationResult))}
+                            onClick={menuAction(() => { GA.exportExcel(); downloadExcelAudit(effectiveScenario, projectionData, optimizationResult); })}
                             className="menu-item w-full text-left">📊 Excel Report</GatedButton>
                         )}
                         {isAdmin && currentScenario && (

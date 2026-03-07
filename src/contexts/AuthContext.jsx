@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../services/supabaseClient'
+import { GA } from '../utils/analytics'
 
 const AuthContext = createContext(null)
 
@@ -40,6 +41,11 @@ export function AuthProvider({ children }) {
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (_event === 'SIGNED_IN' && s?.user) {
+        const created = new Date(s.user.created_at).getTime()
+        const now = Date.now()
+        if (now - created < 30000) GA.signUp()
+      }
       setSession(s)
       setUser(s?.user ?? null)
       resolveAvatar(s?.user ?? null)

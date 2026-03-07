@@ -74,7 +74,7 @@ export default function WizardShell({
     if (isLastStep) {
       localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
       localStorage.setItem(`rp-wiz-${scenario.id}`, '1');
-      trackEvent('wizard_completed');
+      trackEvent('scenario_created');
       setVisitedSteps(prev => new Set([...prev, currentStep]));
       onComplete();
     } else {

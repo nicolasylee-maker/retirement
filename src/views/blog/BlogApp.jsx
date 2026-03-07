@@ -1,15 +1,31 @@
 import React, { useEffect, useState } from 'react'
-import matter from 'gray-matter'
 import BlogIndex from './BlogIndex'
 import BlogPost from './BlogPost'
 
 // Load all .md files from content/blog at build time
 const modules = import.meta.glob('../../content/blog/*.md', { query: '?raw', import: 'default', eager: true })
 
+function parseFrontmatter(raw) {
+  if (!raw.startsWith('---')) return { data: {}, content: raw }
+  const end = raw.indexOf('\n---', 3)
+  if (end === -1) return { data: {}, content: raw }
+  const yaml = raw.slice(4, end)
+  const content = raw.slice(end + 4).trim()
+  const data = {}
+  for (const line of yaml.split('\n')) {
+    const colon = line.indexOf(':')
+    if (colon === -1) continue
+    const key = line.slice(0, colon).trim()
+    const val = line.slice(colon + 1).trim().replace(/^"|"$/g, '')
+    data[key] = val
+  }
+  return { data, content }
+}
+
 function loadPosts() {
   return Object.entries(modules)
     .map(([, raw]) => {
-      const { data, content } = matter(raw)
+      const { data, content } = parseFrontmatter(raw)
       return { ...data, content }
     })
     .sort((a, b) => new Date(b.date) - new Date(a.date))

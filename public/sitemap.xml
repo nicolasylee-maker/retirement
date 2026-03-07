@@ -2,7 +2,47 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://retireplanner.ca/</loc><priority>1.0</priority><changefreq>weekly</changefreq></url>
   <url><loc>https://retireplanner.ca/blog</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
-  <url><loc>https://retireplanner.ca/blog/when-to-take-cpp</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/when-to-take-cpp</loc><lastmod>2026-03-06</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/oas-clawback-explained</loc><lastmod>2025-12-01</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/rrsp-meltdown-strategy</loc><lastmod>2025-12-05</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/how-much-to-retire-ontario-2026</loc><lastmod>2025-12-09</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/canadian-retirement-calculator-comparison</loc><lastmod>2025-12-12</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/spending-changes-retirement</loc><lastmod>2025-12-16</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/tfsa-vs-rrsp-50s</loc><lastmod>2025-12-19</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/reduce-taxes-in-retirement</loc><lastmod>2025-12-22</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/sequence-of-returns-risk</loc><lastmod>2025-12-26</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/cpp-survivor-benefits</loc><lastmod>2025-12-30</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/oas-at-65-vs-70</loc><lastmod>2026-01-02</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/rrif-minimum-withdrawals-guide</loc><lastmod>2026-01-05</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/pension-income-splitting</loc><lastmod>2026-01-08</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/how-much-cpp-pay</loc><lastmod>2026-01-12</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/canadas-retirement-income-system</loc><lastmod>2026-01-15</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/four-percent-rule-canadians</loc><lastmod>2026-01-19</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/rrsp-turns-71</loc><lastmod>2026-01-22</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/inflation-retirement-savings</loc><lastmod>2026-01-26</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/guaranteed-income-supplement</loc><lastmod>2026-01-29</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/defined-benefit-vs-defined-contribution</loc><lastmod>2026-02-02</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/early-retirement-canada</loc><lastmod>2026-02-05</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/how-to-retire-at-55</loc><lastmod>2026-02-09</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/healthcare-costs-retirement</loc><lastmod>2026-02-12</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/estate-planning-basics-canada</loc><lastmod>2026-02-16</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/pay-off-mortgage-before-retiring</loc><lastmod>2026-02-19</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/retirement-income-strategy</loc><lastmod>2026-02-23</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/spousal-rrsp-guide</loc><lastmod>2026-02-26</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/life-income-fund-lif</loc><lastmod>2026-03-01</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/retiring-with-debt</loc><lastmod>2026-03-02</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/calculate-retirement-number</loc><lastmod>2026-03-03</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/best-provinces-retire-canada</loc><lastmod>2026-03-04</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/how-much-saved-by-60</loc><lastmod>2026-03-05</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/cpp-enhancement-explained</loc><lastmod>2026-03-06</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/annuities-canada</loc><lastmod>2026-03-07</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/bond-ladder-retirement</loc><lastmod>2026-03-08</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/market-crashes-retirement</loc><lastmod>2026-03-09</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/cpp-disability-benefits</loc><lastmod>2026-03-10</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/ontario-vs-alberta-retirement-tax</loc><lastmod>2026-03-11</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/rising-interest-rates-retirement</loc><lastmod>2026-03-12</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/reverse-mortgage-canada</loc><lastmod>2026-03-13</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://retireplanner.ca/blog/retiring-abroad-canada</loc><lastmod>2026-03-14</lastmod><priority>0.7</priority><changefreq>monthly</changefreq></url>
   <url><loc>https://retireplanner.ca/pricing</loc><priority>0.7</priority><changefreq>monthly</changefreq></url>
   <url><loc>https://retireplanner.ca/privacy</loc><priority>0.3</priority><changefreq>yearly</changefreq></url>
   <url><loc>https://retireplanner.ca/terms</loc><priority>0.3</priority><changefreq>yearly</changefreq></url>

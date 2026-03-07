@@ -90,7 +90,6 @@ const NAV_TABS = [
 const STORAGE_KEY = 'retirement-planner-data';
 const CHOICE_SEEN_KEY = 'rp-choice-seen';
 const ANON_SESSION_KEY = 'rp-anonymous-session';
-const ANON_STORAGE_KEY = 'rp-anonymous-session-backup'; // localStorage cross-tab backup
 const uid = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2);
 
 function migrateScenario(s) {
@@ -203,15 +202,18 @@ export default function App() {
       sessionStorage.removeItem(CHOICE_SEEN_KEY);
       sessionStorage.removeItem(MODE_SEEN_KEY);
       sessionStorage.removeItem(ANON_SESSION_KEY);
-      localStorage.removeItem(ANON_STORAGE_KEY);
     }
 
     if (justLoggedIn) {
-      wasAnonRef.current = !!(sessionStorage.getItem(ANON_SESSION_KEY) || localStorage.getItem(ANON_STORAGE_KEY));
+      wasAnonRef.current = !!sessionStorage.getItem(ANON_SESSION_KEY);
       if (wasAnonRef.current) {
         sessionStorage.removeItem(ANON_SESSION_KEY);
-        localStorage.removeItem(ANON_STORAGE_KEY);
         setView(v => (v === 'wizard' || v === 'wizard-basic') ? 'dashboard' : v);
+      } else {
+        // Not converting from anon — clear any stale localStorage scenarios
+        setScenarios([]);
+        setCurrentScenarioId(null);
+        localStorage.removeItem(STORAGE_KEY);
       }
     }
   }, [authUser]);
@@ -247,7 +249,6 @@ export default function App() {
     setView('landing');
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
-    localStorage.removeItem(ANON_STORAGE_KEY);
   }, [authLoading, authUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Show the choice screen once per browser session for logged-in users with scenarios.
@@ -1059,7 +1060,6 @@ export default function App() {
                 </div>
               : <LandingPage onTryAnonymous={() => {
                   sessionStorage.setItem(ANON_SESSION_KEY, '1');
-                  localStorage.setItem(ANON_STORAGE_KEY, '1');
                   const newScenario = createDefaultScenario('My Plan');
                   setScenarios([newScenario]);
                   setCurrentScenarioId(newScenario.id);

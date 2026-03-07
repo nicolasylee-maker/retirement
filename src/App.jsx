@@ -337,7 +337,6 @@ export default function App() {
       if (prev !== 'landing') return prev;
       if (!sessionStorage.getItem(MODE_SEEN_KEY)) {
         setShowModePicker(true);
-        return prev; // stay on landing until mode is chosen
       }
       return 'wizard';
     });
@@ -1077,7 +1076,7 @@ export default function App() {
           </div>
         ) : (
         <>
-        {showModePicker && (
+        {showModePicker && view === 'wizard' && (
           <ModePicker
             onSelectBasic={() => handleModeSelect('basic')}
             onSelectFull={() => handleModeSelect('full')}

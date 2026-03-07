@@ -38,7 +38,7 @@ import { useSubscription } from './contexts/SubscriptionContext';
 import { useAuth } from './contexts/AuthContext';
 import { useCloudSync } from './hooks/useCloudSync';
 import { supabase } from './services/supabaseClient';
-import { deleteScenario as deleteScenarioFromCloud, saveScenario } from './services/scenarioService';
+import { deleteScenario as deleteScenarioFromCloud, saveScenario, ensureDefaultScenario } from './services/scenarioService';
 import { getAiRecommendation } from './services/geminiService';
 import * as Sentry from '@sentry/react';
 import { computeHash } from './components/AiInsight';
@@ -332,6 +332,8 @@ export default function App() {
       localStorage.removeItem(STORAGE_KEY);
     }
     wasAnonRef.current = false;
+    // Eagerly persist the default scenario so concurrent calls don't each create one
+    if (userId) ensureDefaultScenario(userId, fallback).catch(() => {});
     sessionStorage.setItem(CHOICE_SEEN_KEY, '1'); // skip returning-home for new users
     setView(prev => {
       if (prev !== 'landing') return prev;

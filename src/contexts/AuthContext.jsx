@@ -47,8 +47,12 @@ export function AuthProvider({ children }) {
         if (now - created < 30000) GA.signUp()
       }
       setSession(s)
-      setUser(s?.user ?? null)
-      resolveAvatar(s?.user ?? null)
+      // Skip setUser for TOKEN_REFRESHED to avoid re-triggering the cloud-sync
+      // fetch+create flow. INITIAL_SESSION and SIGNED_IN still update user.
+      if (_event !== 'TOKEN_REFRESHED') {
+        setUser(s?.user ?? null)
+        resolveAvatar(s?.user ?? null)
+      }
       setIsLoading(false)
     })
 

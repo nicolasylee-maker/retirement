@@ -40,3 +40,20 @@ export async function getScenarioCount(userId) {
   if (error) throw error
   return count
 }
+
+/**
+ * Idempotent default-scenario insert: only inserts if the user has zero scenarios.
+ * This closes the race window where concurrent handleSignIn calls could each
+ * see an empty cloud and both insert a default row.
+ *
+ * Note: the SELECT + INSERT is not truly atomic at the DB level — two concurrent
+ * SELECTs could both see 0. This is acceptable because the syncInProgress guard
+ * and TOKEN_REFRESHED filter make concurrent client calls practically impossible.
+ * A DB-level guard (unique partial index or PL/pgSQL function) would be needed
+ * if a second client entry point is ever added.
+ */
+export async function ensureDefaultScenario(userId, scenario) {
+  const count = await getScenarioCount(userId)
+  if (count > 0) return
+  await saveScenario(userId, scenario)
+}

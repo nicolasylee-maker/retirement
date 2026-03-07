@@ -8,6 +8,7 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
   const [saveStatus, setSaveStatus] = useState('idle')
   const [syncDone, setSyncDone] = useState(false)
   const prevUserIdRef = useRef(null)
+  const syncInProgress = useRef(false)
 
   const userId = user?.id ?? null
 
@@ -22,7 +23,11 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
       return
     }
     if (prevUserId === userId) return
+    // Prevent concurrent fetch+onSignIn calls from racing
+    // (e.g. SIGNED_IN + TOKEN_REFRESHED firing back-to-back)
+    if (syncInProgress.current) return
 
+    syncInProgress.current = true
     setSyncDone(false)
     let cancelled = false
     ;(async () => {
@@ -38,6 +43,8 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
           onSignIn([], { fetchError: true, userId })
           setSyncDone(true)
         }
+      } finally {
+        syncInProgress.current = false
       }
     })()
 

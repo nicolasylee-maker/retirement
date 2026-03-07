@@ -1076,7 +1076,7 @@ export default function App() {
           </div>
         ) : (
         <>
-        {showModePicker && view === 'wizard' && (
+        {showModePicker && (
           <ModePicker
             onSelectBasic={() => handleModeSelect('basic')}
             onSelectFull={() => handleModeSelect('full')}
@@ -1114,7 +1114,7 @@ export default function App() {
                   }
                 }} />
           )}
-          {view === 'wizard' && currentScenario && (
+          {view === 'wizard' && !showModePicker && currentScenario && (
             <WizardShell scenario={currentScenario} onChange={handleScenarioChange}
               onComplete={handleWizardComplete} currentStep={wizardStep} onStepChange={setWizardStep}
               isNewScenario={wizardIsNew} onExit={handleWizardExit} />

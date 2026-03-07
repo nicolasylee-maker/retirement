@@ -252,19 +252,6 @@ export default function App() {
     localStorage.removeItem(WIZARD_CHECKPOINT_KEY);
   }, [authLoading, authUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Show the choice screen once per browser session for logged-in users with scenarios.
-  // Covers the case where view initialises to 'dashboard' from localStorage (handleSignIn
-  // only redirects when the user came from 'landing' or 'wizard').
-  useEffect(() => {
-    if (authLoading) return;
-    if (!authUser) return;
-    if (!syncDone) return;
-    if (scenarios.length === 0) return;
-    if (sessionStorage.getItem(CHOICE_SEEN_KEY)) return;
-    sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
-    setView('returning-home');
-  }, [authLoading, authUser, syncDone, scenarios.length]); // eslint-disable-line react-hooks/exhaustive-deps
-
   useEffect(() => {
     const DATA_VIEWS = ['dashboard', 'wizard', 'wizard-basic', 'save-nudge', 'compare', 'estate', 'deep-dive', 'recommendations', 'debt'];
     if (!DATA_VIEWS.includes(view)) return;
@@ -340,6 +327,19 @@ export default function App() {
     currentScenario,
     onSignIn: handleSignIn,
   });
+
+  // Show the choice screen once per browser session for logged-in users with scenarios.
+  // Covers the case where view initialises to 'dashboard' from localStorage (handleSignIn
+  // only redirects when the user came from 'landing' or 'wizard').
+  useEffect(() => {
+    if (authLoading) return;
+    if (!authUser) return;
+    if (!syncDone) return;
+    if (scenarios.length === 0) return;
+    if (sessionStorage.getItem(CHOICE_SEEN_KEY)) return;
+    sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
+    setView('returning-home');
+  }, [authLoading, authUser, syncDone, scenarios.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleScenarioChange = useCallback((updates) => {
     setScenarios((prev) => prev.map((s) => (s.id === currentScenarioId ? { ...s, ...updates } : s)));

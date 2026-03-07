@@ -259,7 +259,7 @@ describe('fetch error handling', () => {
       expect(onSignIn).toHaveBeenCalledOnce()
     })
 
-    expect(onSignIn).toHaveBeenCalledWith([], { fetchError: true })
+    expect(onSignIn).toHaveBeenCalledWith([], { fetchError: true, userId: 'abc' })
   })
 
   // Test 9: Error-path onSignIn does NOT create fallback scenario

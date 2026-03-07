@@ -28,13 +28,13 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
       try {
         const cloudScenarios = await fetchScenarios(userId)
         if (!cancelled) {
-          onSignIn(cloudScenarios)
+          onSignIn(cloudScenarios, { userId })
           setSyncDone(true)
         }
       } catch (err) {
         console.error('[cloud-sync] sign-in fetch failed:', err)
         if (!cancelled) {
-          onSignIn([], { fetchError: true })
+          onSignIn([], { fetchError: true, userId })
           setSyncDone(true)
         }
       }

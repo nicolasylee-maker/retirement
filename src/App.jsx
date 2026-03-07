@@ -289,7 +289,7 @@ export default function App() {
   const isAdmin = authUser?.email === ADMIN_EMAIL;
   const adminBypass = isAdmin && !simulateFreeUser;
 
-  const handleSignIn = useCallback((cloudScenarios, { fetchError } = {}) => {
+  const handleSignIn = useCallback((cloudScenarios, { fetchError, userId } = {}) => {
     if (cloudScenarios.length > 0) {
       // Returning user — replace state with cloud data
       setScenarios(cloudScenarios);
@@ -304,6 +304,8 @@ export default function App() {
     }
     // Cloud genuinely empty
     const fallback = createDefaultScenario('My Plan');
+    // Use a deterministic ID so racing tabs/auth events upsert the same row
+    if (userId) fallback.id = userId;
     if (wasAnonRef.current) {
       // Converting anon user — keep their local scenarios, they'll auto-save to cloud
       setScenarios(prev => prev.length > 0 ? prev : [fallback]);

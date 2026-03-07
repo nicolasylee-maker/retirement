@@ -300,5 +300,30 @@ describe('fetch error handling', () => {
     expect(currentScenarioId).toBe('fallback-id')
     expect(view).toBe('wizard')
   })
+
+  // Test 10: Anon-conversion remaps scenario ID to deterministic userId
+  it('anon-conversion remaps scenario ID to deterministic userId', () => {
+    const anonScenario = { id: 'random-uuid-abc', name: 'My Plan', income: 75000 };
+    let scenarios = [anonScenario];
+    let currentScenarioId = 'random-uuid-abc';
+    const userId = 'user-deterministic-id';
+    const fallback = { id: userId, name: 'My Plan' };
+    const wasAnon = true;
+
+    // Simulate anon-conversion branch of handleSignIn
+    if (wasAnon) {
+      if (scenarios.length === 0) {
+        scenarios = [fallback];
+      } else {
+        scenarios = [{ ...scenarios[0], id: fallback.id }, ...scenarios.slice(1)];
+      }
+      currentScenarioId = fallback.id;
+    }
+
+    expect(scenarios).toHaveLength(1);
+    expect(scenarios[0].id).toBe(userId);        // remapped to deterministic ID
+    expect(scenarios[0].income).toBe(75000);      // user data preserved
+    expect(currentScenarioId).toBe(userId);       // updated to match
+  })
 })
 

@@ -301,9 +301,13 @@ export default function App() {
     // Use a deterministic ID so racing tabs/auth events upsert the same row
     if (userId) fallback.id = userId;
     if (wasAnonRef.current) {
-      // Converting anon user — keep their local scenarios, they'll auto-save to cloud
-      setScenarios(prev => prev.length > 0 ? prev : [fallback]);
-      setCurrentScenarioId(prev => prev || fallback.id);
+      // Converting anon user — keep their data but remap ID to deterministic userId
+      // so cross-tab saves (original tab + magic-link tab) upsert the same DB row.
+      setScenarios(prev => {
+        if (prev.length === 0) return [fallback];
+        return [{ ...prev[0], id: fallback.id }, ...prev.slice(1)];
+      });
+      setCurrentScenarioId(fallback.id);
     } else {
       // Deleted or brand-new user — trust cloud, start fresh
       setScenarios([fallback]);

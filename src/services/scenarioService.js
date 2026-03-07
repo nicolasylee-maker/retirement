@@ -11,6 +11,12 @@ export async function fetchScenarios(userId) {
 }
 
 export async function saveScenario(userId, scenario) {
+  console.trace('[saveScenario] CALLED', {
+    scenarioId: scenario.id,
+    scenarioName: scenario.name,
+    userId,
+    idMatchesUserId: scenario.id === userId
+  });
   const { error } = await supabase
     .from('scenarios')
     .upsert({

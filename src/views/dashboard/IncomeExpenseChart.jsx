@@ -94,7 +94,7 @@ export default function IncomeExpenseChart({ projectionData, scenario }) {
       <p className="text-xs text-gray-500 mb-4">
         Bars show income (above) and costs (below); line shows portfolio value.
       </p>
-      <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 200, 320)}>
+      <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 280, 320)}>
         <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={CHART_STYLE.gridColor} vertical={false} />
           <XAxis dataKey="age" tick={{ fontSize: CHART_STYLE.fontSize, fill: COLORS.gray[500] }}

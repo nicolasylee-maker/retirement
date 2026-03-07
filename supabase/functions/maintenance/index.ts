@@ -77,7 +77,7 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl     = Deno.env.get('SUPABASE_URL') ?? ''
     const serviceRoleKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const adminEmail      = Deno.env.get('ADMIN_EMAIL') ?? ''
+    const adminEmail      = Deno.env.get('ADMIN_EMAIL')
     const anonKey         = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 
     const callerClient = createClient(supabaseUrl, anonKey, {
@@ -85,7 +85,7 @@ Deno.serve(async (req: Request) => {
     })
     const { data: { user: caller }, error: authError } = await callerClient.auth.getUser()
     if (authError || !caller) return errorResponse('Invalid token', 401)
-    if (caller.email !== adminEmail) return errorResponse('Forbidden', 403)
+    if (!adminEmail || caller.email !== adminEmail) return errorResponse('Forbidden', 403)
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
     const body = await req.json()

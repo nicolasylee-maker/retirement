@@ -9,6 +9,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function sanitizeContextValue(v: unknown): string {
+  return String(v ?? '').replace(/[\r\n\x00]/g, ' ').slice(0, 500)
+}
+
 function buildPrompt(type: string, context: Record<string, unknown>, config: Record<string, string>): string {
   const base = config['prompt_base'] ?? ''
   const templateKey = `prompt_${type}`
@@ -86,7 +90,7 @@ function buildPrompt(type: string, context: Record<string, unknown>, config: Rec
     }
   }
 
-  const body = template.replace(/\{(\w+)\}/g, (_, key: string) => String(context[key] ?? ''))
+  const body = template.replace(/\{(\w+)\}/g, (_, key: string) => sanitizeContextValue(context[key]))
   return `${base}\n\n${body}`
 }
 

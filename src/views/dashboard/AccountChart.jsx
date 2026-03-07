@@ -49,7 +49,7 @@ export default function AccountChart({ projectionData, scenario }) {
         Account Balances
       </h3>
       <ChartLegend items={ACCOUNTS.map(({ color, label }) => ({ color, label }))} />
-      <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 200, 320)}>
+      <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 280, 320)}>
         <AreaChart
           data={projectionData}
           margin={{ top: 10, right: 20, left: 0, bottom: 0 }}

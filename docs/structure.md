@@ -117,6 +117,7 @@ retirement/
 │   │   ├── ErrorFallback.jsx               ← Sentry ErrorBoundary fallback UI (friendly reload screen)
 │   │   ├── FormField.jsx                   ← Input with label, helper text, $ prefix, validation
 │   │   ├── GatedButton.jsx                 ← Premium gate wrapper: shows upgrade modal for non-subscribers
+│   │   ├── MobileMenu.jsx                  ← Slide-in hamburger nav overlay for mobile (md:hidden); shows all tabs with lock icons for gated
 │   │   ├── HelpIcon.jsx                    ← Tooltip with info icon
 │   │   ├── ProgressBar.jsx                 ← Wizard step progress indicator
 │   │   ├── PulsingDot.jsx                  ← Animated red dot for important field attention

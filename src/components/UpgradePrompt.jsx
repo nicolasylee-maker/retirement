@@ -216,8 +216,8 @@ export default function UpgradePrompt({ variant = 'full', featureName, feature, 
         )}
 
         <ul className="text-left space-y-2 mb-5 w-full">
-          {FEATURES.map((f) => (
-            <li key={f} className="flex items-center gap-2 text-sm text-gray-700">
+          {FEATURES.map((f, i) => (
+            <li key={f} className={`flex items-center gap-2 text-sm text-gray-700 ${i >= 4 ? 'hidden sm:flex' : ''}`}>
               <CheckIcon />
               {f}
             </li>

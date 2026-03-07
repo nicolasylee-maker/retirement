@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const adminEmail = Deno.env.get('ADMIN_EMAIL') ?? ''
+    const adminEmail = Deno.env.get('ADMIN_EMAIL')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 
     // 2. Verify JWT
@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 3. Admin check
-    if (caller.email !== adminEmail) {
+    if (!adminEmail || caller.email !== adminEmail) {
       return errorResponse('Forbidden', 403)
     }
 

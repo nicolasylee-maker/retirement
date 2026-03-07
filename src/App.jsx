@@ -27,6 +27,7 @@ import RecommendationsTab from './views/recommendations/RecommendationsTab';
 import ReadinessView from './views/readiness/ReadinessView';
 import { runOptimization } from './engines/optimizerEngine';
 import AccountMenu from './components/AccountMenu';
+import MobileMenu from './components/MobileMenu';
 import ContactModal from './components/ContactModal';
 import SubscriptionBadge from './components/SubscriptionBadge';
 import UpgradePrompt from './components/UpgradePrompt';
@@ -158,6 +159,7 @@ export default function App() {
   const [showModePicker, setShowModePicker] = useState(false);
   const [whatIfOverrides, setWhatIfOverrides] = useState({});
   const [whatIfExpanded, setWhatIfExpanded] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pickerAction, setPickerAction] = useState('results');
   const [wizardIsNew, setWizardIsNew] = useState(false);
   const importInputRef = useRef(null);
@@ -893,11 +895,23 @@ export default function App() {
             </div>
           </div>
 
-          {/* Mobile: row 1 — logo + actions */}
+          {/* Mobile: row 1 — hamburger + logo + actions */}
           <div className="flex md:hidden items-center justify-between gap-3">
-            <h1 className="text-base font-bold text-sunset-600 tracking-tight shrink-0">
-              RetirePlanner.ca
-            </h1>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                aria-label="Open navigation menu"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <h1 className="text-base font-bold text-sunset-600 tracking-tight">
+                RetirePlanner.ca
+              </h1>
+            </div>
             <div className="flex items-center gap-1">
               {(authUser || view !== 'dashboard') && (
               <div className="relative">
@@ -981,20 +995,16 @@ export default function App() {
           )}
         </div>{/* end header inner */}
 
-        {/* Mobile only: tab bar below */}
-        <nav className="md:hidden px-4 pb-1.5 flex gap-0.5 overflow-x-auto scrollbar-hide">
-          {NAV_TABS.map((tab) => (
-            <button key={tab.key} type="button" onClick={() => handleTabClick(tab.key)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-md transition-colors duration-150 whitespace-nowrap ${
-                tab.special
-                  ? (view === tab.key ? 'bg-purple-50 text-purple-700' : 'text-purple-400 hover:text-purple-600 hover:bg-purple-50')
-                  : (view === tab.key ? 'bg-sunset-50 text-sunset-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100')
-              }`}>
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+        {/* Mobile only: slide-out navigation menu */}
+        <MobileMenu
+          tabs={NAV_TABS}
+          view={view}
+          onTabClick={handleTabClick}
+          gatedTabs={GATED_TABS}
+          isPaid={isPaid}
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+        />
 
         {/* Anon sign-in bar — slim strip, only on dashboard, disappears on auth */}
         {!authUser && view === 'dashboard' && (
@@ -1197,21 +1207,23 @@ export default function App() {
         document.body
       )}
 
-      {view !== 'landing' && <footer className="py-4 text-center border-t border-gray-100">
-        <p className="text-xs text-gray-400">
-          <span className="text-sunset-600 font-semibold">RetirePlanner.ca</span> &middot; Not financial advice &middot;{' '}
-          <a href="/privacy" className="hover:underline">Privacy</a>
-          {' '}&middot;{' '}
-          <a href="/terms" className="hover:underline">Terms</a>
-          {' '}&middot;{' '}
+      {view !== 'landing' && <footer className="py-3 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-y-0 sm:gap-x-1 text-xs text-gray-400">
+          <span className="text-sunset-600 font-semibold min-h-[36px] sm:min-h-0 flex items-center">RetirePlanner.ca</span>
+          <span className="hidden sm:inline">&middot; Not financial advice &middot;</span>
+          <span className="sm:hidden text-gray-300 text-[10px]">Not financial advice</span>
+          <a href="/privacy" className="min-h-[44px] sm:min-h-0 flex items-center hover:underline">Privacy</a>
+          <span className="hidden sm:inline">&middot;</span>
+          <a href="/terms" className="min-h-[44px] sm:min-h-0 flex items-center hover:underline">Terms</a>
+          <span className="hidden sm:inline">&middot;</span>
           <button
             type="button"
             onClick={() => setContactOpen(true)}
-            className="hover:underline"
+            className="min-h-[44px] sm:min-h-0 flex items-center hover:underline"
           >
             Contact
           </button>
-        </p>
+        </div>
       </footer>}
 
       {contactOpen && (

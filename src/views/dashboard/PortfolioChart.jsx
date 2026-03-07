@@ -88,7 +88,7 @@ function AccountsTooltip({ active, payload }) {
 // ---------------------------------------------------------------------------
 export default function PortfolioChart({
   projectionData, scenario, forceView,
-  chartHeight = responsiveChartHeight(window.innerWidth, 220, 360),
+  chartHeight = responsiveChartHeight(window.innerWidth, 300, 360),
 }) {
   if (!projectionData || projectionData.length === 0) return null;
 

@@ -262,7 +262,7 @@ export default function SummaryCards({ projectionData, scenario, pulseSafeSpend 
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       <SummaryCard
         label="Net Worth"
         value={formatCurrency(retirementRow.netWorth)}

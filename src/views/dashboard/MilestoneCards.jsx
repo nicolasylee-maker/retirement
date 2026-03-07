@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatCurrency } from '../../utils/formatters';
 
 const MILESTONE_AGES = [85, 90, 95];
@@ -86,13 +86,18 @@ function DriverBullet({ label, value, color = 'text-gray-600' }) {
 }
 
 export default function MilestoneCards({ projectionData, scenario }) {
+  const [showAll, setShowAll] = useState(false);
+
   if (!projectionData || projectionData.length === 0) return null;
 
   const depletionAge = findDepletionAge(projectionData);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      {MILESTONE_AGES.map(age => {
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {MILESTONE_AGES.map((age, idx) => {
+        // On mobile, hide cards beyond the first unless showAll is true
+        const hiddenOnMobile = idx > 0 && !showAll;
         const row = findClosestRow(projectionData, age);
         if (!row) return null;
 
@@ -112,7 +117,7 @@ export default function MilestoneCards({ projectionData, scenario }) {
             key={age}
             className={`card-base p-4 flex flex-col gap-3 ${
               depleted ? 'border-red-200 bg-red-50/30' : 'border-green-200 bg-green-50/30'
-            }`}
+            } ${hiddenOnMobile ? 'hidden sm:flex' : ''}`}
           >
             {/* Header */}
             <div className="flex items-center gap-3">
@@ -185,6 +190,18 @@ export default function MilestoneCards({ projectionData, scenario }) {
           </div>
         );
       })}
+      </div>
+
+      {/* Mobile: show/hide toggle for cards 2 & 3 */}
+      {!showAll && (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="sm:hidden mt-2 w-full py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+        >
+          Show all 3 milestones ▼
+        </button>
+      )}
     </div>
   );
 }

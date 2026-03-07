@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const adminEmail = Deno.env.get('ADMIN_EMAIL') ?? ''
+  const adminEmail = Deno.env.get('ADMIN_EMAIL')
 
   // Verify JWT and extract caller email
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  if (caller.email !== adminEmail) {
+  if (!adminEmail || caller.email !== adminEmail) {
     return new Response(JSON.stringify({ error: 'Forbidden' }), {
       status: 403,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -89,7 +89,8 @@ Deno.serve(async (req: Request) => {
       (inviteError as { status?: number }).status === 422
 
     if (!alreadyExists) {
-      return new Response(JSON.stringify({ error: inviteError.message }), {
+      console.error('[send-invite] inviteUserByEmail error', inviteError)
+      return new Response(JSON.stringify({ error: 'Failed to send invite' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -102,7 +103,8 @@ Deno.serve(async (req: Request) => {
       .eq('email', email)
 
     if (updateError) {
-      return new Response(JSON.stringify({ error: updateError.message }), {
+      console.error('[send-invite] update override error', updateError)
+      return new Response(JSON.stringify({ error: 'Failed to update subscription override' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -140,7 +142,7 @@ Deno.serve(async (req: Request) => {
       .eq('id', inviteData.user.id)
   }
 
-  return new Response(JSON.stringify({ success: true, userId: inviteData?.user?.id ?? null }), {
+  return new Response(JSON.stringify({ success: true }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })

@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+
+const BANNER_DISMISSED_KEY = 'rp-promo-banner-dismissed';
 
 function GoogleIcon() {
   return (
@@ -28,6 +30,14 @@ export default function AnonDashboardBanner({ betaPromo, headerBar = false }) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const [mobileDismissed, setMobileDismissed] = useState(
+    () => localStorage.getItem(BANNER_DISMISSED_KEY) === '1',
+  );
+
+  function handleMobileDismiss() {
+    localStorage.setItem(BANNER_DISMISSED_KEY, '1');
+    setMobileDismissed(true);
+  }
 
   async function handleMagicLink(e) {
     e.preventDefault();
@@ -48,6 +58,81 @@ export default function AnonDashboardBanner({ betaPromo, headerBar = false }) {
     ? 'border-t border-indigo-100 bg-indigo-50 px-4 sm:px-6 lg:px-10 py-1.5 flex items-center gap-6'
     : 'mx-4 sm:mx-6 lg:mx-10 mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 flex items-center gap-6';
 
+  // Mobile-only compact strip for headerBar mode — dismissed hides it entirely
+  if (headerBar && mobileDismissed) return null;
+
+  if (headerBar) {
+    return (
+      <>
+        {/* Desktop: full layout (unchanged) */}
+        <div className={`hidden md:flex border-t border-indigo-100 bg-indigo-50 px-4 sm:px-6 lg:px-10 py-1.5 items-center gap-6`}>
+          <div className="flex-1 min-w-0">
+            {betaPromo ? (
+              <>
+                <p className="text-sm font-semibold text-indigo-900">
+                  Sign in before {formatCutoff(betaPromo.cutoff)} — get {betaPromo.days} days of free beta access
+                </p>
+                <p className="text-xs text-indigo-600 mt-0.5">
+                  Includes AI Insights, Compare scenarios, Estate planning, Deep Dive &amp; more.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm font-semibold text-indigo-900">
+                Sign in to unlock AI Insights, Compare, Estate &amp; more
+              </p>
+            )}
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            {sent ? (
+              <p className="text-sm font-medium text-green-700 whitespace-nowrap">Check your inbox — link sent!</p>
+            ) : (
+              <>
+                <button type="button" onClick={() => signInWithGoogle()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors whitespace-nowrap">
+                  <GoogleIcon />
+                  Sign in with Google
+                </button>
+                <span className="text-xs text-indigo-400 font-medium">or</span>
+                <form onSubmit={handleMagicLink} className="flex items-center gap-1.5">
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                    placeholder="your@email.com" required
+                    className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+                  <button type="submit" disabled={sending}
+                    className="rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium px-3 py-1.5 transition-colors whitespace-nowrap">
+                    {sending ? 'Sending…' : 'Send link'}
+                  </button>
+                </form>
+                {error && <p className="text-xs text-red-600 font-medium">{error}</p>}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile: compact single-line strip with dismiss */}
+        <div className="flex md:hidden border-t border-indigo-100 bg-indigo-50 px-4 py-2 items-center gap-2">
+          <p className="flex-1 text-xs font-medium text-indigo-800 truncate">
+            {sent ? 'Check your inbox — link sent!' : 'Sign in to unlock AI Insights &amp; more'}
+          </p>
+          {!sent && (
+            <button type="button" onClick={() => signInWithGoogle()}
+              className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors whitespace-nowrap">
+              <GoogleIcon />
+              Sign in
+            </button>
+          )}
+          <button type="button" onClick={handleMobileDismiss}
+            className="shrink-0 p-1 text-indigo-400 hover:text-indigo-600 transition-colors"
+            aria-label="Dismiss">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  // Non-headerBar mode (inline card — unchanged for both breakpoints)
   return (
     <div className={containerCls}>
       {/* Left: text */}
@@ -76,37 +161,21 @@ export default function AnonDashboardBanner({ betaPromo, headerBar = false }) {
           </p>
         ) : (
           <>
-            {/* Google */}
-            <button
-              type="button"
-              onClick={() => signInWithGoogle()}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors whitespace-nowrap"
-            >
+            <button type="button" onClick={() => signInWithGoogle()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors whitespace-nowrap">
               <GoogleIcon />
               Sign in with Google
             </button>
-
             <span className="text-xs text-indigo-400 font-medium">or</span>
-
-            {/* Magic link */}
             <form onSubmit={handleMagicLink} className="flex items-center gap-1.5">
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                required
-                className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-              />
-              <button
-                type="submit"
-                disabled={sending}
-                className="rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium px-3 py-1.5 transition-colors whitespace-nowrap"
-              >
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com" required
+                className="w-44 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+              <button type="submit" disabled={sending}
+                className="rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-medium px-3 py-1.5 transition-colors whitespace-nowrap">
                 {sending ? 'Sending…' : 'Send link'}
               </button>
             </form>
-
             {error && <p className="text-xs text-red-600 font-medium">{error}</p>}
           </>
         )}

@@ -131,8 +131,23 @@ export default function BasicWizardView({ scenario, onChange, onComplete, onExit
   const govPresetItems = Object.entries(GOV_BENEFIT_PRESETS).map(([key, { label }]) => ({ key, label }));
   const returnPresetItems = Object.entries(RETURN_PRESETS).map(([key, { label }]) => ({ key, label }));
 
+  // Mobile progress: count visible sections
+  const SECTIONS = ['Your Details', 'Monthly Spending', 'Your Savings', 'Government Benefits', ...(stillWorking ? ['Employment'] : []), 'Return Assumption'];
+  const totalSections = SECTIONS.length;
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6 pb-20">
+      {/* Mobile-only sticky progress bar */}
+      <div className="md:hidden sticky top-0 z-10 -mx-4 px-4 py-2 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+            <div className="bg-sunset-500 h-1.5 rounded-full" style={{ width: '100%' }} />
+          </div>
+          <span className="text-xs text-gray-500 shrink-0 tabular-nums">{totalSections} sections</span>
+        </div>
+        <p className="text-xs text-gray-400 mt-0.5">Quick Start — answer all sections to see your plan</p>
+      </div>
+
       {/* Back link */}
       <button
         type="button"

@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const adminEmail = Deno.env.get('ADMIN_EMAIL') ?? ''
+  const adminEmail = Deno.env.get('ADMIN_EMAIL')
 
   // Verify JWT and extract caller email
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  if (caller.email !== adminEmail) {
+  if (!adminEmail || caller.email !== adminEmail) {
     return new Response(JSON.stringify({ error: 'Forbidden' }), {
       status: 403,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

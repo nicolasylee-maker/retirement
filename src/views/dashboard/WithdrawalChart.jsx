@@ -63,7 +63,7 @@ export default function WithdrawalChart({ projectionData, scenario }) {
         ...(hasNonReg ? [{ color: CHART_COLORS.nonReg, label: 'Non-Reg' }]   : []),
         ...(hasOther  ? [{ color: CHART_COLORS.other,  label: 'Other' }]     : []),
       ]} />
-      <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 180, 280)}>
+      <ResponsiveContainer width="100%" height={responsiveChartHeight(window.innerWidth, 260, 280)}>
         <BarChart
           data={data}
           margin={{ top: 20, right: 20, left: 0, bottom: 0 }}

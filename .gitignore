@@ -6,3 +6,17 @@ dist/
 .DS_Store
 .vercel
 .env*.local
+
+# Dev artifacts
+.playwright-mcp/
+.claude/
+*.png
+*.jpg
+*.jpeg
+!public/*.png
+!public/*.jpg
+!src/**/*.png
+supabase/.temp/
+tmp-*.cjs
+current-page.md
+mobile-ux-analysis.md

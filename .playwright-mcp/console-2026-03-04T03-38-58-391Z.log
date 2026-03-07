@@ -1,6 +1,0 @@
-[      56ms] [WARNING] Ignoring Event: localhost @ https://plausible.io/js/script.tagged-events.js:0
-[     378ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5179/favicon.ico:0
-[     700ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://kovxoeovijedvxmulbke.supabase.co/rest/v1/tax_data?select=province%2Cdata:0
-[     700ms] [WARNING] [TaxData] DB fetch error — using bundled JSON: Could not find the table 'public.tax_data' in the schema cache @ http://localhost:5179/src/contexts/TaxDataContext.jsx:56
-[     755ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://kovxoeovijedvxmulbke.supabase.co/rest/v1/tax_data?select=province%2Cdata:0
-[     756ms] [WARNING] [TaxData] DB fetch error — using bundled JSON: Could not find the table 'public.tax_data' in the schema cache @ http://localhost:5179/src/contexts/TaxDataContext.jsx:56

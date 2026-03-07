@@ -224,10 +224,34 @@ const optimizationResult = useMemo(
 - Charts use Recharts responsive containers — avoid unnecessary re-renders
 - Sustainable withdrawal uses binary search (not brute force) for efficiency
 
+## Environment Setup
+
+Two Supabase cloud projects — DEV for daily work, PROD for shipping only.
+
+| Environment | Supabase Project | Stripe | Frontend |
+|-------------|-----------------|--------|----------|
+| DEV | retirement-dev | `pk_test_` / `sk_test_` | `npm run dev` → `.env.local` |
+| PROD | kovxoeovijedvxmulbke | `pk_live_` / `sk_live_` | retireplanner.ca (auto-deploy `main`) |
+
+**Deployment rules:**
+- **Migrations**: link to DEV → `db push` → test → link to PROD → `db push`. Never skip DEV.
+- **Edge functions**: deploy to DEV first, validate, then PROD.
+- **Always run `supabase status`** before any `db push` or `functions deploy` to confirm target.
+- **`git push main`** triggers Vercel auto-deploy to production immediately — this is a PROD action.
+- **`.env.local`** points at DEV (test Stripe keys). `.env.prod.local` is the prod credential file (never commit either).
+
 ## Deploy Pipeline
 
-Frontend auto-deploys to Vercel on push to `main`.
-Supabase edge functions deploy separately: `supabase functions deploy <fn> --use-api --no-verify-jwt`
+Frontend auto-deploys to Vercel on push to `main`. **`git push main` = production deploy.**
+
+Supabase edge functions deploy separately:
+```bash
+# Always confirm target project first
+supabase status
+# Then deploy (--use-api required on FUSE filesystem; --no-verify-jwt required for ES256 JWTs)
+supabase functions deploy <fn> --use-api --no-verify-jwt
+```
+
 See `docs/learned-rules.md` → Edge Function Deployment for machine-specific deploy notes.
 
 ## Version History
@@ -253,3 +277,7 @@ See `docs/learned-rules.md` → Edge Function Deployment for machine-specific de
 | 2026-03-04 | Compare tab analytical sections: DifferenceDrivers (input diff table), PhaseComparison (life phase health cards), MonthlyReality (cash flow at key ages); compareAnalysis.js pure utility; enriched Gemini compare prompt with diffLines/phaseLines/monthlyLines |
 | 2026-03-05 | Admin-granted time-limited trial override: `override_expires_at` DB column, `trial` override type, trialOverride.js pure helpers, SubscriptionContext exposes isOverrideTrial/overrideDaysRemaining, InviteModal + OverrideSelect + RenewTrialButton in admin UI, "Trial — N days left" badge |
 | 2026-03-05 | Readiness Rank Screen: post-wizard interstitial (both Basic + Full), readinessEngine.js (log-normal percentile vs Stats Canada/Fidelity benchmarks by age bracket), ReadinessView.jsx (animated SVG arc gauge, dark theme, stat cards, pension disclaimer), free for all users |
+| 2026-03-05 | Multi-provider AI: admin-vault-update edge function (Supabase Vault key storage for 5 providers: OpenRouter/OpenAI/Anthropic/xAI/Kimi), ai-proxy refactored to read key from vault, live model-list fetch from each provider, AiConfigSection provider + model dropdowns in admin UI |
+| 2026-03-05 | Public site additions: Google Search Console meta tags (index.html), XML sitemap (public/sitemap.xml), blog section placeholder |
+| 2026-03-06 | Security audit: ADMIN_EMAIL fail-closed on all 6 admin edge functions (removed `?? ''` fallback), prompt injection sanitization in ai-proxy (sanitizeContextValue strips CR/LF/NUL, 500-char limit), generic error messages in send-invite (no internal detail leakage), removed userId from send-invite success response |
+| 2026-03-06 | Environment strategy: retirement-dev project established as DEV environment; CLAUDE.md updated with ENVIRONMENT GUARD section (mandatory supabase status check, [DEV]/[PRODUCTION] labeling, dev→prod migration discipline) and GIT + SUPABASE GLOSSARY section |

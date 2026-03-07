@@ -39,6 +39,39 @@ Couple fields: only include when `scenario.isCouple === true`.
 
 ---
 
+## ENVIRONMENT GUARD
+
+**Two environments. DEV is always the safe default. PROD is only touched when the user explicitly says to ship.**
+
+| Environment | Supabase Project | Stripe Keys | When Used |
+|-------------|-----------------|-------------|-----------|
+| DEV | retirement-dev (separate project) | `pk_test_` / `sk_test_` | Daily coding, migrations, function testing |
+| PROD | kovxoeovijedvxmulbke | `pk_live_` / `sk_live_` | Shipping only — affects real users at retireplanner.ca |
+
+### Before ANY of these commands, run `supabase status` first and show the output:
+- `supabase db push`
+- `supabase functions deploy`
+- Any `git push` to `main`
+
+### Labeling rule — always prefix actions with a clear environment label:
+```
+[DEV] Applying migration to retirement-dev — no real users affected.
+[PRODUCTION] ⚠ This will affect retireplanner.ca and real users. Please confirm.
+```
+
+### PROD requires explicit user confirmation
+Never execute a PROD action unless the user has said something like "ship it", "deploy to prod", "push to prod", or "go live". When in doubt, target DEV and ask.
+
+### Migration discipline (dev → prod, never prod directly)
+```
+Write migration → supabase link to DEV → supabase db push → test app → supabase link to PROD → supabase db push
+```
+
+### Edge function discipline (same pattern)
+Deploy to DEV first, test, then PROD. Never deploy directly to PROD without DEV validation.
+
+---
+
 ## DOCUMENTATION RULES
 
 **These are mandatory, not optional. Update docs as part of the task, not as a follow-up.**
@@ -123,6 +156,35 @@ git worktree remove ../retirement-<branch-name>
 git branch -d <branch-name>
 git worktree list   # should show only main
 ```
+
+---
+
+## GIT + SUPABASE PLAIN-ENGLISH GLOSSARY
+
+> Claude Code will reference these when performing the corresponding operations.
+
+### Git Terms
+
+| Term | Plain English |
+|------|---------------|
+| `git add` | Mark changed files to be included in the next save point |
+| `git commit` | Create a save point **on your machine** with a short label — nothing is uploaded yet |
+| `git push` | Upload your save points to GitHub |
+| `git push` to `main` | **PRODUCTION ACTION** — Vercel auto-deploys to retireplanner.ca immediately |
+| branch | A separate lane of development that doesn't touch `main` until you merge it |
+| worktree | A parallel copy of the project folder — each feature/agent works in its own, no interference |
+| merge | Take changes from a branch and combine them into another branch (usually `main`) |
+| PR (pull request) | A request to merge a branch into `main`, with a review step before it lands |
+
+### Supabase CLI Terms
+
+| Command | Plain English |
+|---------|---------------|
+| `supabase status` | Show which cloud project the CLI is pointing at — **always check before any push or deploy** |
+| `supabase link --project-ref <ref>` | Point the CLI at a specific cloud project (DEV or PROD) |
+| `supabase db push` | Apply pending schema changes (migrations) to the linked project's database |
+| `supabase functions deploy <fn>` | Upload and activate an edge function to the linked project |
+| `supabase secrets set KEY=val` | Store a secret env var (API key, etc.) in the linked project |
 
 ---
 

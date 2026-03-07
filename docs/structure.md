@@ -89,6 +89,7 @@ retirement/
 │   │   ├── generateReport.js               ← HTML retirement report (PDF-printable, inputs + projection)
 │   │   ├── openPrintReport.js              ← Opens new window, renders PrintReportView via React createRoot
 │   │   ├── responsiveChartHeight.js        ← Pure fn: returns mobileH when windowWidth<640, else desktopH
+│   │   ├── findDuplicateScenarios.js       ← Pure helper: detects duplicate "My Plan" scenarios, keeps newest
 │   │   ├── returningUserFlow.js            ← Pure helpers: getSignInRoute, getPickerTarget, formatScenarioMeta
 │   │   ├── trialOverride.js               ← Pure helpers: computeOverrideDaysRemaining, isOverrideExpired, buildOverrideExpiresAt
 │   │   └── excel/                          ← Excel audit workbook (premium)
@@ -245,6 +246,7 @@ retirement/
 │   ├── aiInsightsPersistence.test.js       ← AI insight caching, hash staleness
 │   ├── returningUserFlow.test.js           ← Sign-in routing, picker target
 │   ├── subscriptionBadge.test.jsx         ← SubscriptionBadge: beta countdown display
+│   ├── findDuplicateScenarios.test.js     ← Dedup logic: keeps newest "My Plan", returns dupes
 │   ├── trialOverride.test.js              ← Pure helpers: days remaining, expiry, build expiry date
 │   ├── mobilePolish.test.js                ← Mobile-specific UI helpers
 │   ├── optimizerEngine.test.js             ← All 8 optimization dimensions

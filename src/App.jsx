@@ -40,8 +40,10 @@ import { useCloudSync } from './hooks/useCloudSync';
 import { supabase } from './services/supabaseClient';
 import { deleteScenario as deleteScenarioFromCloud, saveScenario } from './services/scenarioService';
 import { getAiRecommendation } from './services/geminiService';
+import * as Sentry from '@sentry/react';
 import { computeHash } from './components/AiInsight';
 import { buildDashboardAiData, buildDebtAiData, buildCompareAiData, buildEstateAiData } from './utils/buildAiData';
+import { findDuplicateScenarios } from './utils/findDuplicateScenarios';
 
 const WIZARD_CHECKPOINT_KEY = 'rp-wizard-step';
 const MODE_SEEN_KEY = 'rp-mode-seen';
@@ -206,6 +208,11 @@ export default function App() {
 
     if (justLoggedIn) {
       wasAnonRef.current = !!sessionStorage.getItem(ANON_SESSION_KEY);
+      Sentry.addBreadcrumb({
+        category: 'auth',
+        message: 'justLoggedIn effect',
+        data: { justLoggedIn: true, wasAnon: wasAnonRef.current, scenariosCleared: !wasAnonRef.current },
+      });
       if (wasAnonRef.current) {
         sessionStorage.removeItem(ANON_SESSION_KEY);
         setView(v => (v === 'wizard' || v === 'wizard-basic') ? 'dashboard' : v);
@@ -280,6 +287,11 @@ export default function App() {
   const adminBypass = isAdmin && !simulateFreeUser;
 
   const handleSignIn = useCallback((cloudScenarios, { fetchError, userId } = {}) => {
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'handleSignIn entry',
+      data: { cloudCount: cloudScenarios.length, fetchError: !!fetchError, userId, wasAnon: wasAnonRef.current },
+    });
     if (cloudScenarios.length > 0) {
       // Returning user — replace state with cloud data
       setScenarios(cloudScenarios);
@@ -300,6 +312,11 @@ export default function App() {
     const fallback = createDefaultScenario('My Plan');
     // Use a deterministic ID so racing tabs/auth events upsert the same row
     if (userId) fallback.id = userId;
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'handleSignIn fallback creation',
+      data: { fallbackId: fallback.id, remappedToUserId: !!userId },
+    });
     if (wasAnonRef.current) {
       // Converting anon user — keep their data but remap ID to deterministic userId
       // so cross-tab saves (original tab + magic-link tab) upsert the same DB row.
@@ -344,6 +361,23 @@ export default function App() {
     sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
     setView('returning-home');
   }, [authLoading, authUser, syncDone, scenarios.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Self-healing dedup: if multiple "My Plan" scenarios exist (from racing creation paths),
+  // keep the newest and delete the rest from state + cloud.
+  useEffect(() => {
+    if (!syncDone || !authUser) return;
+    const { dupes } = findDuplicateScenarios(scenarios);
+    if (dupes.length === 0) return;
+    const dupeIds = new Set(dupes.map(d => d.id));
+    Sentry.captureMessage('Duplicate "My Plan" scenarios detected', {
+      level: 'warning',
+      extra: { userId: authUser.id, dupeIds: [...dupeIds], total: scenarios.length },
+    });
+    setScenarios(prev => prev.filter(s => !dupeIds.has(s.id)));
+    for (const dupe of dupes) {
+      deleteScenarioFromCloud(authUser.id, dupe.id).catch(() => {});
+    }
+  }, [syncDone, authUser?.id, scenarios.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleScenarioChange = useCallback((updates) => {
     setScenarios((prev) => prev.map((s) => (s.id === currentScenarioId ? { ...s, ...updates } : s)));

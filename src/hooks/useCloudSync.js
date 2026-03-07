@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import * as Sentry from '@sentry/react'
 import { fetchScenarios, saveScenario } from '../services/scenarioService'
 
 // saveStatus: 'idle' | 'saving' | 'saved' | 'error'
@@ -47,6 +48,11 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
   useEffect(() => {
     if (!userId || !currentScenario || !syncDone) return
 
+    Sentry.addBreadcrumb({
+      category: 'cloud-sync',
+      message: 'auto-save triggered',
+      data: { scenarioId: currentScenario.id, scenarioName: currentScenario.name, userId },
+    })
     setSaveStatus('saving')
     const timeout = setTimeout(async () => {
       try {

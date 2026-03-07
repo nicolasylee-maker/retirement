@@ -36,7 +36,6 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
       try {
         const cloudScenarios = await fetchScenarios(userId)
         if (!cancelled) {
-          console.log('[cloud-sync] calling onSignIn', { count: cloudScenarios.length, userId })
           onSignIn(cloudScenarios, { userId })
           hasFetchedRef.current = true
           setSyncDone(true)
@@ -69,7 +68,6 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
     setSaveStatus('saving')
     const timeout = setTimeout(async () => {
       try {
-        console.log('[cloud-sync] auto-save firing', { scenarioId: currentScenario.id, userId })
         await saveScenario(userId, currentScenario)
         setSaveStatus('saved')
       } catch {

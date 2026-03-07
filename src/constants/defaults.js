@@ -13,10 +13,8 @@ export const STEP_LABELS = [
 export const WIZARD_STEPS = STEP_LABELS.length;
 
 export function createDefaultScenario(name = 'My Scenario') {
-  const id = crypto.randomUUID?.() || Math.random().toString(36).slice(2);
-  console.trace('[createDefaultScenario]', { id, name });
   return {
-    id,
+    id: crypto.randomUUID?.() || Math.random().toString(36).slice(2),
     name,
     createdAt: new Date().toISOString(),
 

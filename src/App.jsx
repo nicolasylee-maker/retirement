@@ -214,6 +214,7 @@ export default function App() {
         setScenarios([]);
         setCurrentScenarioId(null);
         localStorage.removeItem(STORAGE_KEY);
+        setView('landing');
       }
     }
   }, [authUser]);
@@ -257,11 +258,12 @@ export default function App() {
   useEffect(() => {
     if (authLoading) return;
     if (!authUser) return;
+    if (!syncDone) return;
     if (scenarios.length === 0) return;
     if (sessionStorage.getItem(CHOICE_SEEN_KEY)) return;
     sessionStorage.setItem(CHOICE_SEEN_KEY, '1');
     setView('returning-home');
-  }, [authLoading, authUser, scenarios.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authLoading, authUser, syncDone, scenarios.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const DATA_VIEWS = ['dashboard', 'wizard', 'wizard-basic', 'save-nudge', 'compare', 'estate', 'deep-dive', 'recommendations', 'debt'];
@@ -296,7 +298,11 @@ export default function App() {
       setScenarios(cloudScenarios);
       setCurrentScenarioId(cloudScenarios[0].id);
       setWhatIfOverrides({});
-      setView(prev => (prev === 'landing' || prev === 'wizard' || prev === 'wizard-basic') ? 'returning-home' : prev);
+      if (sessionStorage.getItem(CHOICE_SEEN_KEY)) {
+        setView(prev => prev === 'landing' ? 'dashboard' : prev);
+      } else {
+        setView(prev => (prev === 'landing' || prev === 'wizard' || prev === 'wizard-basic') ? 'returning-home' : prev);
+      }
       return;
     }
     if (fetchError) {

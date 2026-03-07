@@ -9,6 +9,7 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
   const [syncDone, setSyncDone] = useState(false)
   const prevUserIdRef = useRef(null)
   const syncInProgress = useRef(false)
+  const hasFetchedRef = useRef(false)
 
   const userId = user?.id ?? null
 
@@ -20,6 +21,7 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
 
     if (!userId) {
       setSyncDone(false)
+      hasFetchedRef.current = false
       return
     }
     if (prevUserId === userId) return
@@ -35,12 +37,14 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
         const cloudScenarios = await fetchScenarios(userId)
         if (!cancelled) {
           onSignIn(cloudScenarios, { userId })
+          hasFetchedRef.current = true
           setSyncDone(true)
         }
       } catch (err) {
         console.error('[cloud-sync] sign-in fetch failed:', err)
         if (!cancelled) {
           onSignIn([], { fetchError: true, userId })
+          hasFetchedRef.current = true
           setSyncDone(true)
         }
       } finally {
@@ -53,6 +57,7 @@ export function useCloudSync({ user, currentScenario, onSignIn }) {
 
   // Auto-save debounce: save current scenario 1s after it changes
   useEffect(() => {
+    if (!hasFetchedRef.current) return
     if (!userId || !currentScenario || !syncDone) return
 
     Sentry.addBreadcrumb({

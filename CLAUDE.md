@@ -27,6 +27,11 @@
 - **Confirm before building** — present plan, wait for approval, then build.
 - **Just do it** — commands like `review`, `check`, `run tests`, `show`, `explain`, `diff`, `status` are executed immediately with zero questions.
 
+### NUMERICAL CHANGE GATE (mandatory — no exceptions)
+**Any change that affects numbers — inputs, calculations, withdrawal logic, tax rules, savings cascade, contribution room, benefit formulas, or display values — MUST trigger Phase 1.5 (Impact Trace) before any code or tests are written.**
+
+This is a BLOCKING requirement. If the user asks to "just make the change" or "skip the trace", push back: present the trace anyway. The cost of a missed surface is silent data divergence that compounds across Excel, audit, AI context, and compare views.
+
 ### EXPORT PROPAGATION RULE
 When adding/removing ANY scenario field or engine output, check:
 1. Assumptions sheet (`src/utils/excel/sheetAssumptions.js`)
@@ -106,8 +111,73 @@ Ask the user questions ONE AT A TIME until you understand the task fully. Cover:
 
 **Stop. Wait for user to confirm the spec before continuing.**
 
+### Phase 1.5 — Impact Trace (mandatory for ANY numerical change)
+
+> **Trigger:** Any change to inputs, calculations, withdrawal logic, tax rules, savings cascade, contribution room, benefit formulas, display values, or anything that affects numbers. If in doubt, it triggers.
+
+#### Step 1: Surface Trace
+Check EVERY surface below. Output a table with checked/unchecked status. Every unchecked item needs a reason ("not affected because X").
+
+| Surface | Files to check | What breaks silently |
+|---------|---------------|---------------------|
+| Engine output fields | `projectionEngine.js` output row | Downstream consumers read stale/missing field |
+| Savings cascade | `savingsCalc.js` | Wrong allocation order or missed overflow path |
+| Tax computation | `taxEngine.js`, `incomeHelpers.js` | Tax miscalculated, OAS clawback wrong |
+| Defaults | `defaults.js` | New field missing default → `undefined` in engine |
+| Excel: Assumptions | `sheetAssumptions.js` — new input → named range | Formula references undefined name → `#NAME?` |
+| Excel: Projection formulas | `projectionFormulas.js` — formula must match engine | Wrong formula → numbers diverge silently from engine |
+| Excel: Spouse cells | `buildSpouseCells()` in `projectionFormulas.js` | Spouse balance/deposit formulas are separate from primary |
+| Excel: Column headers + wiring | `sheetProjection.js` headers, column indices | New column shifts all column letters if inserted mid-array |
+| Audit: Input snapshot | `auditInputSnapshot.js` — Section 1 | Missing field = user can't verify their inputs |
+| Audit: Projection table | `auditProjection.js` — Section 2 columns | Missing column = can't trace where money went |
+| Audit: Waterfall | `auditInvestmentReturns.js` — Section 13b | Missing deposit/withdrawal inflates "Returns" |
+| AI context | `buildAiData.js` | Gemini gives advice on stale data |
+| Compare diff | `compareAnalysis.js` DIFF_FIELDS | Changed field not shown in scenario comparison |
+| PDF report | `generateReport.js` | Report omits new data |
+| Wizard UI | `src/views/wizard/` | New input not exposed to user |
+| Dashboard KPIs | `src/views/dashboard/` | KPI reads wrong or missing field |
+
+#### Step 2: Full Test Matrix
+Write tests for ALL canonical fixtures × the change. Use fixtures from `tests/fixtures/scenarios.js`.
+
+**Canonical Fixtures:**
+
+| Fixture | Description |
+|---------|-------------|
+| `SINGLE_BASIC` | Age 40, $70K income, moderate savings, no debt |
+| `SINGLE_HIGH_INCOME` | Age 45, $250K income, maxed RRSP, high NonReg |
+| `SINGLE_LOW_INCOME` | Age 55, $40K income, minimal savings, GIS-eligible |
+| `SINGLE_RETIRED` | Age 68, $0 employment, drawing down, RRIF active |
+| `SINGLE_NEAR_DEPLETION` | Age 75, thin portfolio, OAS clawback zone |
+| `COUPLE_SYMMETRIC` | Both 40, similar incomes ($80K/$75K), both working |
+| `COUPLE_ASYMMETRIC` | Primary $300K / spouse $50K, large age gap |
+| `COUPLE_ONE_RETIRED` | Primary working, spouse already retired |
+| `COUPLE_BOTH_RETIRED` | Both 70+, RRIF conversions, pension splitting |
+| `COUPLE_HIGH_SAVINGS` | High monthlySavings ($5K+), tests cascade + overflow |
+| `COUPLE_WITH_DEBT` | Mortgage + consumer debt, `expensesIncludeDebt: true` |
+| `MELTDOWN_ACTIVE` | RRSP meltdown enabled, pre-RRIF ages |
+
+**Permutation dimensions** (cross-product where relevant):
+
+- `monthlySavings`: `0`, low (`$500`), high (`$5000`)
+- Contribution room: zero, partial, abundant
+- Working status: working, retired, `stillWorking: false`
+- Debt: none, mortgage-only, full debt stack
+- Meltdown: off, active
+- Withdrawal order: default, custom
+
+**Every test must assert:**
+1. The changed value is correct for the scenario
+2. Downstream consistency (deposits + withdrawals + returns = portfolio change)
+3. No regression on unrelated fields
+
+#### Step 3: Present and Confirm
+Output the full surface trace table and test matrix to the user.
+
+**Stop. Wait for user to confirm before writing any tests or code. No exceptions.**
+
 ### Phase 2 — Tests First
-Write failing unit tests before any implementation. Cover happy path, edge cases, boundaries, zero/negative/max values.
+Write failing unit tests from the confirmed Phase 1.5 matrix. Cover every fixture × permutation identified. All tests must fail before implementation begins.
 
 **Stop. No implementation until failing tests exist.**
 

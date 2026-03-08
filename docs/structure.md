@@ -254,6 +254,9 @@ retirement/
 │   ├── optimizerEngine.test.js             ← All 8 optimization dimensions
 │   ├── tfsaLimits.test.js                  ← TFSA/RRSP contribution room estimate functions
 │   ├── compareAnalysis.test.js             ← Diff drivers, phase ranges, phase summaries, monthly snapshots
+│   ├── monthlySavings.test.js              ← Savings cascade, surplus routing, contribution room tests
+│   ├── fixtures/
+│   │   └── scenarios.js                    ← 12 canonical test fixtures (Phase 1.5 test matrix)
 │   └── golden/                             ← Committed JSON snapshots (npm run generate:golden)
 │
 ├── dist/                                   ← Production build output (Vite)

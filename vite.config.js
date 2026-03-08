@@ -11,6 +11,7 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/.{idea,git,cache,output,temp}/**',
+      '.claude/worktrees/**',
       'tests/golden/generate.test.js',
     ],
   },

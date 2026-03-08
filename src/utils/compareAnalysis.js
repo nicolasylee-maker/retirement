@@ -73,6 +73,7 @@ export const DIFF_FIELDS = [
   { key: 'otherDebtPayoffAge', label: 'Other Debt Payoff Age', fmt: v => String(v), unit: 'year' },
 
   // Expenses & Assumptions
+  { key: 'monthlySavings', label: 'Monthly Savings', fmt: fmtDollar, unit: 'dollar' },
   { key: 'monthlyExpenses', label: 'Monthly Expenses', fmt: fmtDollar, unit: 'dollar' },
   { key: 'expensesIncludeDebt', label: 'Expenses Include Debt', fmt: fmtBool, unit: 'boolean' },
   { key: 'expenseReductionAtRetirement', label: 'Expense Reduction at Retirement', fmt: fmtPct, unit: 'percent' },

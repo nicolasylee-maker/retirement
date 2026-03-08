@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "generate:golden": "vitest run --config tests/golden/generate.config.js",
     "update:tax": "node scripts/update-tax-data.js",
-    "check:legislation": "node scripts/check-canlii.js"
+    "check:legislation": "node scripts/check-canlii.js",
+    "dev:login": "node scripts/dev-login.js"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

@@ -44,7 +44,7 @@ export default function SavingsStep({ scenario, onChange, dismissedDots, dismiss
             onChange={handleChange('rrspContributionRoom')}
             prefix="$"
             min={0}
-            helper="How much more you can still put in — listed on your CRA Notice of Assessment or My Account. For reference only — catch-up RRSP contributions are not modeled in projections."
+            helper="How much more you can still put in — listed on your CRA Notice of Assessment or My Account. Used to cap RRSP contributions from monthly savings."
           />
         </div>
       </Card>

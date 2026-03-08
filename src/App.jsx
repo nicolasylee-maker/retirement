@@ -871,7 +871,22 @@ export default function App() {
                   {saveStatus === 'error' && <span className="text-xs text-red-500 shrink-0">Save failed</span>}
                 </div>
               )}
-              {(authUser || view !== 'dashboard') && (
+              <input ref={importInputRef} type="file" accept=".json,application/json"
+                onChange={handleImport} className="hidden" aria-label="Import scenario file" />
+              {isAdmin && (
+                <button type="button" onClick={() => setSimulateFreeUser(v => !v)}
+                  className={`text-xs font-medium px-2 py-0.5 rounded ${
+                    simulateFreeUser ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                  {simulateFreeUser ? 'Free Preview' : 'Pro View'}
+                </button>
+              )}
+              <EnvironmentBadge />
+              <SubscriptionBadge />
+              {authUser && (
+                <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
+              )}
+              {(authUser || view !== 'landing') && (
               <div className="relative">
                 <button type="button" onClick={() => setMenuOpen(v => !v)}
                   className={`p-1.5 rounded-lg transition-colors ${
@@ -893,9 +908,9 @@ export default function App() {
                         <div className="border-t border-gray-100 my-1.5 mx-3" />
                       </>
                     )}
+                    <button onClick={menuAction(() => { setWizardStep(0); setWizardIsNew(false); setView('wizard'); })} className="menu-item">Edit Plan</button>
                     {authUser && (
                       <>
-                        <button onClick={menuAction(() => { setWizardStep(0); setWizardIsNew(false); setView('wizard'); })} className="menu-item">Edit Plan</button>
                         <GatedButton featureName="Multiple Plans" onClick={menuAction(handleStartNew)} className="menu-item w-full text-left">New Plan</GatedButton>
                         <button onClick={menuAction(() => handleRenameScenario())} className="menu-item">Rename Plan</button>
                         <GatedButton featureName="Multiple Plans" onClick={menuAction(handleDuplicateScenario)} className="menu-item w-full text-left">Duplicate Plan</GatedButton>
@@ -928,21 +943,6 @@ export default function App() {
                   </div>
                 )}
               </div>
-              )}
-              <input ref={importInputRef} type="file" accept=".json,application/json"
-                onChange={handleImport} className="hidden" aria-label="Import scenario file" />
-              {isAdmin && (
-                <button type="button" onClick={() => setSimulateFreeUser(v => !v)}
-                  className={`text-xs font-medium px-2 py-0.5 rounded ${
-                    simulateFreeUser ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'
-                  }`}>
-                  {simulateFreeUser ? 'Free Preview' : 'Pro View'}
-                </button>
-              )}
-              <EnvironmentBadge />
-              <SubscriptionBadge />
-              {(authUser || view !== 'dashboard') && (
-                <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
               )}
             </div>
           </div>
@@ -965,7 +965,11 @@ export default function App() {
               </h1>
             </div>
             <div className="flex items-center gap-1">
-              {(authUser || view !== 'dashboard') && (
+              <SubscriptionBadge />
+              {authUser && (
+                <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
+              )}
+              {(authUser || view !== 'landing') && (
               <div className="relative">
                 <button type="button" onClick={() => setMenuOpen(v => !v)}
                   className={`p-1.5 rounded-lg transition-colors ${
@@ -987,9 +991,9 @@ export default function App() {
                         <div className="border-t border-gray-100 my-1.5 mx-3" />
                       </>
                     )}
+                    <button onClick={menuAction(() => { setWizardStep(0); setWizardIsNew(false); setView('wizard'); })} className="menu-item">Edit Plan</button>
                     {authUser && (
                       <>
-                        <button onClick={menuAction(() => { setWizardStep(0); setWizardIsNew(false); setView('wizard'); })} className="menu-item">Edit Plan</button>
                         <GatedButton featureName="Multiple Plans" onClick={menuAction(handleStartNew)} className="menu-item w-full text-left">New Plan</GatedButton>
                         <button onClick={menuAction(() => handleRenameScenario())} className="menu-item">Rename Plan</button>
                         <GatedButton featureName="Multiple Plans" onClick={menuAction(handleDuplicateScenario)} className="menu-item w-full text-left">Duplicate Plan</GatedButton>
@@ -1022,12 +1026,6 @@ export default function App() {
                   </div>
                 )}
               </div>
-              )}
-              <input ref={importInputRef} type="file" accept=".json,application/json"
-                onChange={handleImport} className="hidden" aria-label="Import scenario file" />
-              <SubscriptionBadge />
-              {(authUser || view !== 'dashboard') && (
-                <AccountMenu onAdmin={isAdmin ? () => setView('admin') : null} open={signInOpen} onOpenChange={setSignInOpen} />
               )}
             </div>
           </div>

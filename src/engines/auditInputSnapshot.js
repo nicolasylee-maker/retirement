@@ -38,6 +38,9 @@ export function auditInputSnapshot(scenario) {
   if (s.stillWorking && s.employmentIncome > 0) {
     rows.push(['Employment income', `${$(s.employmentIncome)}/yr (inflation-adjusted until retirement)`]);
   }
+  if (s.monthlySavings > 0) {
+    rows.push(['Monthly savings', `${$(s.monthlySavings)}/mo (RRSP first, then TFSA, then non-reg)`]);
+  }
   if (s.nonTaxedIncome > 0) {
     rows.push(['Non-taxed income', `${$(s.nonTaxedIncome)}/yr (ages ${s.nonTaxedIncomeStartAge ?? s.currentAge}–${s.nonTaxedIncomeEndAge ?? s.lifeExpectancy})`]);
   }

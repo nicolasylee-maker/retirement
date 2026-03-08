@@ -49,6 +49,7 @@ retirement/
 │   │   ├── incomeHelpers.js                ← Pure income benefit helpers (CPP, OAS, GIS, GAINS, capital gains)
 │   │   ├── taxEngine.js                    ← Federal + provincial tax, OAS clawback, RRIF minimums
 │   │   ├── estateEngine.js                 ← Estate tax, probate, distribution analysis
+│   │   ├── savingsCalc.js                  ← Monthly savings → RRSP contribution allocation + affordability caps
 │   │   ├── withdrawalCalc.js               ← Sustainable withdrawal binary search
 │   │   ├── optimizerEngine.js              ← Plan optimizer: tests 8 dimensions (CPP/OAS, withdrawal order, meltdown, debt, expenses)
 │   │   ├── auditInputSnapshot.js           ← Audit section 1: full input snapshot table

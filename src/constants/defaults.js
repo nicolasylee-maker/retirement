@@ -102,6 +102,7 @@ export function createDefaultScenario(name = 'My Scenario') {
     otherDebtPayoffAge: 70,    // same default as consumerDebtPayoffAge
 
     // Step 7: Expenses & Assumptions
+    monthlySavings: 0,
     monthlyExpenses: 4000,
     expensesIncludeDebt: false,
     expenseReductionAtRetirement: 0.10,

@@ -84,6 +84,7 @@ export function buildDashboardAiData(scenario, projectionData) {
     oasAtRetirement: oasAtRet,
     oasMonthlyToday: tdMonthly(oasAtRet),
     pensionIncome: scenario.pensionType === 'db' ? scenario.dbPensionAnnual : 0,
+    monthlySavings: scenario.monthlySavings || 0,
     expReductionPct,
     // Depletion context (Bug 3)
     depletionAge: depletionAge || 'never',

@@ -129,6 +129,11 @@ export let TFSA_PARAMS = {
   annualLimit: FEDERAL.tfsa.annualLimit,
 };
 
+export let RRSP_PARAMS = {
+  annualLimit: FEDERAL.rrsp.annualLimit,
+  earnedIncomeRate: 0.18,
+};
+
 // Ontario-specific probate — kept for backward compat with auditAnalysis.js
 export let PROBATE = {
   firstThreshold: ON_DATA.probate.tiers[0].upTo,
@@ -163,6 +168,7 @@ export function _injectLiveTaxData(federal, provinces) {
     RRIF_MIN_RATES   = buildRrifRates(FEDERAL);
     CAPITAL_GAINS    = { inclusionRate: FEDERAL.capitalGains.inclusionRate };
     TFSA_PARAMS      = { annualLimit: FEDERAL.tfsa.annualLimit };
+    RRSP_PARAMS      = { annualLimit: FEDERAL.rrsp.annualLimit, earnedIncomeRate: 0.18 };
     PROBATE          = { firstThreshold: ON_DATA.probate.tiers[0].upTo, firstRate: ON_DATA.probate.tiers[0].ratePerThousand / 1000, aboveRate: ON_DATA.probate.tiers[1].ratePerThousand / 1000 };
     INTESTACY        = { spousePreferentialShare: ON_DATA.intestacy.spousePreferentialShare };
     return;
@@ -198,5 +204,8 @@ export function _injectLiveTaxData(federal, provinces) {
     RRIF_MIN_RATES   = buildRrifRates(federal);
     CAPITAL_GAINS    = { inclusionRate: federal.capitalGains.inclusionRate };
     TFSA_PARAMS      = { annualLimit: federal.tfsa.annualLimit };
+    if (federal.rrsp) {
+      RRSP_PARAMS    = { annualLimit: federal.rrsp.annualLimit, earnedIncomeRate: 0.18 };
+    }
   }
 }

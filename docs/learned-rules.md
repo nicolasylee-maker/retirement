@@ -67,6 +67,16 @@
 - **Optimizer scores are per-scenario, independent per dimension**: Each dimension is tested in isolation against the baseline — interactions between dimensions (e.g. "defer CPP and also do meltdown") are not jointly optimised. Applying a recommendation updates the scenario, then re-running re-scores all dimensions against the new baseline.
 - **Skip logic prevents noise**: meltdown + withdrawalOrder skip when `rrspBalance + rrifBalance === 0`; expenses skip when `base.depletion === null`; spouse dims skip when `!isCouple`. Tests should assert these dimensions are *absent* from both `recommendations` and `alreadyOptimal` (not just not recommended).
 
+## Monthly Savings / RRSP Contributions
+
+- `monthlySavings` routes savings: RRSP first (tax-deductible), then remaining surplus flows to TFSA/NonReg via existing deposit logic
+- RRSP contributions capped at `min(target, $32,490/yr, available room)`
+- Contributions only during working years (pre-retirement, `stillWorking: true`)
+- Couple mode: split proportional to each person's employment income, capped at each person's $32,490 limit
+- RRSP room accrues at `min(earnedIncome * 18%, $32,490)` annually
+- Affordability cap: pre-caps savings target at estimated after-tax surplus, then post-loop reduces if still negative
+- `monthlySavings: 0` or `undefined` is a true no-op — identical to baseline projections
+
 ## Projection Engine Pitfalls
 
 - **`surplus` field is always zero in projection output**: `projectionEngine.js` computes `surplus = afterTaxIncome - expenses - debtPayments`, then immediately deposits any positive remainder into TFSA/non-reg accounts, zeroing out `surplus`. Never use `surplus` for savings calculations or KPIs. Instead use `tfsaDeposit + nonRegDeposit` for actual new savings, or `totalPortfolio` deltas for portfolio trajectory.

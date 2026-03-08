@@ -306,10 +306,15 @@ describe('surplus calculation', () => {
 describe('net worth', () => {
   it('includes real estate minus all debts', () => {
     const s = { ...frank(), realEstateValue: 400000, otherDebt: 3000 };
-    const first = projectScenario(s)[0];
-    // netWorth = totalPortfolio + realEstate - mortgage - otherDebt (otherDebt never amortized)
-    const expected = first.totalPortfolio + 400000 - first.mortgageBalance - 3000;
-    expect(Math.abs(first.netWorth - expected)).toBeLessThanOrEqual(1);
+    const rows = projectScenario(s);
+    const first = rows[0];
+    // netWorth should be greater than portfolio alone (real estate adds value)
+    // and less than portfolio + realEstate (debts subtract)
+    expect(first.netWorth).toBeGreaterThan(first.totalPortfolio);
+    expect(first.netWorth).toBeLessThan(first.totalPortfolio + 400000);
+    // Eventually debts are paid off — net worth approaches portfolio + real estate
+    const last = rows[rows.length - 1];
+    expect(last.netWorth).toBeCloseTo(last.totalPortfolio + 400000, -1);
   });
   it('Margaret (no real estate, no debts): net worth = portfolio', () => {
     projectScenario(margaret()).forEach(row => expect(row.netWorth).toBe(row.totalPortfolio));

@@ -89,7 +89,7 @@ The scenario object is the central data model. Full shape defined in `src/consta
 | Savings | `rrspBalance`, `tfsaBalance`, `rrifBalance`, `otherRegisteredBalance` |
 | Other Assets | `cashSavings`, `nonRegInvestments`, `realEstateValue`, `otherAssets` |
 | Liabilities | `mortgageBalance`, `consumerDebt`, `otherDebt` (with rates + terms) |
-| Expenses | `monthlyExpenses`, `expenseReductionAtRetirement`, `inflationRate`, `realReturn` |
+| Expenses | `monthlyExpenses`, `monthlySavings`, `expenseReductionAtRetirement`, `inflationRate`, `realReturn` |
 | Withdrawal | `withdrawalOrder` (array), `rrspMeltdownEnabled`, `rrspMeltdownTargetAge` |
 | Couple Support | `isCouple`, `spouseAge`, `spouseRetirementAge`, `spouseEmploymentIncome`, `spouseCppMonthly`, `spouseOasMonthly`, `spousePensionType`, `spouseRrspBalance`, `spouseTfsaBalance` |
 | Estate | `hasWill`, `primaryBeneficiary`, `numberOfChildren`, `estimatedCostBasis` |
@@ -107,7 +107,7 @@ Each year in the projection array contains:
 | Withdrawals | `rrspWithdrawal`, `tfsaWithdrawal`, `nonRegWithdrawal`, `otherWithdrawal` |
 | Tax | `totalTaxableIncome`, `totalTax`, `afterTaxIncome` |
 | Couple Income | `spouseCppIncome`, `spouseOasIncome`, `spouseEmploymentIncome`, `spousePensionIncome`, `spouseRrspWithdrawal`, `spouseRrspBalance`, `spouseTfsaBalance`, `spouseTfsaWithdrawal` |
-| Deposits | `tfsaDeposit`, `nonRegDeposit` (actual new savings — see learned-rules.md for surplus pitfall) |
+| Deposits | `rrspDeposit`, `tfsaDeposit`, `nonRegDeposit` (actual new savings — see learned-rules.md for surplus pitfall) |
 | Cashflow | `expenses`, `debtPayments`, `surplus` (always 0 after deposits — do not use for KPIs), `netWorth` |
 
 ## Adding a New Module
@@ -160,6 +160,7 @@ tests/yourModuleEngine.test.js    ← Unit tests for engine functions
 | `src/engines/optimizerEngine.js` | `runOptimization(scenario)` — tests 8 dimensions, returns ranked recommendations |
 | `src/engines/readinessEngine.js` | `computeReadinessRank(scenario)` — Canadian percentile rank vs Stats Canada/Fidelity benchmarks by age bracket |
 | `src/views/readiness/ReadinessView.jsx` | Post-wizard rank screen: animated arc gauge, percentile headline, stat cards |
+| `src/engines/savingsCalc.js` | Monthly savings → RRSP contribution allocation, affordability caps |
 | `src/engines/incomeHelpers.js` | Pure income helper functions (CPP, OAS, GIS, GAINS, capital gains) |
 | `src/hooks/useCloudSync.js` | Supabase scenario sync: fetch on sign-in, auto-save on change |
 | `src/services/supabaseClient.js` | Supabase client singleton |

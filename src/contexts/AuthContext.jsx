@@ -19,6 +19,19 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    // Dev-only: handle ?token_hash= from magic link generated via CLI
+    if (import.meta.env.DEV) {
+      const params = new URLSearchParams(window.location.search)
+      const tokenHash = params.get('token_hash')
+      const tokenType = params.get('type') || 'magiclink'
+      if (tokenHash) {
+        window.history.replaceState({}, '', window.location.pathname)
+        supabase.auth.verifyOtp({ token_hash: tokenHash, type: tokenType }).then(({ data, error }) => {
+          if (error) { console.error('Token login failed:', error.message); }
+        })
+      }
+    }
+
     // getSession reads from localStorage (no network call).
     // If a session exists, validate it against the server via getUser() so that
     // deleted accounts are caught and signed out immediately on refresh.

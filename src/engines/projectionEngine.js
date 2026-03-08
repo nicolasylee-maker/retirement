@@ -1,4 +1,5 @@
-import { TFSA_PARAMS } from '../constants/taxTables.js';
+import { TFSA_PARAMS, RRSP_PARAMS } from '../constants/taxTables.js';
+import { allocateRrspContributions, capToAffordable, applyAffordabilityCap } from './savingsCalc.js';
 import { calcTotalTax, calcOasClawback, calcRrifMinimum } from './taxEngine.js';
 import { calcCppBenefit, calcOasBenefit, calcGisBenefit, calcGainsBenefit, calcTaxableCapitalGain } from './incomeHelpers.js';
 import { calcAnnualPayment } from '../utils/debtCalc.js';
@@ -19,6 +20,8 @@ export function projectScenario(scenario, overrides = {}) {
   let otherDebt = s.otherDebt || 0;
   let rrifConverted = s.currentAge >= 72;
   let tfsaContribRoom = s.tfsaContributionRoom || 0;
+  let rrspContribRoom = s.rrspContributionRoom || 0;
+  let spouseRrspContribRoom = s.isCouple ? (s.spouseRrspContributionRoom || 0) : 0;
   const realReturn = s.realReturn || 0.04;
   const tfsaReturn = s.tfsaReturn || realReturn;
   const nonRegReturn = s.nonRegReturn || realReturn;
@@ -134,6 +137,16 @@ export function projectScenario(scenario, overrides = {}) {
         nonTaxedIncome = s.nonTaxedIncome * inflationFactor;
       }
     }
+
+    // Monthly savings → RRSP contributions (pre-retirement only)
+    const rawTarget = (!retired && (s.stillWorking ?? true)) ? (s.monthlySavings || 0) * 12 * inflationFactor : 0;
+    const targetSavings = capToAffordable(rawTarget, employmentIncome + spouseEmploymentIncome, expenses, debtPayments);
+    let { rrspContrib, spouseRrspContrib } = allocateRrspContributions({
+      targetSavings, employmentIncome, spouseEmploymentIncome,
+      rrspContribRoom, spouseRrspContribRoom,
+      isCouple: !!s.isCouple, spouseRetired,
+    });
+    let totalRrspContrib = rrspContrib + spouseRrspContrib;
 
     const cppIncome = calcCppBenefit(s.cppMonthly || 0, s.cppStartAge || 65, age) * inflationFactor;
     const oasGross = calcOasBenefit(s.oasMonthly || 0, s.oasStartAge || 65, age) * inflationFactor;
@@ -279,7 +292,7 @@ export function projectScenario(scenario, overrides = {}) {
       }
 
       const primaryHasPension = pensionIncome > 0 || (rrifConverted && rrspWithdrawal > 0);
-      const primaryTaxable = employmentIncome + cppIncome + oasIncome + pensionIncome + rrspWithdrawal;
+      const primaryTaxable = Math.max(0, employmentIncome + cppIncome + oasIncome + pensionIncome + rrspWithdrawal - rrspContrib);
       nonRegTaxableGain = 0;
       if (nonRegWithdrawal > 0 && nonReg > 0) {
         const gainRatio = Math.min(1, Math.max(0, (nonReg - nonRegCostBasis) / nonReg));
@@ -287,7 +300,7 @@ export function projectScenario(scenario, overrides = {}) {
       }
       if (s.isCouple) {
         const spouseHasPension = spousePensionIncome > 0 || (spouseRrifConverted && spouseRrspWithdrawal > 0);
-        const spouseTaxable = spouseEmploymentIncome + spouseCppIncome + spouseOasIncome + spousePensionIncome + spouseRrspWithdrawal;
+        const spouseTaxable = Math.max(0, spouseEmploymentIncome + spouseCppIncome + spouseOasIncome + spousePensionIncome + spouseRrspWithdrawal - spouseRrspContrib);
         totalTaxableIncome = primaryTaxable + nonRegTaxableGain + spouseTaxable;
         totalTax = calcTotalTax(primaryTaxable + nonRegTaxableGain, age, primaryHasPension, s.province || 'ON')
           + calcTotalTax(spouseTaxable, spouseAgeThisYear, spouseHasPension, s.province || 'ON');
@@ -300,16 +313,22 @@ export function projectScenario(scenario, overrides = {}) {
         + spouseEmploymentIncome + spouseCppIncome + spouseOasIncome + spousePensionIncome + spouseRrspWithdrawal
         + spouseTfsaWithdrawal;
       afterTaxIncome = grossIncome - totalTax;
-      surplus = afterTaxIncome - expenses - debtPayments;
+      surplus = afterTaxIncome - expenses - debtPayments - totalRrspContrib;
 
       if (surplus >= -50) break;
       remaining = -surplus;
       if (rrspAvail <= 0 && tfsaAvail <= 0 && (!s.isCouple || spouseTfsaAvail <= 0) && nonRegAvail <= 0 && otherAvail <= 0) break;
     }
 
+    // Affordability cap: reduce RRSP contributions if surplus is deeply negative
+    ({ rrspContrib, spouseRrspContrib, surplus } = applyAffordabilityCap(
+      surplus, rrspContrib, spouseRrspContrib, afterTaxIncome, expenses, debtPayments,
+    ));
+    totalRrspContrib = rrspContrib + spouseRrspContrib;
+
     // Update balances after convergence
     const preWithdrawalNonReg = nonReg;
-    rrsp = Math.max(0, rrsp - rrspWithdrawal);
+    rrsp = Math.max(0, rrsp - rrspWithdrawal + rrspContrib);
     tfsa = Math.max(0, tfsa - tfsaWithdrawal);
     if (nonRegWithdrawal > 0 && preWithdrawalNonReg > 0) {
       nonRegCostBasis *= (preWithdrawalNonReg - nonRegWithdrawal) / preWithdrawalNonReg;
@@ -317,12 +336,18 @@ export function projectScenario(scenario, overrides = {}) {
     nonReg = Math.max(0, nonReg - nonRegWithdrawal);
     other = Math.max(0, other - otherWithdrawal);
     if (s.isCouple) {
-      spouseRrsp = Math.max(0, spouseRrsp - spouseRrspWithdrawal);
+      spouseRrsp = Math.max(0, spouseRrsp - spouseRrspWithdrawal + spouseRrspContrib);
       spouseTfsa = Math.max(0, spouseTfsa - spouseTfsaWithdrawal);
     }
 
-    // Accrue annual TFSA contribution room
+    // Accrue contribution room
     tfsaContribRoom += TFSA_PARAMS.annualLimit;
+    rrspContribRoom = Math.max(0, rrspContribRoom - rrspContrib)
+      + Math.min(employmentIncome * RRSP_PARAMS.earnedIncomeRate, RRSP_PARAMS.annualLimit);
+    if (s.isCouple) {
+      spouseRrspContribRoom = Math.max(0, spouseRrspContribRoom - spouseRrspContrib)
+        + Math.min(spouseEmploymentIncome * RRSP_PARAMS.earnedIncomeRate, RRSP_PARAMS.annualLimit);
+    }
 
     // Deposit surplus into TFSA (then non-reg overflow)
     let tfsaDeposit = 0;
@@ -378,8 +403,10 @@ export function projectScenario(scenario, overrides = {}) {
       expenses: Math.round(expenses),
       debtPayments: Math.round(debtPayments),
       surplus: Math.round(surplus),
+      rrspDeposit: Math.round(rrspContrib),
       tfsaDeposit: Math.round(tfsaDeposit),
       nonRegDeposit: Math.round(nonRegDeposit),
+      rrspContributionRoom: Math.round(rrspContribRoom),
       tfsaContributionRoom: Math.round(tfsaContribRoom),
       mortgageBalance: Math.round(mortgage),
       netWorth: Math.round(netWorth),
@@ -391,6 +418,7 @@ export function projectScenario(scenario, overrides = {}) {
       spouseRrspBalance: s.isCouple ? Math.round(spouseRrsp) : undefined,
       spouseTfsaWithdrawal: s.isCouple ? Math.round(spouseTfsaWithdrawal) : undefined,
       spouseTfsaBalance: s.isCouple ? Math.round(spouseTfsa) : undefined,
+      spouseRrspDeposit: s.isCouple ? Math.round(spouseRrspContrib) : undefined,
     });
   }
 

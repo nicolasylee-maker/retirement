@@ -46,13 +46,17 @@ const SPOUSE_HEADERS = [
   'Spouse RRSP Bal', 'Spouse TFSA Bal',
 ];
 
+const RRSP_DEPOSIT_HEADER = ['RRSP Deposit'];
+
 export function buildProjectionSheet(wb, scenario) {
   const ws = wb.addWorksheet(SHEET_NAME, { properties: { tabColor: { argb: 'FF2E75B6' } } });
   const isCouple = !!scenario.isCouple;
 
   const currentYear = new Date().getFullYear();
   const numYears = scenario.lifeExpectancy - scenario.currentAge + 1;
-  const headers = isCouple ? [...BASE_HEADERS, ...SPOUSE_HEADERS] : BASE_HEADERS;
+  const headers = isCouple
+    ? [...BASE_HEADERS, ...SPOUSE_HEADERS, ...RRSP_DEPOSIT_HEADER]
+    : [...BASE_HEADERS, ...RRSP_DEPOSIT_HEADER];
 
   addPurposeRows(ws,
     'This is your complete financial life, one row per year from today until life expectancy. ' +
@@ -73,6 +77,8 @@ export function buildProjectionSheet(wb, scenario) {
     [38,14],[39,14],[40,14],[41,14],[42,14],[43,14],[44,14],[45,14],
   ];
   if (isCouple) { for (let c = 46; c <= 55; c++) widths.push([c, 14]); }
+  // RRSP Deposit column (after base or after spouse)
+  widths.push([headers.length, 14]);
   setColWidths(ws, widths);
 
   const hdr = ws.getRow(HDR_ROW);
@@ -106,6 +112,11 @@ export function buildProjectionSheet(wb, scenario) {
     if (isCouple) {
       buildSpouseCells(row, r, isFirst, prevR, spCppAdj, spOasAdj);
     }
+
+    // RRSP Deposit (last column): savings-driven RRSP contribution during working years
+    const rrspDepCol = headers.length;
+    row.getCell(rrspDepCol).value = { formula: `IF(C${r}=0, MIN(Assumptions_MonthlySavings*12*D${r}, 32490), 0)` };
+    row.getCell(rrspDepCol).numFmt = FMT.currency;
   }
 
   // Conditional formatting
@@ -273,6 +284,7 @@ function buildPrimaryCells(row, r, prevR, isFirst, isCouple, ctx) {
   row.getCell(45).value = { formula:
     `MAX(0,${prevCostBasis}*MAX(0,${cbPrevBal}-V${r})/IF(${cbPrevBal}>0,${cbPrevBal},1))+${overflowDeposit}` };
   row.getCell(45).numFmt = FMT.currency;
+
 }
 
 export { SHEET_NAME as PROJECTION_SHEET_NAME };

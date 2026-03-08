@@ -74,6 +74,28 @@ export default function ExpensesStep({ scenario, onChange, dismissedDots, dismis
         </p>
       </div>
 
+      {/* Monthly savings target */}
+      {!alreadyRetired && (
+        <Card>
+          <h3 className="text-lg font-semibold text-gray-800 mb-1">Monthly Savings</h3>
+          <p className="text-sm text-gray-500 mb-3">
+            How much you plan to save each month during working years. Savings are
+            routed to RRSP first (tax-deductible), then TFSA, then non-registered.
+          </p>
+          <FormField
+            label="Monthly Savings"
+            name="monthlySavings"
+            type="number"
+            value={scenario.monthlySavings || 0}
+            onChange={(v) => onChange({ monthlySavings: v })}
+            prefix="$"
+            suffix="/mo"
+            min={0}
+            helper="Set to $0 if you don't plan to save more before retirement"
+          />
+        </Card>
+      )}
+
       {/* Monthly expenses */}
       <Card>
         <h3 className="text-lg font-semibold text-gray-800 mb-3">Monthly Spending</h3>

@@ -171,5 +171,6 @@ export function buildBaseDictEntries(isCouple) {
       : 'RRSP + TFSA + NonReg + Other (all investment accounts)'],
     ['Net Worth',         'Total portfolio + real estate - mortgage balance'],
     ['NonReg Cost Basis', 'Tracks what you originally paid into non-reg accounts, adjusted for withdrawals/deposits. Used to calculate capital gains tax.'],
+    ['RRSP Deposit', 'Monthly savings routed to RRSP during working years (RRSP first, then TFSA, then non-reg). Capped at $32,490/yr.'],
   ];
 }

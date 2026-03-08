@@ -1,10 +1,99 @@
-import React from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import FormField from '../../components/FormField';
 import Card from '../../components/Card';
 import { PulsingDot } from '../../components/PulsingDot';
+import { estimateTfsaRoom, cumulativeTfsaLimit, estimateRrspRoom } from '../../constants/tfsaLimits';
+
+const CURRENT_YEAR = new Date().getFullYear();
+
+const fmtK = (v) => `$${Math.round(v).toLocaleString('en-CA')}`;
+
+function TfsaRoomHelper({ age, balance }) {
+  const cumLimit = useMemo(() => cumulativeTfsaLimit(age, CURRENT_YEAR), [age]);
+  if (balance > cumLimit) {
+    return (
+      <span className="text-amber-700">
+        Your balance exceeds the lifetime contribution limit — your room is likely $0 unless you've made withdrawals that restored room.
+      </span>
+    );
+  }
+  return (
+    <span>
+      Estimated: {fmtK(cumLimit)} lifetime limit − {fmtK(balance)} balance. Check CRA My Account for exact amount.
+    </span>
+  );
+}
+
+function RrspEstimateButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="ml-2 px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+    >
+      Estimate
+    </button>
+  );
+}
 
 export default function SavingsStep({ scenario, onChange, dismissedDots, dismissDot }) {
   const handleChange = (field) => (value) => {
+    onChange({ [field]: value });
+  };
+
+  // Track whether user has manually edited contribution room fields
+  const userEditedRef = useRef({});
+  const [rrspEstimateWarning, setRrspEstimateWarning] = useState(null);
+  const [spouseRrspEstimateWarning, setSpouseRrspEstimateWarning] = useState(null);
+
+  // TFSA room estimate — auto-populate when field is 0 and not user-edited
+  const tfsaRoomEstimate = useMemo(
+    () => estimateTfsaRoom(scenario.currentAge, CURRENT_YEAR, scenario.tfsaBalance),
+    [scenario.currentAge, scenario.tfsaBalance],
+  );
+
+  useEffect(() => {
+    if (!userEditedRef.current.tfsaContributionRoom && !scenario.tfsaContributionRoom && tfsaRoomEstimate > 0) {
+      onChange({ tfsaContributionRoom: tfsaRoomEstimate });
+    }
+  }, [tfsaRoomEstimate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Spouse TFSA room estimate
+  const spouseTfsaRoomEstimate = useMemo(
+    () => scenario.isCouple ? estimateTfsaRoom(scenario.spouseAge, CURRENT_YEAR, scenario.spouseTfsaBalance) : 0,
+    [scenario.isCouple, scenario.spouseAge, scenario.spouseTfsaBalance],
+  );
+
+  useEffect(() => {
+    if (!scenario.isCouple) return;
+    if (!userEditedRef.current.spouseTfsaContributionRoom && !scenario.spouseTfsaContributionRoom && spouseTfsaRoomEstimate > 0) {
+      onChange({ spouseTfsaContributionRoom: spouseTfsaRoomEstimate });
+    }
+  }, [spouseTfsaRoomEstimate, scenario.isCouple]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // RRSP room estimate — button-triggered
+  const handleEstimateRrsp = () => {
+    const est = estimateRrspRoom(
+      scenario.currentAge, scenario.employmentIncome,
+      scenario.rrspBalance, scenario.dcPensionBalance, scenario.liraBalance,
+    );
+    onChange({ rrspContributionRoom: est });
+    setRrspEstimateWarning('Rough estimate based on current income. Actual room depends on income history and pension adjustments.');
+  };
+
+  const handleEstimateSpouseRrsp = () => {
+    const est = estimateRrspRoom(
+      scenario.spouseAge, scenario.spouseEmploymentIncome,
+      scenario.spouseRrspBalance, scenario.spouseDcPensionBalance, 0,
+    );
+    onChange({ spouseRrspContributionRoom: est });
+    setSpouseRrspEstimateWarning('Rough estimate based on current income. Actual room depends on income history and pension adjustments.');
+  };
+
+  const handleUserEdit = (field) => (value) => {
+    userEditedRef.current[field] = true;
+    if (field === 'rrspContributionRoom') setRrspEstimateWarning(null);
+    if (field === 'spouseRrspContributionRoom') setSpouseRrspEstimateWarning(null);
     onChange({ [field]: value });
   };
 
@@ -36,16 +125,28 @@ export default function SavingsStep({ scenario, onChange, dismissedDots, dismiss
             min={0}
             helper="How much is in your RRSP today — check your bank or investment statement"
           />
-          <FormField
-            label="Contribution Room"
-            name="rrspContributionRoom"
-            type="number"
-            value={scenario.rrspContributionRoom}
-            onChange={handleChange('rrspContributionRoom')}
-            prefix="$"
-            min={0}
-            helper="How much more you can still put in — listed on your CRA Notice of Assessment or My Account. Used to cap RRSP contributions from monthly savings."
-          />
+          <div>
+            <FormField
+              label={
+                <span className="flex items-center gap-1">
+                  Contribution Room
+                  {!scenario.rrspContributionRoom && (
+                    <RrspEstimateButton onClick={handleEstimateRrsp} />
+                  )}
+                </span>
+              }
+              name="rrspContributionRoom"
+              type="number"
+              value={scenario.rrspContributionRoom}
+              onChange={handleUserEdit('rrspContributionRoom')}
+              prefix="$"
+              min={0}
+              helper="How much more you can still put in — listed on your CRA Notice of Assessment or My Account. Used to cap RRSP contributions from monthly savings."
+            />
+            {rrspEstimateWarning && (
+              <p className="text-xs text-amber-700 mt-1">{rrspEstimateWarning}</p>
+            )}
+          </div>
         </div>
       </Card>
 
@@ -68,16 +169,22 @@ export default function SavingsStep({ scenario, onChange, dismissedDots, dismiss
             min={0}
             helper="How much is in your TFSA today — check your bank or investment statement"
           />
-          <FormField
-            label="Contribution Room"
-            name="tfsaContributionRoom"
-            type="number"
-            value={scenario.tfsaContributionRoom}
-            onChange={handleChange('tfsaContributionRoom')}
-            prefix="$"
-            min={0}
-            helper="How much more you can contribute — unused room carries forward from past years"
-          />
+          <div>
+            <FormField
+              label="Contribution Room"
+              name="tfsaContributionRoom"
+              type="number"
+              value={scenario.tfsaContributionRoom}
+              onChange={handleUserEdit('tfsaContributionRoom')}
+              prefix="$"
+              min={0}
+              helper={
+                scenario.tfsaContributionRoom > 0
+                  ? <TfsaRoomHelper age={scenario.currentAge} balance={scenario.tfsaBalance} />
+                  : "How much more you can contribute — unused room carries forward from past years"
+              }
+            />
+          </div>
         </div>
       </Card>
 
@@ -149,6 +256,44 @@ export default function SavingsStep({ scenario, onChange, dismissedDots, dismiss
               min={0}
               helper="Spouse's TFSA balance today"
             />
+            <div>
+              <FormField
+                label={
+                  <span className="flex items-center gap-1">
+                    Spouse RRSP Contribution Room
+                    {!scenario.spouseRrspContributionRoom && (
+                      <RrspEstimateButton onClick={handleEstimateSpouseRrsp} />
+                    )}
+                  </span>
+                }
+                name="spouseRrspContributionRoom"
+                type="number"
+                value={scenario.spouseRrspContributionRoom}
+                onChange={handleUserEdit('spouseRrspContributionRoom')}
+                prefix="$"
+                min={0}
+                helper="How much more your spouse can contribute to their RRSP. Check their CRA Notice of Assessment."
+              />
+              {spouseRrspEstimateWarning && (
+                <p className="text-xs text-amber-700 mt-1">{spouseRrspEstimateWarning}</p>
+              )}
+            </div>
+            <div>
+              <FormField
+                label="Spouse TFSA Contribution Room"
+                name="spouseTfsaContributionRoom"
+                type="number"
+                value={scenario.spouseTfsaContributionRoom}
+                onChange={handleUserEdit('spouseTfsaContributionRoom')}
+                prefix="$"
+                min={0}
+                helper={
+                  scenario.spouseTfsaContributionRoom > 0
+                    ? <TfsaRoomHelper age={scenario.spouseAge} balance={scenario.spouseTfsaBalance} />
+                    : "How much more your spouse can contribute to their TFSA. Unused room carries forward."
+                }
+              />
+            </div>
           </div>
         </Card>
       )}

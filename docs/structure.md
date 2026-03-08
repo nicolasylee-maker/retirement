@@ -39,6 +39,7 @@ retirement/
 │   │   ├── defaults.js                     ← Default scenario values (province:'ON'), wizard steps, presets
 │   │   ├── demoScenario.js                 ← DEMO_SCENARIO + DEMO_PROJECTION for landing page preview
 │   │   ├── designTokens.js                 ← Color palettes, chart styles, design constants
+│   │   ├── tfsaLimits.js                    ← TFSA annual limit history (2009–2026) + estimateTfsaRoom/estimateRrspRoom helpers
 │   │   └── taxTables.js                    ← Imports data/*.json; exports PROVINCE_DATA, PROVINCE_CODES, PROVINCE_NAMES + backward-compat constants
 │   │
 │   ├── data/
@@ -49,7 +50,7 @@ retirement/
 │   │   ├── incomeHelpers.js                ← Pure income benefit helpers (CPP, OAS, GIS, GAINS, capital gains)
 │   │   ├── taxEngine.js                    ← Federal + provincial tax, OAS clawback, RRIF minimums
 │   │   ├── estateEngine.js                 ← Estate tax, probate, distribution analysis
-│   │   ├── savingsCalc.js                  ← Monthly savings → RRSP contribution allocation + affordability caps
+│   │   ├── savingsCalc.js                  ← allocateSavings(): RRSP→TFSA→NonReg cascade + affordability caps
 │   │   ├── withdrawalCalc.js               ← Sustainable withdrawal binary search
 │   │   ├── optimizerEngine.js              ← Plan optimizer: tests 8 dimensions (CPP/OAS, withdrawal order, meltdown, debt, expenses)
 │   │   ├── auditInputSnapshot.js           ← Audit section 1: full input snapshot table
@@ -251,6 +252,7 @@ retirement/
 │   ├── trialOverride.test.js              ← Pure helpers: days remaining, expiry, build expiry date
 │   ├── mobilePolish.test.js                ← Mobile-specific UI helpers
 │   ├── optimizerEngine.test.js             ← All 8 optimization dimensions
+│   ├── tfsaLimits.test.js                  ← TFSA/RRSP contribution room estimate functions
 │   ├── compareAnalysis.test.js             ← Diff drivers, phase ranges, phase summaries, monthly snapshots
 │   └── golden/                             ← Committed JSON snapshots (npm run generate:golden)
 │

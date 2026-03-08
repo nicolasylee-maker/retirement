@@ -56,6 +56,9 @@ export const DIFF_FIELDS = [
   { key: 'spouseRrspBalance', label: 'Spouse RRSP', fmt: fmtDollar, unit: 'dollar' },
   { key: 'spouseRrifBalance', label: 'Spouse RRIF', fmt: fmtDollar, unit: 'dollar' },
   { key: 'spouseTfsaBalance', label: 'Spouse TFSA', fmt: fmtDollar, unit: 'dollar' },
+  { key: 'rrspContributionRoom', label: 'RRSP Contribution Room', fmt: fmtDollar, unit: 'dollar' },
+  { key: 'tfsaContributionRoom', label: 'TFSA Contribution Room', fmt: fmtDollar, unit: 'dollar' },
+  { key: 'spouseRrspContributionRoom', label: 'Spouse RRSP Room', fmt: fmtDollar, unit: 'dollar' },
   { key: 'spouseTfsaContributionRoom', label: 'Spouse TFSA Room', fmt: fmtDollar, unit: 'dollar' },
   { key: 'cashSavings', label: 'Cash Savings', fmt: fmtDollar, unit: 'dollar' },
   { key: 'nonRegInvestments', label: 'Non-Reg Investments', fmt: fmtDollar, unit: 'dollar' },
@@ -73,7 +76,7 @@ export const DIFF_FIELDS = [
   { key: 'otherDebtPayoffAge', label: 'Other Debt Payoff Age', fmt: v => String(v), unit: 'year' },
 
   // Expenses & Assumptions
-  { key: 'monthlySavings', label: 'Monthly Savings', fmt: fmtDollar, unit: 'dollar' },
+  { key: 'monthlySavings', label: 'Monthly Savings Target', fmt: fmtDollar, unit: 'dollar' },
   { key: 'monthlyExpenses', label: 'Monthly Expenses', fmt: fmtDollar, unit: 'dollar' },
   { key: 'expensesIncludeDebt', label: 'Expenses Include Debt', fmt: fmtBool, unit: 'boolean' },
   { key: 'expenseReductionAtRetirement', label: 'Expense Reduction at Retirement', fmt: fmtPct, unit: 'percent' },

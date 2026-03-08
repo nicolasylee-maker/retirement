@@ -17,8 +17,11 @@ const $ = (v) => formatCurrency(v);
 function computeYearReturns(row, prevTotalPortfolio) {
   const portfolioChange = (row.totalPortfolio || 0) - (prevTotalPortfolio || 0);
   const W = (row.rrspWithdrawal || 0) + (row.tfsaWithdrawal || 0)
-          + (row.nonRegWithdrawal || 0) + (row.otherWithdrawal || 0);
-  const D = (row.tfsaDeposit || 0) + (row.nonRegDeposit || 0);
+          + (row.nonRegWithdrawal || 0) + (row.otherWithdrawal || 0)
+          + (row.spouseRrspWithdrawal || 0) + (row.spouseTfsaWithdrawal || 0);
+  const D = (row.rrspDeposit || 0) + (row.spouseRrspDeposit || 0)
+          + (row.tfsaDeposit || 0) + (row.spouseTfsaDeposit || 0)
+          + (row.nonRegDeposit || 0);
   return portfolioChange + W - D;
 }
 
@@ -45,9 +48,12 @@ function aggregatePhase(projectionData, startAge, endAge, prevPortfolio) {
   let prevP = prevPortfolio;
   for (const row of rows) {
     totalReturns += computeYearReturns(row, prevP);
-    totalDeposits += (row.tfsaDeposit || 0) + (row.nonRegDeposit || 0);
+    totalDeposits += (row.rrspDeposit || 0) + (row.spouseRrspDeposit || 0)
+      + (row.tfsaDeposit || 0) + (row.spouseTfsaDeposit || 0)
+      + (row.nonRegDeposit || 0);
     totalWithdrawals += (row.rrspWithdrawal || 0) + (row.tfsaWithdrawal || 0)
-      + (row.nonRegWithdrawal || 0) + (row.otherWithdrawal || 0);
+      + (row.nonRegWithdrawal || 0) + (row.otherWithdrawal || 0)
+      + (row.spouseRrspWithdrawal || 0) + (row.spouseTfsaWithdrawal || 0);
     prevP = row.totalPortfolio || 0;
   }
 

@@ -39,7 +39,7 @@ export function auditInputSnapshot(scenario) {
     rows.push(['Employment income', `${$(s.employmentIncome)}/yr (inflation-adjusted until retirement)`]);
   }
   if (s.monthlySavings > 0) {
-    rows.push(['Monthly savings', `${$(s.monthlySavings)}/mo (RRSP first, then TFSA, then non-reg)`]);
+    rows.push(['Monthly savings target', `${$(s.monthlySavings)}/mo (RRSP first, then TFSA, then non-reg)`]);
   }
   if (s.nonTaxedIncome > 0) {
     rows.push(['Non-taxed income', `${$(s.nonTaxedIncome)}/yr (ages ${s.nonTaxedIncomeStartAge ?? s.currentAge}–${s.nonTaxedIncomeEndAge ?? s.lifeExpectancy})`]);
@@ -132,6 +132,9 @@ export function auditInputSnapshot(scenario) {
 
   if (s.rrspContributionRoom > 0) rows.push(['RRSP contribution room', $(s.rrspContributionRoom)]);
   if (s.tfsaContributionRoom > 0) rows.push(['TFSA contribution room', $(s.tfsaContributionRoom)]);
+  if (s.isCouple && s.spouseRrspContributionRoom > 0) {
+    rows.push(['Spouse RRSP contribution room', $(s.spouseRrspContributionRoom)]);
+  }
   if (s.isCouple && s.spouseTfsaContributionRoom > 0) {
     rows.push(['Spouse TFSA contribution room', $(s.spouseTfsaContributionRoom)]);
   }

@@ -336,3 +336,130 @@ describe('input validation', () => {
     });
   });
 });
+
+// -- 13F: RRSP → TFSA → NonReg Cascade Tests -----------------------------------
+
+describe('savings cascade: RRSP → TFSA → NonReg', () => {
+  it('T1: RRSP room available — all savings go to RRSP', () => {
+    const s = baseScenario({
+      monthlySavings: 1000,          // $12K/yr
+      rrspContributionRoom: 20000,
+      tfsaContributionRoom: 20000,
+      employmentIncome: 100000,
+    });
+    const proj = projectScenario(s);
+    const yr = proj[0];
+    expect(yr.rrspDeposit).toBe(12000);
+  });
+
+  it('T2: RRSP room exhausted — overflow to TFSA', () => {
+    const s = baseScenario({
+      monthlySavings: 1000,          // $12K/yr
+      rrspContributionRoom: 5000,    // only $5K RRSP room
+      tfsaContributionRoom: 20000,   // plenty of TFSA room
+      employmentIncome: 100000,
+    });
+    const proj = projectScenario(s);
+    const yr = proj[0];
+    expect(yr.rrspDeposit).toBe(5000);
+    // Remaining $7K should cascade to TFSA
+    expect(yr.tfsaDeposit).toBeGreaterThanOrEqual(7000);
+  });
+
+  it('T3: RRSP + TFSA room both exhausted — overflow to NonReg', () => {
+    const s = baseScenario({
+      monthlySavings: 2000,          // $24K/yr
+      rrspContributionRoom: 0,
+      tfsaContributionRoom: 0,       // no TFSA room (but $7K accrues at year start)
+      employmentIncome: 150000,
+    });
+    const proj = projectScenario(s);
+    const yr = proj[0];
+    expect(yr.rrspDeposit).toBe(0);
+    // TFSA accrual of $7K happens before allocation → $7K to TFSA, rest to nonReg
+    expect(yr.tfsaDeposit).toBeGreaterThanOrEqual(7000);
+    expect(yr.nonRegDeposit).toBeGreaterThan(0);
+  });
+
+  it('T4: Zero savings — no contributions anywhere', () => {
+    const s = baseScenario({ monthlySavings: 0 });
+    const proj = projectScenario(s);
+    const yr = proj[0];
+    expect(yr.rrspDeposit).toBe(0);
+  });
+
+  it('T5: Couple proportional split with overflow cascade', () => {
+    const s = coupleScenario({
+      monthlySavings: 1000,                 // $12K/yr
+      employmentIncome: 80000,              // 80% share
+      spouseEmploymentIncome: 20000,        // 20% share
+      rrspContributionRoom: 2000,           // primary: only $2K RRSP room
+      spouseRrspContributionRoom: 500,      // spouse: only $500 RRSP room
+      tfsaContributionRoom: 15000,
+      spouseTfsaContributionRoom: 15000,
+    });
+    const proj = projectScenario(s);
+    const yr = proj[0];
+    // Primary RRSP capped at $2K, spouse RRSP capped at $500
+    expect(yr.rrspDeposit).toBe(2000);
+    expect(yr.spouseRrspDeposit).toBe(500);
+    // Remainder $9,500 cascades to TFSA
+    expect(yr.tfsaDeposit).toBeGreaterThan(0);
+  });
+});
+
+// -- 13G: Surplus → Spouse TFSA Routing Tests ---------------------------------
+
+describe('surplus routes to spouse TFSA before NonReg', () => {
+  it('couple surplus fills spouse TFSA before NonReg', () => {
+    const s = coupleScenario({
+      monthlySavings: 0,              // no savings cascade — pure surplus test
+      employmentIncome: 300000,
+      spouseEmploymentIncome: 110000,
+      monthlyExpenses: 5000,
+      tfsaBalance: 300000,
+      tfsaContributionRoom: 40000,    // primary gets filled first
+      spouseTfsaBalance: 300000,
+      spouseTfsaContributionRoom: 0,  // zero room, but $7K accrues at year start
+    });
+    const proj = projectScenario(s);
+    const yr1 = proj[0];
+    // Spouse TFSA should receive $7K from surplus (accrued room)
+    expect(yr1.spouseTfsaDeposit).toBe(7000);
+    // Spouse TFSA balance should reflect the deposit + growth
+    // ($300K + $7K) * 1.04 = $319,280
+    expect(yr1.spouseTfsaBalance).toBeGreaterThan(300000 * 1.04);
+  });
+
+  it('single scenario surplus skips spouse TFSA (no regression)', () => {
+    const s = baseScenario({
+      monthlySavings: 0,
+      employmentIncome: 200000,
+      monthlyExpenses: 3000,
+      tfsaContributionRoom: 40000,
+    });
+    const proj = projectScenario(s);
+    // Should work exactly as before — no spouse fields
+    expect(proj[0].spouseTfsaDeposit).toBeUndefined();
+  });
+
+  it('couple with zero surplus does not deposit to spouse TFSA', () => {
+    const s = coupleScenario({
+      monthlySavings: 0,
+      employmentIncome: 50000,
+      spouseEmploymentIncome: 30000,
+      monthlyExpenses: 10000,  // high expenses = no surplus
+      tfsaContributionRoom: 0,
+      spouseTfsaContributionRoom: 0,
+    });
+    const proj = projectScenario(s);
+    expect(proj[0].spouseTfsaDeposit).toBe(0);
+  });
+
+  it('output row includes spouseTfsaContributionRoom for couples', () => {
+    const s = coupleScenario({ monthlySavings: 0 });
+    const proj = projectScenario(s);
+    expect(proj[0]).toHaveProperty('spouseTfsaContributionRoom');
+    expect(proj[0].spouseTfsaContributionRoom).toBeGreaterThanOrEqual(0);
+  });
+});

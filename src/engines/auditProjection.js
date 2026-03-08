@@ -22,12 +22,14 @@ export function auditProjectionTable(scenario, projectionData) {
 
   // --- Pre-retirement rows ---
   const preRows = projectionData.filter((r) => r.age < retAge);
-  const preHeaders = ['Age', 'Year', 'Emp Inc', 'Pension', 'NonTaxed', 'RRSP Wd', 'Expenses', 'Debt Pmt', 'Tax', 'After-Tax', 'Surplus', 'RRSP Bal', 'TFSA Bal', 'NonReg Bal', 'Portfolio', 'Net Worth'];
+  const preHeaders = ['Age', 'Year', 'Emp Inc', 'Pension', 'NonTaxed', 'RRSP Wd', 'Expenses', 'Debt Pmt', 'Tax', 'After-Tax', 'Surplus', 'RRSP Dep', 'TFSA Dep', 'NonReg Dep', 'RRSP Room', 'TFSA Room', 'RRSP Bal', 'TFSA Bal', 'NonReg Bal', 'Portfolio', 'Net Worth'];
 
   const fmtPreRow = (r) => [
     r.age, r.year, $(r.employmentIncome), $(r.pensionIncome), $(r.nonTaxedIncome),
     $(r.rrspWithdrawal),
     $(r.expenses), $(r.debtPayments), $(r.totalTax), $(r.afterTaxIncome), $(r.surplus),
+    $(r.rrspDeposit), $(r.tfsaDeposit), $(r.nonRegDeposit),
+    $(r.rrspContributionRoom), $(r.tfsaContributionRoom),
     $(r.rrspBalance), $(r.tfsaBalance), $(r.nonRegBalance), $(r.totalPortfolio), $(r.netWorth),
   ];
 
@@ -79,12 +81,13 @@ export function auditProjectionTable(scenario, projectionData) {
   // Couple supplement table
   if (s.isCouple) {
     md += '### Spouse Detail\n\n';
-    const coupleHeaders = ['Age', 'Sp Age', 'Sp Emp', 'Sp CPP', 'Sp OAS', 'Sp Pension', 'Sp RRSP Wd', 'Sp TFSA Wd', 'Sp RRSP Bal', 'Sp TFSA Bal'];
+    const coupleHeaders = ['Age', 'Sp Age', 'Sp Emp', 'Sp CPP', 'Sp OAS', 'Sp Pension', 'Sp RRSP Wd', 'Sp TFSA Wd', 'Sp RRSP Dep', 'Sp TFSA Dep', 'Sp RRSP Bal', 'Sp TFSA Bal'];
     const ageDiff = (s.spouseAge || 0) - s.currentAge;
     const fmtCoupleRow = (r) => [
       r.age, r.age + ageDiff,
       $(r.spouseEmploymentIncome || 0), $(r.spouseCppIncome || 0), $(r.spouseOasIncome || 0),
       $(r.spousePensionIncome || 0), $(r.spouseRrspWithdrawal || 0), $(r.spouseTfsaWithdrawal || 0),
+      $(r.spouseRrspDeposit || 0), $(r.spouseTfsaDeposit || 0),
       $(r.spouseRrspBalance || 0), $(r.spouseTfsaBalance || 0),
     ];
     md += mdTable(coupleHeaders, projectionData.map(fmtCoupleRow)) + '\n\n';

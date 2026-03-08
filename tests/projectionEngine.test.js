@@ -551,7 +551,8 @@ describe('couple support', () => {
     const r = projectScenario(s);
     // Spouse RRSP: no withdrawal (< 72), minimal growth (0.1%)
     expect(r[0].spouseRrspBalance).toBe(Math.round(150000 * 1.001));
-    expect(r[0].spouseTfsaBalance).toBe(Math.round(80000 * 1.001));
+    // Spouse TFSA: balance + surplus deposit (spouse TFSA room accrues $7K) + growth
+    expect(r[0].spouseTfsaBalance).toBeGreaterThanOrEqual(Math.round(80000 * 1.001));
     // totalPortfolio includes spouse accounts — must be > primary-only sum
     expect(r[0].totalPortfolio).toBeGreaterThan(r[0].rrspBalance + r[0].tfsaBalance);
   });
@@ -571,7 +572,7 @@ describe('couple support', () => {
     });
     projectScenario(s).forEach(row => {
       const expected = row.afterTaxIncome - row.expenses - row.debtPayments;
-      const actual = row.surplus + (row.tfsaDeposit || 0) + (row.nonRegDeposit || 0);
+      const actual = row.surplus + (row.tfsaDeposit || 0) + (row.spouseTfsaDeposit || 0) + (row.nonRegDeposit || 0);
       expect(Math.abs(actual - expected)).toBeLessThanOrEqual(1);
     });
   });

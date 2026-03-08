@@ -407,3 +407,59 @@ describe('savings cascade: RRSP → TFSA → NonReg', () => {
     expect(yr.tfsaDeposit).toBeGreaterThan(0);
   });
 });
+
+// -- 13G: Surplus → Spouse TFSA Routing Tests ---------------------------------
+
+describe('surplus routes to spouse TFSA before NonReg', () => {
+  it('couple surplus fills spouse TFSA before NonReg', () => {
+    const s = coupleScenario({
+      monthlySavings: 0,              // no savings cascade — pure surplus test
+      employmentIncome: 300000,
+      spouseEmploymentIncome: 110000,
+      monthlyExpenses: 5000,
+      tfsaBalance: 300000,
+      tfsaContributionRoom: 40000,    // primary gets filled first
+      spouseTfsaBalance: 300000,
+      spouseTfsaContributionRoom: 0,  // zero room, but $7K accrues at year start
+    });
+    const proj = projectScenario(s);
+    const yr1 = proj[0];
+    // Spouse TFSA should receive $7K from surplus (accrued room)
+    expect(yr1.spouseTfsaDeposit).toBe(7000);
+    // Spouse TFSA balance should reflect the deposit + growth
+    // ($300K + $7K) * 1.04 = $319,280
+    expect(yr1.spouseTfsaBalance).toBeGreaterThan(300000 * 1.04);
+  });
+
+  it('single scenario surplus skips spouse TFSA (no regression)', () => {
+    const s = baseScenario({
+      monthlySavings: 0,
+      employmentIncome: 200000,
+      monthlyExpenses: 3000,
+      tfsaContributionRoom: 40000,
+    });
+    const proj = projectScenario(s);
+    // Should work exactly as before — no spouse fields
+    expect(proj[0].spouseTfsaDeposit).toBeUndefined();
+  });
+
+  it('couple with zero surplus does not deposit to spouse TFSA', () => {
+    const s = coupleScenario({
+      monthlySavings: 0,
+      employmentIncome: 50000,
+      spouseEmploymentIncome: 30000,
+      monthlyExpenses: 10000,  // high expenses = no surplus
+      tfsaContributionRoom: 0,
+      spouseTfsaContributionRoom: 0,
+    });
+    const proj = projectScenario(s);
+    expect(proj[0].spouseTfsaDeposit).toBe(0);
+  });
+
+  it('output row includes spouseTfsaContributionRoom for couples', () => {
+    const s = coupleScenario({ monthlySavings: 0 });
+    const proj = projectScenario(s);
+    expect(proj[0]).toHaveProperty('spouseTfsaContributionRoom');
+    expect(proj[0].spouseTfsaContributionRoom).toBeGreaterThanOrEqual(0);
+  });
+});

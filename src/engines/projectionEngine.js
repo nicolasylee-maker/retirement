@@ -362,19 +362,32 @@ export function projectScenario(scenario, overrides = {}) {
         + Math.min(spouseEmploymentIncome * RRSP_PARAMS.earnedIncomeRate, RRSP_PARAMS.annualLimit);
     }
 
-    // Deposit surplus into TFSA (then non-reg overflow)
+    // Deposit surplus into TFSA → spouse TFSA → non-reg overflow
     let tfsaDeposit = 0;
+    let spouseTfsaSurplusDeposit = 0;
     let nonRegDeposit = 0;
     if (surplus > 0) {
+      // 1. Primary TFSA
       tfsaDeposit = Math.min(surplus, tfsaContribRoom);
       tfsa += tfsaDeposit;
       tfsaContribRoom -= tfsaDeposit;
-      nonRegDeposit = surplus - tfsaDeposit;
+      let remaining = surplus - tfsaDeposit;
+
+      // 2. Spouse TFSA (couples only)
+      if (s.isCouple && remaining > 0) {
+        spouseTfsaSurplusDeposit = Math.min(remaining, spouseTfsaContribRoom);
+        spouseTfsa += spouseTfsaSurplusDeposit;
+        spouseTfsaContribRoom -= spouseTfsaSurplusDeposit;
+        remaining -= spouseTfsaSurplusDeposit;
+      }
+
+      // 3. NonReg gets remainder
+      nonRegDeposit = remaining;
       if (nonRegDeposit > 0) {
         nonReg += nonRegDeposit;
         nonRegCostBasis += nonRegDeposit;
       }
-      surplus -= (tfsaDeposit + nonRegDeposit);
+      surplus -= (tfsaDeposit + spouseTfsaSurplusDeposit + nonRegDeposit);
     }
 
     rrsp *= (1 + realReturn);
@@ -432,6 +445,8 @@ export function projectScenario(scenario, overrides = {}) {
       spouseTfsaWithdrawal: s.isCouple ? Math.round(spouseTfsaWithdrawal) : undefined,
       spouseTfsaBalance: s.isCouple ? Math.round(spouseTfsa) : undefined,
       spouseRrspDeposit: s.isCouple ? Math.round(spouseRrspContrib) : undefined,
+      spouseTfsaDeposit: s.isCouple ? Math.round(spouseTfsaContrib + spouseTfsaSurplusDeposit) : undefined,
+      spouseTfsaContributionRoom: s.isCouple ? Math.round(spouseTfsaContribRoom) : undefined,
     });
   }
 

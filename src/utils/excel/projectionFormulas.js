@@ -73,17 +73,26 @@ export function buildCascadeCells(row, r, prevR, isFirst, isCouple, cl, cas, cSt
     row.getCell(cStart + 3).value = { formula: cas.spRrspDepFormula };
     row.getCell(cStart + 3).numFmt = FMT.currency;
 
+    // Spouse TFSA Deposit — savings cascade overflow + surplus after primary TFSA
+    // Savings cascade: spouse TFSA gets overflow from both spouse RRSP overflow and primary TFSA overflow
+    // For simplicity, Excel models surplus-only routing: MIN(surplus after primary TFSA, spouse TFSA room)
+    const prevSpTfsaRoom = isFirst ? 'Assumptions_SpouseTfsaContRoom' : `${cl.spTfsaRoom}${prevR}`;
+    const availSpTfsaRoom = `(${prevSpTfsaRoom}+Assumptions_TfsaAnnualLimit)`;
+    const surplusAfterPriTfsa = `MAX(0,AJ${r}-AK${r}+${cas.tfsaFromSav})`;
+    const spTfsaDepFormula = `IF(AJ${r}>0,MIN(${surplusAfterPriTfsa},MAX(0,${availSpTfsaRoom})),0)`;
+    row.getCell(cStart + 4).value = { formula: spTfsaDepFormula };
+    row.getCell(cStart + 4).numFmt = FMT.currency;
+
     // Spouse RRSP Room
     const prevSpRrspRoom = isFirst ? 'Assumptions_SpouseRrspContribRoom' : `${cl.spRrspRoom}${prevR}`;
     const spAccrual = `IF(AND(AT${r}<Assumptions_SpouseRetirementAge,Assumptions_SpouseStillWorking=1),MIN(AU${r}*0.18,32490),0)`;
-    row.getCell(cStart + 4).value = { formula:
+    row.getCell(cStart + 5).value = { formula:
       `MAX(0,${prevSpRrspRoom}-${cl.spRrspDep}${r})+${spAccrual}` };
-    row.getCell(cStart + 4).numFmt = FMT.currency;
-
-    // Spouse TFSA Room (accrues only — no spouse savings TFSA deposits in Excel)
-    const prevSpTfsaRoom = isFirst ? 'Assumptions_SpouseTfsaContRoom' : `${cl.spTfsaRoom}${prevR}`;
-    row.getCell(cStart + 5).value = { formula: `${prevSpTfsaRoom}+Assumptions_TfsaAnnualLimit` };
     row.getCell(cStart + 5).numFmt = FMT.currency;
+
+    // Spouse TFSA Room — accrues $7K/yr, depleted by spouse TFSA deposits
+    row.getCell(cStart + 6).value = { formula: `MAX(0,${availSpTfsaRoom}-${cl.spTfsaDep}${r})` };
+    row.getCell(cStart + 6).numFmt = FMT.currency;
   }
 }
 
@@ -136,8 +145,9 @@ export function mortgageBalFormula(r, prevMort) {
  * @param {string} spCppAdj        Spouse CPP adjustment factor formula
  * @param {string} spOasAdj        Spouse OAS adjustment factor formula
  * @param {string} [spRrspDepCol]  Column letter for Spouse RRSP Deposit (optional)
+ * @param {string} [spTfsaDepColLetter]  Column letter for Spouse TFSA Deposit (optional)
  */
-export function buildSpouseCells(row, r, isFirst, prevR, spCppAdj, spOasAdj, spRrspDepCol) {
+export function buildSpouseCells(row, r, isFirst, prevR, spCppAdj, spOasAdj, spRrspDepCol, spTfsaDepColLetter) {
   const prevSpRrsp = isFirst ? 'Assumptions_SpouseRrspBalance' : `BB${prevR}`;
   const prevSpTfsa = isFirst ? 'Assumptions_SpouseTfsaBalance' : `BC${prevR}`;
 
@@ -182,8 +192,9 @@ export function buildSpouseCells(row, r, isFirst, prevR, spCppAdj, spOasAdj, spR
   row.getCell(54).value = { formula: `MAX(0,${prevSpRrsp}-BA${r}${spDep})*(1+Assumptions_RealReturn)` };
   row.getCell(54).numFmt = FMT.currency;
 
-  // BC (55): Spouse TFSA Balance (EOY)
-  row.getCell(55).value = { formula: `MAX(0,${prevSpTfsa})*(1+Assumptions_TfsaReturn)` };
+  // BC (55): Spouse TFSA Balance (EOY) — includes spouse TFSA deposits
+  const spTfsaDepCol = spTfsaDepColLetter ? `+${spTfsaDepColLetter}${r}` : '';
+  row.getCell(55).value = { formula: `MAX(0,${prevSpTfsa}${spTfsaDepCol})*(1+Assumptions_TfsaReturn)` };
   row.getCell(55).numFmt = FMT.currency;
 }
 
@@ -200,8 +211,9 @@ export const SPOUSE_DICT_ENTRIES = [
   ['Spouse RRSP Bal',      'End-of-year spouse RRSP balance after withdrawals + savings contributions + investment returns'],
   ['Spouse TFSA Bal',      'End-of-year spouse TFSA balance (grows at TFSA return; not drawn for shortfall in Excel — known simplification)'],
   ['Spouse RRSP Deposit',  'Spouse monthly savings routed to RRSP during working years, capped at contribution room and $32,490/yr'],
+  ['Spouse TFSA Deposit',  'Spouse TFSA deposits from surplus overflow (after primary TFSA is filled)'],
   ['Spouse RRSP Room',     'Spouse available RRSP contribution room. Accrues at 18% of earned income (max $32,490/yr)'],
-  ['Spouse TFSA Room',     'Spouse available TFSA contribution room. Accrues $7,000/yr'],
+  ['Spouse TFSA Room',     'Spouse available TFSA contribution room. Accrues $7,000/yr, depleted by spouse TFSA deposits'],
 ];
 
 /** Base column dictionary entries (always included). */

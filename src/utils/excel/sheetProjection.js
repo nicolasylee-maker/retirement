@@ -49,7 +49,7 @@ const SPOUSE_HEADERS = [
 ];
 
 const CASCADE_HEADERS = ['RRSP Deposit', 'RRSP Room', 'TFSA Room'];
-const COUPLE_CASCADE = ['Spouse RRSP Deposit', 'Spouse RRSP Room', 'Spouse TFSA Room'];
+const COUPLE_CASCADE = ['Spouse RRSP Deposit', 'Spouse TFSA Deposit', 'Spouse RRSP Room', 'Spouse TFSA Room'];
 
 export function buildProjectionSheet(wb, scenario) {
   const ws = wb.addWorksheet(SHEET_NAME, { properties: { tabColor: { argb: 'FF2E75B6' } } });
@@ -68,8 +68,9 @@ export function buildProjectionSheet(wb, scenario) {
   };
   if (isCouple) {
     cl.spRrspDep = colToLetter(cStart + 3);
-    cl.spRrspRoom = colToLetter(cStart + 4);
-    cl.spTfsaRoom = colToLetter(cStart + 5);
+    cl.spTfsaDep = colToLetter(cStart + 4);
+    cl.spRrspRoom = colToLetter(cStart + 5);
+    cl.spTfsaRoom = colToLetter(cStart + 6);
   }
 
   addPurposeRows(ws,
@@ -91,7 +92,7 @@ export function buildProjectionSheet(wb, scenario) {
     [38,14],[39,14],[40,14],[41,14],[42,14],[43,14],[44,14],[45,14],
   ];
   if (isCouple) { for (let c = 46; c <= 55; c++) widths.push([c, 14]); }
-  for (let c = cStart; c <= cStart + (isCouple ? 5 : 2); c++) widths.push([c, 14]);
+  for (let c = cStart; c <= cStart + (isCouple ? 6 : 2); c++) widths.push([c, 14]);
   setColWidths(ws, widths);
 
   const hdr = ws.getRow(HDR_ROW);
@@ -126,7 +127,7 @@ export function buildProjectionSheet(wb, scenario) {
     });
 
     if (isCouple) {
-      buildSpouseCells(row, r, isFirst, prevR, spCppAdj, spOasAdj, cl.spRrspDep);
+      buildSpouseCells(row, r, isFirst, prevR, spCppAdj, spOasAdj, cl.spRrspDep, cl.spTfsaDep);
     }
 
     buildCascadeCells(row, r, prevR, isFirst, isCouple, cl, cascade, cStart);
@@ -232,8 +233,9 @@ function buildPrimaryCells(row, r, prevR, isFirst, isCouple, ctx) {
   f(38, `MAX(0,${prevRrsp}-Z${r}+${cl.rrspDep}${r})*(1+Assumptions_RealReturn)`);
   f(39, `MAX(0,${prevTfsa}-T${r}+AK${r})*(1+Assumptions_TfsaReturn)`);
 
-  // AN: NonReg Balance — add savings cascade NonReg + surplus overflow
-  const surplusNonReg = `MAX(0,AJ${r}-AK${r}+${tfsaFromSav})`;
+  // AN: NonReg Balance — add savings cascade NonReg + surplus overflow (after primary TFSA + spouse TFSA)
+  const spTfsaDepRef = isCouple ? `${cl.spTfsaDep}${r}` : '0';
+  const surplusNonReg = `MAX(0,AJ${r}-AK${r}+${tfsaFromSav}-${spTfsaDepRef})`;
   f(40, `MAX(0,${prevNonReg}-V${r}+${nonRegFromSav}+${surplusNonReg})*(1+Assumptions_NonRegReturn)`);
   f(41, `MAX(0,${prevOther}-AA${r})*(1+Assumptions_RealReturn)`);
   f(42, mortgageBalFormula(r, prevMort));

@@ -81,6 +81,7 @@ export function createDefaultScenario(name = 'My Scenario') {
     spouseRrifBalance: 0,
     spouseTfsaBalance: 0,
     spouseTfsaContributionRoom: 0,
+    spouseRrspContributionRoom: 0,
 
     // Step 5: Other Assets
     cashSavings: 0,
@@ -152,7 +153,7 @@ export const EXPENSE_PRESETS = {
 
 // Quick-fill presets for return assumptions
 export const RETURN_PRESETS = {
-  conservative: { label: 'Conservative', realReturn: 0.03, inflationRate: 0.025 },
-  balanced: { label: 'Balanced', realReturn: 0.04, inflationRate: 0.025 },
-  aggressive: { label: 'Aggressive', realReturn: 0.06, inflationRate: 0.025 },
+  conservative: { label: 'Conservative', realReturn: 0.03, inflationRate: 0.025, tfsaReturn: 0.03, nonRegReturn: 0.03 },
+  balanced: { label: 'Balanced', realReturn: 0.04, inflationRate: 0.025, tfsaReturn: 0.04, nonRegReturn: 0.04 },
+  aggressive: { label: 'Aggressive', realReturn: 0.06, inflationRate: 0.025, tfsaReturn: 0.06, nonRegReturn: 0.06 },
 };

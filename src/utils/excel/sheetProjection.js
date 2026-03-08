@@ -1,7 +1,8 @@
 /**
  * Sheet 4: Projection — year-by-year formulas.
  * Every cell is an Excel formula referencing Assumptions + Tax Engine + RRIF Rates.
- * Couple scenarios add 10 spouse columns (AT–BC) after NonReg Cost Basis.
+ * Couple scenarios add 10 spouse columns (AT–BC) after NonReg Cost Basis,
+ * followed by savings cascade columns (RRSP Deposit, Room tracking, spouse variants).
  */
 import {
   FONTS, COLORS, FMT,
@@ -12,7 +13,8 @@ import {
   fedTaxFormula, provTaxFormula,
   debtPaymentFormula, mortgageBalFormula,
   buildSpouseCells, buildBaseDictEntries,
-  SPOUSE_DICT_ENTRIES,
+  SPOUSE_DICT_ENTRIES, colToLetter,
+  buildCascade, buildCascadeCells,
 } from './projectionFormulas.js';
 
 const SHEET_NAME = 'Projection';
@@ -46,7 +48,8 @@ const SPOUSE_HEADERS = [
   'Spouse RRSP Bal', 'Spouse TFSA Bal',
 ];
 
-const RRSP_DEPOSIT_HEADER = ['RRSP Deposit'];
+const CASCADE_HEADERS = ['RRSP Deposit', 'RRSP Room', 'TFSA Room'];
+const COUPLE_CASCADE = ['Spouse RRSP Deposit', 'Spouse RRSP Room', 'Spouse TFSA Room'];
 
 export function buildProjectionSheet(wb, scenario) {
   const ws = wb.addWorksheet(SHEET_NAME, { properties: { tabColor: { argb: 'FF2E75B6' } } });
@@ -55,8 +58,19 @@ export function buildProjectionSheet(wb, scenario) {
   const currentYear = new Date().getFullYear();
   const numYears = scenario.lifeExpectancy - scenario.currentAge + 1;
   const headers = isCouple
-    ? [...BASE_HEADERS, ...SPOUSE_HEADERS, ...RRSP_DEPOSIT_HEADER]
-    : [...BASE_HEADERS, ...RRSP_DEPOSIT_HEADER];
+    ? [...BASE_HEADERS, ...SPOUSE_HEADERS, ...CASCADE_HEADERS, ...COUPLE_CASCADE]
+    : [...BASE_HEADERS, ...CASCADE_HEADERS];
+
+  // Cascade column indices (1-based) and letters
+  const cStart = (isCouple ? BASE_HEADERS.length + SPOUSE_HEADERS.length : BASE_HEADERS.length) + 1;
+  const cl = {
+    rrspDep: colToLetter(cStart), rrspRoom: colToLetter(cStart + 1), tfsaRoom: colToLetter(cStart + 2),
+  };
+  if (isCouple) {
+    cl.spRrspDep = colToLetter(cStart + 3);
+    cl.spRrspRoom = colToLetter(cStart + 4);
+    cl.spTfsaRoom = colToLetter(cStart + 5);
+  }
 
   addPurposeRows(ws,
     'This is your complete financial life, one row per year from today until life expectancy. ' +
@@ -77,8 +91,7 @@ export function buildProjectionSheet(wb, scenario) {
     [38,14],[39,14],[40,14],[41,14],[42,14],[43,14],[44,14],[45,14],
   ];
   if (isCouple) { for (let c = 46; c <= 55; c++) widths.push([c, 14]); }
-  // RRSP Deposit column (after base or after spouse)
-  widths.push([headers.length, 14]);
+  for (let c = cStart; c <= cStart + (isCouple ? 5 : 2); c++) widths.push([c, 14]);
   setColWidths(ws, widths);
 
   const hdr = ws.getRow(HDR_ROW);
@@ -104,19 +117,19 @@ export function buildProjectionSheet(wb, scenario) {
     const prevOther  = isFirst ? 'Assumptions_OtherAssets'     : `AO${prevR}`;
     const prevMort   = isFirst ? 'Assumptions_MortgageBalance' : `AP${prevR}`;
 
+    // Cascade formula fragments
+    const cascade = buildCascade(r, prevR, isFirst, isCouple, cl);
+
     buildPrimaryCells(row, r, prevR, isFirst, isCouple, {
       prevRrsp, prevTfsa, prevNonReg, prevOther, prevMort,
-      cppAdj, oasAdj, currentYear,
+      cppAdj, oasAdj, currentYear, cascade, cl,
     });
 
     if (isCouple) {
-      buildSpouseCells(row, r, isFirst, prevR, spCppAdj, spOasAdj);
+      buildSpouseCells(row, r, isFirst, prevR, spCppAdj, spOasAdj, cl.spRrspDep);
     }
 
-    // RRSP Deposit (last column): savings-driven RRSP contribution during working years
-    const rrspDepCol = headers.length;
-    row.getCell(rrspDepCol).value = { formula: `IF(C${r}=0, MIN(Assumptions_MonthlySavings*12*D${r}, 32490), 0)` };
-    row.getCell(rrspDepCol).numFmt = FMT.currency;
+    buildCascadeCells(row, r, prevR, isFirst, isCouple, cl, cascade, cStart);
   }
 
   // Conditional formatting
@@ -152,139 +165,88 @@ export function buildProjectionSheet(wb, scenario) {
 
 /** Build primary columns A–AS (cols 1–45) for a single row. */
 function buildPrimaryCells(row, r, prevR, isFirst, isCouple, ctx) {
-  const { prevRrsp, prevTfsa, prevNonReg, prevOther, prevMort, cppAdj, oasAdj, currentYear } = ctx;
+  const { prevRrsp, prevTfsa, prevNonReg, prevOther, prevMort, cppAdj, oasAdj, currentYear, cascade, cl } = ctx;
+  const f = (col, formula, fmt = FMT.currency) => { row.getCell(col).value = { formula }; row.getCell(col).numFmt = fmt; };
 
-  row.getCell(1).value = { formula: isFirst ? 'Assumptions_CurrentAge' : `A${prevR}+1` };
-  row.getCell(1).numFmt = FMT.int;
-  row.getCell(2).value = { formula: `${currentYear}+(A${r}-Assumptions_CurrentAge)` };
-  row.getCell(2).numFmt = FMT.int;
-  row.getCell(3).value = { formula: `IF(A${r}>=Assumptions_RetirementAge,1,0)` };
-  row.getCell(3).numFmt = FMT.int;
-  row.getCell(4).value = { formula: `(1+Assumptions_Inflation)^(A${r}-Assumptions_CurrentAge)` };
-  row.getCell(4).numFmt = '0.0000';
+  f(1, isFirst ? 'Assumptions_CurrentAge' : `A${prevR}+1`, FMT.int);
+  f(2, `${currentYear}+(A${r}-Assumptions_CurrentAge)`, FMT.int);
+  f(3, `IF(A${r}>=Assumptions_RetirementAge,1,0)`, FMT.int);
+  f(4, `(1+Assumptions_Inflation)^(A${r}-Assumptions_CurrentAge)`, '0.0000');
+  f(5, `IF(AND(C${r}=0,Assumptions_StillWorking=1),Assumptions_EmploymentIncome*D${r},0)`);
+  f(6, `IF(A${r}>=Assumptions_CppStartAge, Assumptions_CppMonthly*12*${cppAdj}*D${r}, 0)`);
+  f(7, `IF(A${r}>=Assumptions_OasStartAge, Assumptions_OasMonthly*12*(${oasAdj})*D${r}, 0)`);
+  f(8, `IF(AND(Assumptions_PensionType="db",A${r}>=Assumptions_DbPensionStartAge), IF(Assumptions_DbPensionIndexed=1, Assumptions_DbPensionAnnual*D${r}, Assumptions_DbPensionAnnual), 0)`);
+  f(9, `IF(AND(A${r}>=72,${prevRrsp}>0), VLOOKUP(MIN(A${r},95),RrifRates,2,TRUE)*${prevRrsp}, 0)`);
+  f(10, `IF(AND(Assumptions_MeltdownEnabled=1,A${r}>=Assumptions_MeltdownStartAge,A${r}<Assumptions_MeltdownTargetAge), MIN(Assumptions_MeltdownAnnual,${prevRrsp}), 0)`);
+  f(11, `MIN(MAX(I${r},J${r}),${prevRrsp})`);
 
-  row.getCell(5).value = { formula: `IF(AND(C${r}=0,Assumptions_StillWorking=1),Assumptions_EmploymentIncome*D${r},0)` };
-  row.getCell(5).numFmt = FMT.currency;
-  row.getCell(6).value = { formula: `IF(A${r}>=Assumptions_CppStartAge, Assumptions_CppMonthly*12*${cppAdj}*D${r}, 0)` };
-  row.getCell(6).numFmt = FMT.currency;
-  row.getCell(7).value = { formula: `IF(A${r}>=Assumptions_OasStartAge, Assumptions_OasMonthly*12*(${oasAdj})*D${r}, 0)` };
-  row.getCell(7).numFmt = FMT.currency;
-  row.getCell(8).value = { formula: `IF(AND(Assumptions_PensionType="db",A${r}>=Assumptions_DbPensionStartAge), IF(Assumptions_DbPensionIndexed=1, Assumptions_DbPensionAnnual*D${r}, Assumptions_DbPensionAnnual), 0)` };
-  row.getCell(8).numFmt = FMT.currency;
-
-  row.getCell(9).value = { formula: `IF(AND(A${r}>=72,${prevRrsp}>0), VLOOKUP(MIN(A${r},95),RrifRates,2,TRUE)*${prevRrsp}, 0)` };
-  row.getCell(9).numFmt = FMT.currency;
-  row.getCell(10).value = { formula: `IF(AND(Assumptions_MeltdownEnabled=1,A${r}>=Assumptions_MeltdownStartAge,A${r}<Assumptions_MeltdownTargetAge), MIN(Assumptions_MeltdownAnnual,${prevRrsp}), 0)` };
-  row.getCell(10).numFmt = FMT.currency;
-  row.getCell(11).value = { formula: `MIN(MAX(I${r},J${r}),${prevRrsp})` };
-  row.getCell(11).numFmt = FMT.currency;
-
-  // L: Taxable Before Grossup — couple includes spouse income
   const lFormula = isCouple
     ? `E${r}+F${r}+G${r}+H${r}+K${r}+AU${r}+AV${r}+AZ${r}+AX${r}+BA${r}`
     : `E${r}+F${r}+G${r}+H${r}+K${r}`;
-  row.getCell(12).value = { formula: lFormula };
-  row.getCell(12).numFmt = FMT.currency;
+  f(12, lFormula);
+  f(13, `IF(C${r}=1, Assumptions_MonthlyExpenses*12*(1-Assumptions_ExpenseReduction), Assumptions_MonthlyExpenses*12)*D${r}`);
+  f(14, `IF(AND(${prevMort}>0, (A${r}-Assumptions_CurrentAge)<Assumptions_MortgageYears), IF(Assumptions_MortgageRate=0, ${prevMort}/MAX(1,Assumptions_MortgageYears-(A${r}-Assumptions_CurrentAge)), ${prevMort}*Assumptions_MortgageRate*(1+Assumptions_MortgageRate)^MAX(1,Assumptions_MortgageYears-(A${r}-Assumptions_CurrentAge))/((1+Assumptions_MortgageRate)^MAX(1,Assumptions_MortgageYears-(A${r}-Assumptions_CurrentAge))-1)), 0)`);
+  f(15, debtPaymentFormula(r));
+  f(16, `M${r}+N${r}+O${r}`);
+  f(17, `IF(L${r}<=0, 0, ${fedTaxFormula(r).replace(/AE/g, 'L')})`);
+  f(18, `L${r}-Q${r}`);
+  f(19, `MAX(0,P${r}-R${r})`);
+  f(20, `MIN(S${r},${prevTfsa})`);
+  f(21, `MAX(0,S${r}-T${r})`);
+  f(22, `MIN(U${r},${prevNonReg})`);
+  f(23, `MAX(0,U${r}-V${r})`);
+  f(24, `INDEX(FedBracketRate,MATCH(L${r},FedBracketMin,1))+INDEX(ProvBracketRate,MATCH(L${r},ProvBracketMin,1))`, FMT.pct);
+  f(25, `IF(W${r}>0, MIN(IF(X${r}>=1, W${r}, W${r}/(1-X${r})), MAX(0,${prevRrsp}-K${r})), 0)`);
+  f(26, `K${r}+Y${r}`);
+  f(27, `IF(W${r}>Y${r}*(1-X${r}), MIN(MAX(0,W${r}-Y${r}*(1-X${r})),${prevOther}), 0)`);
+  f(28, `MIN(Assumptions_OasMaxAnnual, MAX(0,(E${r}+F${r}+G${r}+H${r}+Z${r}-Assumptions_OasClawbackThresh)*Assumptions_OasClawbackRate))`);
+  f(29, `MAX(0,G${r}-AB${r})`);
 
-  row.getCell(13).value = { formula: `IF(C${r}=1, Assumptions_MonthlyExpenses*12*(1-Assumptions_ExpenseReduction), Assumptions_MonthlyExpenses*12)*D${r}` };
-  row.getCell(13).numFmt = FMT.currency;
-  row.getCell(14).value = { formula: `IF(AND(${prevMort}>0, (A${r}-Assumptions_CurrentAge)<Assumptions_MortgageYears), IF(Assumptions_MortgageRate=0, ${prevMort}/MAX(1,Assumptions_MortgageYears-(A${r}-Assumptions_CurrentAge)), ${prevMort}*Assumptions_MortgageRate*(1+Assumptions_MortgageRate)^MAX(1,Assumptions_MortgageYears-(A${r}-Assumptions_CurrentAge))/((1+Assumptions_MortgageRate)^MAX(1,Assumptions_MortgageYears-(A${r}-Assumptions_CurrentAge))-1)), 0)` };
-  row.getCell(14).numFmt = FMT.currency;
-  row.getCell(15).value = { formula: debtPaymentFormula(r) };
-  row.getCell(15).numFmt = FMT.currency;
-  row.getCell(16).value = { formula: `M${r}+N${r}+O${r}` };
-  row.getCell(16).numFmt = FMT.currency;
-
-  row.getCell(17).value = { formula: `IF(L${r}<=0, 0, ${fedTaxFormula(r).replace(/AE/g, 'L')})` };
-  row.getCell(17).numFmt = FMT.currency;
-  row.getCell(18).value = { formula: `L${r}-Q${r}` };
-  row.getCell(18).numFmt = FMT.currency;
-  row.getCell(19).value = { formula: `MAX(0,P${r}-R${r})` };
-  row.getCell(19).numFmt = FMT.currency;
-
-  row.getCell(20).value = { formula: `MIN(S${r},${prevTfsa})` };
-  row.getCell(20).numFmt = FMT.currency;
-  row.getCell(21).value = { formula: `MAX(0,S${r}-T${r})` };
-  row.getCell(21).numFmt = FMT.currency;
-  row.getCell(22).value = { formula: `MIN(U${r},${prevNonReg})` };
-  row.getCell(22).numFmt = FMT.currency;
-  row.getCell(23).value = { formula: `MAX(0,U${r}-V${r})` };
-  row.getCell(23).numFmt = FMT.currency;
-  row.getCell(24).value = { formula: `INDEX(FedBracketRate,MATCH(L${r},FedBracketMin,1))+INDEX(ProvBracketRate,MATCH(L${r},ProvBracketMin,1))` };
-  row.getCell(24).numFmt = FMT.pct;
-  row.getCell(25).value = { formula: `IF(W${r}>0, MIN(IF(X${r}>=1, W${r}, W${r}/(1-X${r})), MAX(0,${prevRrsp}-K${r})), 0)` };
-  row.getCell(25).numFmt = FMT.currency;
-  row.getCell(26).value = { formula: `K${r}+Y${r}` };
-  row.getCell(26).numFmt = FMT.currency;
-  row.getCell(27).value = { formula: `IF(W${r}>Y${r}*(1-X${r}), MIN(MAX(0,W${r}-Y${r}*(1-X${r})),${prevOther}), 0)` };
-  row.getCell(27).numFmt = FMT.currency;
-
-  row.getCell(28).value = { formula: `MIN(Assumptions_OasMaxAnnual, MAX(0,(E${r}+F${r}+G${r}+H${r}+Z${r}-Assumptions_OasClawbackThresh)*Assumptions_OasClawbackRate))` };
-  row.getCell(28).numFmt = FMT.currency;
-  row.getCell(29).value = { formula: `MAX(0,G${r}-AB${r})` };
-  row.getCell(29).numFmt = FMT.currency;
-
-  const costBasisRatio = isFirst
+  const cbRatio = isFirst
     ? `IF(Assumptions_NonRegBalance>0, MAX(0,1-Assumptions_NonRegCostBasis/Assumptions_NonRegBalance), 0)`
     : `IF(AN${prevR}>0, MAX(0,1-AS${prevR}/AN${prevR}), 0)`;
-  row.getCell(30).value = { formula: `V${r}*${costBasisRatio}*Assumptions_CapGainsRate` };
-  row.getCell(30).numFmt = FMT.currency;
+  f(30, `V${r}*${cbRatio}*Assumptions_CapGainsRate`);
 
-  // AE: Total Taxable — couple adds spouse
-  const aeFormula = isCouple
+  const ae = isCouple
     ? `E${r}+F${r}+AC${r}+H${r}+Z${r}+AD${r}+AU${r}+AV${r}+AZ${r}+AX${r}+BA${r}`
     : `E${r}+F${r}+AC${r}+H${r}+Z${r}+AD${r}`;
-  row.getCell(31).value = { formula: aeFormula };
-  row.getCell(31).numFmt = FMT.currency;
+  f(31, ae);
+  f(32, fedTaxFormula(r));
+  f(33, provTaxFormula(r));
+  f(34, `AF${r}+AG${r}`);
 
-  row.getCell(32).value = { formula: fedTaxFormula(r) };
-  row.getCell(32).numFmt = FMT.currency;
-  row.getCell(33).value = { formula: provTaxFormula(r) };
-  row.getCell(33).numFmt = FMT.currency;
-  row.getCell(34).value = { formula: `AF${r}+AG${r}` };
-  row.getCell(34).numFmt = FMT.currency;
-
-  // AI: After-Tax Income — couple adds spouse income
-  const aiFormula = isCouple
+  const ai = isCouple
     ? `E${r}+F${r}+AC${r}+H${r}+Z${r}+T${r}+V${r}+AA${r}+AU${r}+AV${r}+AZ${r}+AX${r}+BA${r}-AH${r}`
     : `E${r}+F${r}+AC${r}+H${r}+Z${r}+T${r}+V${r}+AA${r}-AH${r}`;
-  row.getCell(35).value = { formula: aiFormula };
-  row.getCell(35).numFmt = FMT.currency;
+  f(35, ai);
 
-  row.getCell(36).value = { formula: `AI${r}-M${r}-N${r}-O${r}` };
-  row.getCell(36).numFmt = FMT.currency;
-  row.getCell(37).value = { formula: `IF(AJ${r}>0, MIN(AJ${r}, Assumptions_TfsaAnnualLimit), 0)` };
-  row.getCell(37).numFmt = FMT.currency;
-  row.getCell(38).value = { formula: `MAX(0,${prevRrsp}-Z${r})*(1+Assumptions_RealReturn)` };
-  row.getCell(38).numFmt = FMT.currency;
-  row.getCell(39).value = { formula: `MAX(0,${prevTfsa}-T${r}+AK${r})*(1+Assumptions_TfsaReturn)` };
-  row.getCell(39).numFmt = FMT.currency;
+  // AJ: Surplus — subtract savings target
+  f(36, `AI${r}-M${r}-N${r}-O${r}-${cascade.savTarget}`);
 
-  const overflow = `MAX(0,AJ${r}-AK${r})`;
-  row.getCell(40).value = { formula: `MAX(0,${prevNonReg}-V${r}+${overflow})*(1+Assumptions_NonRegReturn)` };
-  row.getCell(40).numFmt = FMT.currency;
-  row.getCell(41).value = { formula: `MAX(0,${prevOther}-AA${r})*(1+Assumptions_RealReturn)` };
-  row.getCell(41).numFmt = FMT.currency;
-  row.getCell(42).value = { formula: mortgageBalFormula(r, prevMort) };
-  row.getCell(42).numFmt = FMT.currency;
+  // AK: TFSA Deposit — savings cascade TFSA + surplus TFSA
+  const { tfsaFromSav, availTfsaRoom, nonRegFromSav } = cascade;
+  const surplusTfsa = `IF(AJ${r}>0,MIN(AJ${r},MAX(0,${availTfsaRoom}-${tfsaFromSav})),0)`;
+  f(37, `${tfsaFromSav}+${surplusTfsa}`);
 
-  // AQ: Total Portfolio — couple includes spouse
-  const aqFormula = isCouple
-    ? `AL${r}+AM${r}+AN${r}+AO${r}+BB${r}+BC${r}`
-    : `AL${r}+AM${r}+AN${r}+AO${r}`;
-  row.getCell(43).value = { formula: aqFormula };
-  row.getCell(43).numFmt = FMT.currency;
+  // AL: RRSP Balance — add RRSP deposits
+  f(38, `MAX(0,${prevRrsp}-Z${r}+${cl.rrspDep}${r})*(1+Assumptions_RealReturn)`);
+  f(39, `MAX(0,${prevTfsa}-T${r}+AK${r})*(1+Assumptions_TfsaReturn)`);
 
-  row.getCell(44).value = { formula: `AQ${r}+Assumptions_RealEstateValue-AP${r}` };
-  row.getCell(44).numFmt = FMT.currency;
+  // AN: NonReg Balance — add savings cascade NonReg + surplus overflow
+  const surplusNonReg = `MAX(0,AJ${r}-AK${r}+${tfsaFromSav})`;
+  f(40, `MAX(0,${prevNonReg}-V${r}+${nonRegFromSav}+${surplusNonReg})*(1+Assumptions_NonRegReturn)`);
+  f(41, `MAX(0,${prevOther}-AA${r})*(1+Assumptions_RealReturn)`);
+  f(42, mortgageBalFormula(r, prevMort));
 
-  const prevCostBasis = isFirst ? 'Assumptions_NonRegCostBasis' : `AS${prevR}`;
-  const cbPrevBal = isFirst ? 'Assumptions_NonRegBalance' : `AN${prevR}`;
-  const overflowDeposit = `MAX(0,AJ${r}-AK${r})`;
-  row.getCell(45).value = { formula:
-    `MAX(0,${prevCostBasis}*MAX(0,${cbPrevBal}-V${r})/IF(${cbPrevBal}>0,${cbPrevBal},1))+${overflowDeposit}` };
-  row.getCell(45).numFmt = FMT.currency;
+  const aq = isCouple ? `AL${r}+AM${r}+AN${r}+AO${r}+BB${r}+BC${r}` : `AL${r}+AM${r}+AN${r}+AO${r}`;
+  f(43, aq);
+  f(44, `AQ${r}+Assumptions_RealEstateValue-AP${r}`);
 
+  // AS: NonReg Cost Basis
+  const prevCB = isFirst ? 'Assumptions_NonRegCostBasis' : `AS${prevR}`;
+  const cbBal = isFirst ? 'Assumptions_NonRegBalance' : `AN${prevR}`;
+  const totNrDep = `${nonRegFromSav}+${surplusNonReg}`;
+  f(45, `MAX(0,${prevCB}*MAX(0,${cbBal}-V${r})/IF(${cbBal}>0,${cbBal},1))+${totNrDep}`);
 }
 
 export { SHEET_NAME as PROJECTION_SHEET_NAME };

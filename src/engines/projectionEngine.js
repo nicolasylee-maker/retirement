@@ -1,5 +1,5 @@
 import { TFSA_PARAMS, RRSP_PARAMS } from '../constants/taxTables.js';
-import { allocateRrspContributions, capToAffordable, applyAffordabilityCap } from './savingsCalc.js';
+import { allocateSavings, capToAffordable, applyAffordabilityCap } from './savingsCalc.js';
 import { calcTotalTax, calcOasClawback, calcRrifMinimum } from './taxEngine.js';
 import { calcCppBenefit, calcOasBenefit, calcGisBenefit, calcGainsBenefit, calcTaxableCapitalGain } from './incomeHelpers.js';
 import { calcAnnualPayment } from '../utils/debtCalc.js';
@@ -22,6 +22,7 @@ export function projectScenario(scenario, overrides = {}) {
   let tfsaContribRoom = s.tfsaContributionRoom || 0;
   let rrspContribRoom = s.rrspContributionRoom || 0;
   let spouseRrspContribRoom = s.isCouple ? (s.spouseRrspContributionRoom || 0) : 0;
+  let spouseTfsaContribRoom = s.isCouple ? (s.spouseTfsaContributionRoom || 0) : 0;
   const realReturn = s.realReturn || 0.04;
   const tfsaReturn = s.tfsaReturn || realReturn;
   const nonRegReturn = s.nonRegReturn || realReturn;
@@ -138,15 +139,26 @@ export function projectScenario(scenario, overrides = {}) {
       }
     }
 
-    // Monthly savings → RRSP contributions (pre-retirement only)
+    // Accrue this year's TFSA room BEFORE savings allocation
+    // (CRA: each calendar year adds new room, available immediately)
+    tfsaContribRoom += TFSA_PARAMS.annualLimit;
+    if (s.isCouple) spouseTfsaContribRoom += TFSA_PARAMS.annualLimit;
+
+    // Monthly savings → RRSP / TFSA / NonReg contributions (pre-retirement only)
     const rawTarget = (!retired && (s.stillWorking ?? true)) ? (s.monthlySavings || 0) * 12 * inflationFactor : 0;
     const targetSavings = capToAffordable(rawTarget, employmentIncome + spouseEmploymentIncome, expenses, debtPayments);
-    let { rrspContrib, spouseRrspContrib } = allocateRrspContributions({
+    let { rrspContrib, spouseRrspContrib, tfsaContrib, spouseTfsaContrib, nonRegContrib } = allocateSavings({
       targetSavings, employmentIncome, spouseEmploymentIncome,
       rrspContribRoom, spouseRrspContribRoom,
+      tfsaContribRoom, spouseTfsaContribRoom,
       isCouple: !!s.isCouple, spouseRetired,
     });
     let totalRrspContrib = rrspContrib + spouseRrspContrib;
+    let totalTfsaContrib = tfsaContrib + spouseTfsaContrib;
+
+    // Consume TFSA room used by savings allocation
+    tfsaContribRoom = Math.max(0, tfsaContribRoom - tfsaContrib);
+    if (s.isCouple) spouseTfsaContribRoom = Math.max(0, spouseTfsaContribRoom - spouseTfsaContrib);
 
     const cppIncome = calcCppBenefit(s.cppMonthly || 0, s.cppStartAge || 65, age) * inflationFactor;
     const oasGross = calcOasBenefit(s.oasMonthly || 0, s.oasStartAge || 65, age) * inflationFactor;
@@ -313,35 +325,36 @@ export function projectScenario(scenario, overrides = {}) {
         + spouseEmploymentIncome + spouseCppIncome + spouseOasIncome + spousePensionIncome + spouseRrspWithdrawal
         + spouseTfsaWithdrawal;
       afterTaxIncome = grossIncome - totalTax;
-      surplus = afterTaxIncome - expenses - debtPayments - totalRrspContrib;
+      surplus = afterTaxIncome - expenses - debtPayments - totalRrspContrib - totalTfsaContrib - nonRegContrib;
 
       if (surplus >= -50) break;
       remaining = -surplus;
       if (rrspAvail <= 0 && tfsaAvail <= 0 && (!s.isCouple || spouseTfsaAvail <= 0) && nonRegAvail <= 0 && otherAvail <= 0) break;
     }
 
-    // Affordability cap: reduce RRSP contributions if surplus is deeply negative
-    ({ rrspContrib, spouseRrspContrib, surplus } = applyAffordabilityCap(
-      surplus, rrspContrib, spouseRrspContrib, afterTaxIncome, expenses, debtPayments,
+    // Affordability cap: reduce contributions if surplus is deeply negative (nonReg first, then TFSA, then RRSP)
+    ({ rrspContrib, spouseRrspContrib, tfsaContrib, spouseTfsaContrib, nonRegContrib, surplus } = applyAffordabilityCap(
+      surplus, rrspContrib, spouseRrspContrib, tfsaContrib, spouseTfsaContrib, nonRegContrib, afterTaxIncome, expenses, debtPayments,
     ));
     totalRrspContrib = rrspContrib + spouseRrspContrib;
+    totalTfsaContrib = tfsaContrib + spouseTfsaContrib;
 
     // Update balances after convergence
     const preWithdrawalNonReg = nonReg;
     rrsp = Math.max(0, rrsp - rrspWithdrawal + rrspContrib);
-    tfsa = Math.max(0, tfsa - tfsaWithdrawal);
+    tfsa = Math.max(0, tfsa - tfsaWithdrawal + tfsaContrib);
     if (nonRegWithdrawal > 0 && preWithdrawalNonReg > 0) {
       nonRegCostBasis *= (preWithdrawalNonReg - nonRegWithdrawal) / preWithdrawalNonReg;
     }
-    nonReg = Math.max(0, nonReg - nonRegWithdrawal);
+    nonReg = Math.max(0, nonReg - nonRegWithdrawal) + nonRegContrib;
+    nonRegCostBasis += nonRegContrib;
     other = Math.max(0, other - otherWithdrawal);
     if (s.isCouple) {
       spouseRrsp = Math.max(0, spouseRrsp - spouseRrspWithdrawal + spouseRrspContrib);
-      spouseTfsa = Math.max(0, spouseTfsa - spouseTfsaWithdrawal);
+      spouseTfsa = Math.max(0, spouseTfsa - spouseTfsaWithdrawal + spouseTfsaContrib);
     }
 
-    // Accrue contribution room
-    tfsaContribRoom += TFSA_PARAMS.annualLimit;
+    // Accrue RRSP contribution room (TFSA accrual already happened above)
     rrspContribRoom = Math.max(0, rrspContribRoom - rrspContrib)
       + Math.min(employmentIncome * RRSP_PARAMS.earnedIncomeRate, RRSP_PARAMS.annualLimit);
     if (s.isCouple) {
@@ -404,8 +417,8 @@ export function projectScenario(scenario, overrides = {}) {
       debtPayments: Math.round(debtPayments),
       surplus: Math.round(surplus),
       rrspDeposit: Math.round(rrspContrib),
-      tfsaDeposit: Math.round(tfsaDeposit),
-      nonRegDeposit: Math.round(nonRegDeposit),
+      tfsaDeposit: Math.round(tfsaDeposit + totalTfsaContrib),
+      nonRegDeposit: Math.round(nonRegDeposit + nonRegContrib),
       rrspContributionRoom: Math.round(rrspContribRoom),
       tfsaContributionRoom: Math.round(tfsaContribRoom),
       mortgageBalance: Math.round(mortgage),

@@ -47,9 +47,13 @@ function inputsTable(s) {
   if (s.isCouple && s.spousePensionType === 'dc') rows.push(['Spouse DC Balance', $(s.spouseDcPensionBalance)]);
 
   rows.push(['RRSP', $(s.rrspBalance)], ['TFSA', $(s.tfsaBalance)]);
+  if (s.rrspContributionRoom > 0) rows.push(['RRSP Contribution Room', $(s.rrspContributionRoom)]);
+  if (s.tfsaContributionRoom > 0) rows.push(['TFSA Contribution Room', $(s.tfsaContributionRoom)]);
   if (s.liraBalance > 0) rows.push(['LIRA', $(s.liraBalance)]);
   if (s.isCouple && (s.spouseRrspBalance || 0) + (s.spouseRrifBalance || 0) > 0) rows.push(['Spouse RRSP', $(s.spouseRrspBalance + (s.spouseRrifBalance || 0))]);
   if (s.isCouple && s.spouseTfsaBalance > 0) rows.push(['Spouse TFSA', $(s.spouseTfsaBalance)]);
+  if (s.isCouple && s.spouseRrspContributionRoom > 0) rows.push(['Spouse RRSP Room', $(s.spouseRrspContributionRoom)]);
+  if (s.isCouple && s.spouseTfsaContributionRoom > 0) rows.push(['Spouse TFSA Room', $(s.spouseTfsaContributionRoom)]);
 
   rows.push(['Non-Registered', $(s.nonRegInvestments)], ['Cash Savings', $(s.cashSavings)]);
   if (s.otherAssets > 0) rows.push(['Other Assets', $(s.otherAssets)]);

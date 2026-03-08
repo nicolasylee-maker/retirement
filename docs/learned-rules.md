@@ -67,20 +67,27 @@
 - **Optimizer scores are per-scenario, independent per dimension**: Each dimension is tested in isolation against the baseline — interactions between dimensions (e.g. "defer CPP and also do meltdown") are not jointly optimised. Applying a recommendation updates the scenario, then re-running re-scores all dimensions against the new baseline.
 - **Skip logic prevents noise**: meltdown + withdrawalOrder skip when `rrspBalance + rrifBalance === 0`; expenses skip when `base.depletion === null`; spouse dims skip when `!isCouple`. Tests should assert these dimensions are *absent* from both `recommendations` and `alreadyOptimal` (not just not recommended).
 
-## Monthly Savings / RRSP Contributions
+## Monthly Savings / Contribution Room
 
-- `monthlySavings` routes savings: RRSP first (tax-deductible), then remaining surplus flows to TFSA/NonReg via existing deposit logic
+- `monthlySavings` routes savings in a cascade: RRSP → TFSA → NonReg. RRSP is first because it's tax-deductible.
 - RRSP contributions capped at `min(target, $32,490/yr, available room)`
 - Contributions only during working years (pre-retirement, `stillWorking: true`)
-- Couple mode: split proportional to each person's employment income, capped at each person's $32,490 limit
+- Couple mode: split proportional to each person's employment income, capped at each person's $32,490 limit. Overflow from one spouse's capped account flows back to the other.
+- TFSA cascade (couples): after RRSP, remainder splits proportionally. Spouse TFSA overflow → primary TFSA, and primary TFSA overflow → spouse TFSA. This cross-filling ensures no room is wasted.
 - RRSP room accrues at `min(earnedIncome * 18%, $32,490)` annually
-- Affordability cap: pre-caps savings target at estimated after-tax surplus, then post-loop reduces if still negative
+- TFSA room accrues `$7,000/yr` per person (CRA annual limit). Room accrual happens BEFORE savings allocation each year — this means even `tfsaContributionRoom: 0` gets $7K available in year 1.
+- Affordability cap: two-stage — `capToAffordable()` pre-caps target at rough after-tax surplus, then `applyAffordabilityCap()` post-loop reduces contributions if surplus is still negative. Scale-back order: NonReg first, then TFSA (proportional), then RRSP (proportional).
 - `monthlySavings: 0` or `undefined` is a true no-op — identical to baseline projections
+- **TFSA room estimation** (`tfsaLimits.js`): estimates room as `cumulativeLimit - balance`. This is inherently inaccurate — it assumes no past withdrawals (withdrawals restore room the following year). RRSP room estimation is even rougher — depends on full income history we don't have. Both are starting points only; wizard UI should encourage users to check their CRA My Account.
+- **Savings cascade vs surplus deposits are separate flows**: The savings cascade (from `allocateSavings()`) runs during the contribution phase. Surplus deposits run AFTER the tax loop converges and handle leftover cash. Both write to the same output fields (`tfsaDeposit`, `spouseTfsaDeposit`, `nonRegDeposit`) as combined totals. When debugging, trace which flow contributed what — the engine sums them at output time.
+- **Excel formulas must mirror both flows**: The Projection sheet has separate formula fragments for savings-cascade deposits and surplus deposits. They must stay in sync with the engine. A common bug: adding a deposit path in the engine but forgetting to wire it in the Excel formula, causing Excel and engine to diverge silently.
 
 ## Projection Engine Pitfalls
 
 - **`surplus` field is always zero in projection output**: `projectionEngine.js` computes `surplus = afterTaxIncome - expenses - debtPayments`, then immediately deposits any positive remainder into TFSA/non-reg accounts, zeroing out `surplus`. Never use `surplus` for savings calculations or KPIs. Instead use `tfsaDeposit + nonRegDeposit` for actual new savings, or `totalPortfolio` deltas for portfolio trajectory.
 - **Portfolio growth ≠ deposits**: A user may have $0 in deposits (no income surplus) but $2.75M in portfolio — all growth comes from compounding pre-existing RRSP/TFSA/non-reg balances. KPIs must handle zero-deposit scenarios gracefully.
+- **Surplus deposit order is Primary TFSA → Spouse TFSA → NonReg**: After savings cascade, surplus auto-deposits fill primary TFSA first, then spouse TFSA (couples only), then NonReg. Previously surplus skipped spouse TFSA entirely, routing ~$7K/yr to taxable NonReg instead of tax-free spouse TFSA over 28+ working years.
+- **Audit waterfall deposits must include ALL account types**: `auditInvestmentReturns.js` computes returns as `portfolioChange + withdrawals - deposits`. If any deposit type (RRSP, spouse RRSP, spouse TFSA) is omitted from `D`, the residual inflates "Returns" by that amount. Always include `rrspDeposit`, `spouseRrspDeposit`, `tfsaDeposit`, `spouseTfsaDeposit`, and `nonRegDeposit` in both `computeYearReturns` and `aggregatePhase`.
 
 ## Expense-Debt Overlap
 

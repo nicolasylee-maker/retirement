@@ -294,14 +294,14 @@ describe('output propagation', () => {
     expect(age90Save.rrspBalance).toBeGreaterThanOrEqual(age90Base.rrspBalance);
   });
 
-  it('RRSP balance at RRIF conversion is larger with contributions', () => {
+  it('RRSP balance at retirement is larger with contributions', () => {
     const baseline = projectScenario(baseScenario({ monthlySavings: 0 }));
     const withSavings = projectScenario(baseScenario({ monthlySavings: 1000 }));
-    // At 71 (just before RRIF), RRSP balance should be higher with savings
-    const baseAt71 = baseline.find(r => r.age === 71);
-    const saveAt71 = withSavings.find(r => r.age === 71);
-    if (baseAt71 && saveAt71) {
-      expect(saveAt71.rrspBalance).toBeGreaterThan(baseAt71.rrspBalance);
+    // At 64 (last working year before retirement at 65), RRSP should be higher with savings
+    const baseAt64 = baseline.find(r => r.age === 64);
+    const saveAt64 = withSavings.find(r => r.age === 64);
+    if (baseAt64 && saveAt64) {
+      expect(saveAt64.rrspBalance).toBeGreaterThan(baseAt64.rrspBalance);
     }
   });
 });

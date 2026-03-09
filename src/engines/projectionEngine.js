@@ -240,7 +240,7 @@ export function projectScenario(scenario, overrides = {}) {
     let nonRegWithdrawal = 0;
     let otherWithdrawal = 0;
 
-    const withdrawalOrder = s.withdrawalOrder || ['tfsa', 'nonReg', 'rrsp', 'other'];
+    const withdrawalOrder = s.withdrawalOrder || ['nonReg', 'rrsp', 'tfsa', 'other'];
     let rrspAvail = Math.max(0, rrsp - rrspWithdrawal);
     let tfsaAvail = tfsa;
     let spouseTfsaAvail = s.isCouple ? spouseTfsa : 0;

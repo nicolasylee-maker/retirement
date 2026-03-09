@@ -113,7 +113,7 @@ export function createDefaultScenario(name = 'My Scenario') {
     nonRegReturn: 0.04,
 
     // Step 8: Withdrawal Strategy
-    withdrawalOrder: ['tfsa', 'nonReg', 'rrsp', 'other'],
+    withdrawalOrder: ['nonReg', 'rrsp', 'tfsa', 'other'],
     rrspMeltdownEnabled: false,
     rrspMeltdownStartAge: 65,
     rrspMeltdownTargetAge: 71,

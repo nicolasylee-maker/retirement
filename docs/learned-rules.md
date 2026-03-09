@@ -13,6 +13,7 @@
 
 ## Withdrawal Strategy
 
+- Default order: NonReg → RRSP → TFSA → Other. Rationale: spend taxable accounts first while income is low, preserve tax-free TFSA growth as long as possible. Matches wizard helper text and standard Canadian tax planning advice.
 - RRSP meltdown: voluntarily withdraw RRSP before 72 to reduce future mandatory RRIF minimums
 - Optimal order depends on marginal tax rates and OAS clawback zone
 - TFSA first preserves tax-free growth; RRSP first may reduce clawback

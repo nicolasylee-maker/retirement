@@ -96,7 +96,7 @@ describe('computeDiffDrivers', () => {
     const diffs = computeDiffDrivers(a, b);
     const wo = diffs.find(d => d.key === 'withdrawalOrder');
     expect(wo).toBeDefined();
-    expect(wo.fmtA).toBe('tfsa → nonReg → rrsp → other');
+    expect(wo.fmtA).toBe('nonReg → rrsp → tfsa → other');
     expect(wo.fmtB).toBe('rrsp → tfsa → nonReg → other');
   });
 

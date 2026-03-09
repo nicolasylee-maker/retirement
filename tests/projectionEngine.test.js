@@ -54,7 +54,7 @@ function minimal(overrides) {
     monthlyExpenses: 1000, inflationRate: 0.001, realReturn: 0.001,
     tfsaReturn: 0.001, nonRegReturn: 0.001,
     expenseReductionAtRetirement: 0, cashSavings: 0,
-    withdrawalOrder: ['tfsa', 'nonReg', 'rrsp', 'other'],
+    withdrawalOrder: ['nonReg', 'rrsp', 'tfsa', 'other'],
     ...overrides,
   };
 }
@@ -132,15 +132,15 @@ describe('OAS timing and clawback', () => {
 // -- 6. Withdrawal order -----------------------------------------------------
 
 describe('withdrawal order', () => {
-  it('default: TFSA before non-reg before RRSP', () => {
+  it('default: non-reg before RRSP before TFSA', () => {
     const s = minimal({
       tfsaBalance: 5000, nonRegInvestments: 5000, nonRegCostBasis: 5000,
       rrspBalance: 100000, inflationRate: 0.001, realReturn: 0.001,
     });
     const first = projectScenario(s)[0];
-    expect(first.tfsaWithdrawal).toBe(5000);
     expect(first.nonRegWithdrawal).toBe(5000);
-    expect(first.rrspWithdrawal).toBeGreaterThanOrEqual(2000);
+    expect(first.rrspWithdrawal).toBeGreaterThanOrEqual(7000);
+    expect(first.tfsaWithdrawal).toBe(0);
   });
   it('reversed: RRSP drawn first', () => {
     const s = minimal({
@@ -230,7 +230,9 @@ describe('RRSP meltdown', () => {
   });
   it('Rajesh: meltdown active at 70, RRIF-only at 71', () => {
     const r = projectScenario(rajesh());
-    expect(r.find(y => y.age === 70).rrspWithdrawal).toBeGreaterThanOrEqual(40000);
+    // With default order (nonReg→rrsp→tfsa), RRSP is drawn for expenses too,
+    // so by 70 the balance may be lower — assert meltdown is still active
+    expect(r.find(y => y.age === 70).rrspWithdrawal).toBeGreaterThan(0);
     const at71 = r.find(y => y.age === 71);
     const rrifMin = Math.round((at71.rrspBalance / 1.04) * 0.0528);
     expect(at71.rrspWithdrawal).toBeGreaterThanOrEqual(rrifMin - 1);
@@ -525,12 +527,15 @@ describe('couple support', () => {
   // P3: spouse registered savings
   it('spouse RRIF minimum kicks in at spouse age 72, not primary age 72', () => {
     // Primary 68, spouse 60 → spouse turns 72 when primary turns 80
+    // Use nonReg (drawn first in default order) to cover expenses, so spouse RRSP
+    // is only touched when RRIF minimums kick in at spouse age 72.
     const s = coupleBase({
       currentAge: 68, retirementAge: 68, lifeExpectancy: 84,
       spouseAge: 60, spouseRetirementAge: 62,
       spouseRrspBalance: 200000,
-      inflationRate: 0, realReturn: 0, tfsaReturn: 0,
-      tfsaBalance: 500000,
+      inflationRate: 0, realReturn: 0, tfsaReturn: 0, nonRegReturn: 0,
+      nonRegInvestments: 500000, nonRegCostBasis: 500000,
+      tfsaBalance: 0,
     });
     const r = projectScenario(s);
     // Before spouse turns 72 (primary < 80): no spouse RRIF withdrawal

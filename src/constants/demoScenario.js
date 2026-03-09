@@ -88,7 +88,7 @@ export const DEMO_SCENARIO = {
   nonRegReturn: 0.04,
 
   // Withdrawal strategy — RRSP meltdown ages 70–71
-  withdrawalOrder: ['tfsa', 'nonReg', 'rrsp', 'other'],
+  withdrawalOrder: ['nonReg', 'rrsp', 'tfsa', 'other'],
   rrspMeltdownEnabled: true,
   rrspMeltdownStartAge: 70,
   rrspMeltdownTargetAge: 71,

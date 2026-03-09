@@ -39,24 +39,54 @@ const WHAT_IF_SLIDERS = [
     step: 1,
     format: 'number',
   },
+  {
+    key: 'retirementAge',
+    label: 'Retirement Age',
+    min: 30,
+    max: 100,
+    step: 1,
+    format: 'number',
+    dynamic: true,
+  },
 ];
 
 function SliderList({ scenario, overrides, onOverrideChange, onReset, onEditAssumptions }) {
   const hasOverrides = Object.keys(overrides).length > 0;
+  const effectiveLifeExpectancy = overrides.lifeExpectancy ?? scenario.lifeExpectancy;
+  const alreadyRetired = scenario.currentAge >= scenario.retirementAge;
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
         {WHAT_IF_SLIDERS.map((slider) => {
+          // Skip retirement age slider if already retired
+          if (slider.key === 'retirementAge' && alreadyRetired) return null;
+
           const raw = overrides[slider.key] ?? scenario[slider.key];
           const displayVal = slider.isRate ? raw * 100 : raw;
+
+          // Dynamic bounds for retirement age
+          let sliderMin = slider.min;
+          let sliderMax = slider.max;
+          if (slider.key === 'retirementAge') {
+            sliderMin = scenario.currentAge + 1;
+            sliderMax = effectiveLifeExpectancy - 1;
+          }
+
           let subtitle;
           if (slider.key === 'monthlyExpenses') {
             const reduction = scenario.expenseReductionAtRetirement || 0;
-            const isPreRetirement = scenario.currentAge < scenario.retirementAge;
+            const effectiveRetAge = overrides.retirementAge ?? scenario.retirementAge;
+            const isPreRetirement = scenario.currentAge < effectiveRetAge;
             if (isPreRetirement && reduction > 0) {
               const reduced = Math.round(raw * (1 - reduction));
               const pct = Math.round(reduction * 100);
               subtitle = `${formatCurrency(reduced)}/mo after ${pct}% retirement reduction`;
+            }
+          } else if (slider.key === 'retirementAge') {
+            const yearsUntil = raw - scenario.currentAge;
+            subtitle = `Retire in ${yearsUntil} year${yearsUntil !== 1 ? 's' : ''}`;
+            if (scenario.rrspMeltdownEnabled && scenario.rrspMeltdownStartAge === scenario.retirementAge && raw !== scenario.retirementAge) {
+              subtitle += ' · RRSP meltdown start age will also shift';
             }
           }
           return (
@@ -65,15 +95,21 @@ function SliderList({ scenario, overrides, onOverrideChange, onReset, onEditAssu
               label={slider.label}
               value={displayVal}
               onChange={(val) => onOverrideChange(slider.key, slider.isRate ? val / 100 : val)}
-              min={slider.min}
-              max={slider.max}
+              min={sliderMin}
+              max={sliderMax}
               step={slider.step}
               format={slider.format}
               subtitle={subtitle}
+              subtitleClassName={slider.key === 'retirementAge' && subtitle?.includes('meltdown') ? 'text-amber-600' : undefined}
             />
           );
         })}
       </div>
+      {alreadyRetired && (
+        <p className="text-sm text-gray-400 mt-2 italic">
+          Already retired — retirement age cannot be changed.
+        </p>
+      )}
       {hasOverrides && (
         <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between gap-4 flex-wrap">
           <Button variant="secondary" size="sm" onClick={onReset}>
@@ -124,7 +160,7 @@ export default function WhatIfPanel({ scenario, overrides, onOverrideChange, onR
               <span className="text-lg font-semibold text-gray-900">What If?</span>
               {!expanded && (
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Adjust return, inflation, expenses &amp; life expectancy to stress-test your plan
+                  Adjust return, inflation, expenses, life expectancy &amp; retirement age to stress-test your plan
                 </p>
               )}
             </div>

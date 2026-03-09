@@ -17,6 +17,7 @@ export default function SliderControl({
   format = 'currency',
   helper,
   subtitle,
+  subtitleClassName,
 }) {
   const fmt = formatters[format] || formatters.number;
 
@@ -41,7 +42,7 @@ export default function SliderControl({
       </div>
 
       {subtitle && (
-        <p className="text-xs text-gray-400 -mt-1">{subtitle}</p>
+        <p className={`text-xs -mt-1 ${subtitleClassName || 'text-gray-400'}`}>{subtitle}</p>
       )}
 
       <div className="relative">

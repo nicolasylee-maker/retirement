@@ -598,7 +598,8 @@ export default function App() {
       return;
     }
     const keys = Object.keys(whatIfOverrides);
-    const step = (keys.length === 1 && keys[0] === 'lifeExpectancy') ? 0 : 6;
+    const personalFields = ['lifeExpectancy', 'retirementAge'];
+    const step = keys.every(k => personalFields.includes(k)) ? 0 : 6;
     setWizardStep(step);
     setView('wizard');
   }, [whatIfOverrides, currentScenario]);
